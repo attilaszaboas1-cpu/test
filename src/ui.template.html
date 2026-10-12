@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+/*__STYLES__*/
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- ============================== LEFT: layer tree ============================== -->
+  <aside class="panel left">
+    <div class="pane-card toolbar">
+      <button class="icon-btn" data-act="select-parent" title="Select parent layer in Figma"><i data-icon="arrow-up"></i></button>
+      <button class="icon-btn" data-act="add-selection" title="Add the layers selected in Figma to the HTML"><i data-icon="arrow-right"></i></button>
+      <button class="icon-btn" id="followBtn" data-act="toggle-follow" title="Follow Figma selection"><i data-icon="select"></i></button>
+      <span class="grow"></span>
+      <button class="text-btn" data-act="restore-session" title="Restore the last saved session"><i data-icon="history"></i>Restore session</button>
+      <button class="icon-btn ghost" data-act="save-session" title="Save session snapshot"><i data-icon="save"></i></button>
+    </div>
+
+    <div class="search-row">
+      <label class="search"><i data-icon="search"></i><input id="search" type="text" placeholder="Search node"></label>
+      <button class="btn" id="filtersBtn" data-act="toggle-filters"><i data-icon="filter"></i>Filters</button>
+    </div>
+    <div id="filters" class="filters" hidden></div>
+    <div id="bulkNodes" class="bulk" hidden></div>
+    <div id="tree" class="tree"></div>
+
+    <footer class="status-bar">
+      <span id="status" class="status"><i data-icon="info"></i><span>Select a banner frame in Figma.</span></span>
+      <button class="text-btn" data-act="open-package"><i data-icon="package"></i>Package</button>
+    </footer>
+  </aside>
+
+  <!-- ============================== RIGHT: timeline & preview ============================== -->
+  <section class="panel right">
+    <div class="right-scroll">
+      <div class="top-row">
+        <button class="icon-btn" data-act="open-sync" title="Copy this animation to other sizes"><i data-icon="layout"></i></button>
+        <select id="bannerSelect" class="size-select" title="Banner"></select>
+        <button class="icon-btn" data-act="refresh" title="Re-export layers from Figma"><i data-icon="refresh"></i></button>
+      </div>
+
+      <div class="frames-row">
+        <span class="label">FRAMES</span>
+        <button class="mini-btn" data-act="scene-remove" title="Remove last frame">−</button>
+        <span id="sceneCount" class="count">1</span>
+        <button class="mini-btn" data-act="scene-add" title="Add frame">+</button>
+        <span class="grow"></span>
+        <label class="inline-field" title="How many times the banner plays">Plays
+          <select id="playsSelect"><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option><option value="0">∞</option></select>
+        </label>
+        <label class="inline-check" title="On the final play, the last frame skips its exits and stays on screen"><input type="checkbox" id="endOnLast">End on last frame</label>
+        <span id="totalTime" class="muted"></span>
+      </div>
+      <div id="sceneDurations" class="scene-durations"></div>
+      <input id="scrubber" type="range" min="0" max="10" step="0.01" value="0">
+      <div class="transport">
+        <button class="icon-btn ghost" id="playBtn" data-act="play" title="Play / pause"><i data-icon="play"></i></button>
+        <button class="icon-btn ghost" data-act="restart" title="Restart"><i data-icon="restart"></i></button>
+        <span id="timeLabel" class="muted mono">0.00s</span>
+        <span class="grow"></span>
+        <button class="icon-btn ghost" data-act="scene-prev" title="Previous frame"><i data-icon="chevron-left"></i></button>
+        <span id="sceneLabel" class="scene-label">F1</span>
+        <button class="icon-btn ghost" data-act="scene-next" title="Next frame"><i data-icon="chevron-right"></i></button>
+        <button class="icon-btn ghost" id="outlineBtn" data-act="toggle-outline" title="Show element outlines"><i data-icon="eye"></i></button>
+      </div>
+
+      <div id="stage" class="stage">
+        <div id="frameBox" class="frame-box"><iframe id="preview" title="Banner preview" sandbox="allow-scripts"></iframe></div>
+        <div id="stageMsg" class="stage-msg">Select a banner frame in Figma.</div>
+        <div class="zoom">
+          <button class="mini-btn" data-act="zoom-out">−</button>
+          <span id="zoomLabel">100%</span>
+          <button class="mini-btn" data-act="zoom-in">+</button>
+          <button class="mini-btn strong" data-act="zoom-fit">Fit</button>
+        </div>
+      </div>
+      <div id="warnings" class="warnings"></div>
+
+      <div id="bulkEls" class="bulk" hidden></div>
+      <div id="elements" class="elements"></div>
+    </div>
+
+    <footer class="status-bar right-foot">
+      <span id="sizeInfo" class="muted"></span>
+      <span class="grow"></span>
+      <div class="seg" id="modeSeg">
+        <button data-act="mode" data-mode="fast" class="on">FAST</button>
+        <button data-act="mode" data-mode="adv">ADV</button>
+      </div>
+    </footer>
+  </section>
+</div>
+
+<!-- ============================== Package sheet ============================== -->
+<div id="packageSheet" class="sheet-wrap" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <span class="sheet-icon"><i data-icon="package"></i></span>
+      <h2>Banner Package</h2>
+      <button class="icon-btn ghost" data-act="close-package"><i data-icon="close"></i></button>
+    </div>
+    <div class="sheet-body" id="packageBody"></div>
+    <div class="sheet-foot">
+      <div class="dropdown" id="channelDrop">
+        <button class="btn" data-act="toggle-channel"><span id="channelLabel">Channel</span><i data-icon="chevron-down"></i></button>
+        <div class="menu" id="channelMenu" hidden></div>
+      </div>
+      <button class="btn" data-act="package-preview"><i data-icon="external"></i>Preview</button>
+      <button class="btn primary" id="downloadAllBtn" data-act="download-all"><i data-icon="download"></i>Download all</button>
+      <span class="muted files-count"><i data-icon="files"></i><span id="filesCount">0 files</span></span>
+    </div>
+  </div>
+</div>
+
+<!-- ============================== Preview all sizes ============================== -->
+<div id="previewSheet" class="sheet-wrap" hidden>
+  <div class="sheet wide">
+    <div class="sheet-head">
+      <span class="sheet-icon"><i data-icon="external"></i></span>
+      <h2>Package preview</h2>
+      <button class="btn" data-act="replay-all"><i data-icon="restart"></i>Replay all</button>
+      <button class="icon-btn ghost" data-act="close-preview"><i data-icon="close"></i></button>
+    </div>
+    <div class="sheet-body previews" id="previewBody"></div>
+  </div>
+</div>
+
+<!-- ============================== Sync sizes ============================== -->
+<div id="syncSheet" class="sheet-wrap" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <span class="sheet-icon"><i data-icon="layout"></i></span>
+      <h2>Copy animation to other sizes</h2>
+      <button class="icon-btn ghost" data-act="close-sync"><i data-icon="close"></i></button>
+    </div>
+    <div class="sheet-body" id="syncBody"></div>
+    <div class="sheet-foot">
+      <span class="muted">Layers are matched by name. Existing animations on the target sizes are replaced.</span>
+      <span class="grow"></span>
+      <button class="btn primary" data-act="apply-sync">Copy animation</button>
+    </div>
+  </div>
+</div>
+
+<script>
+//__GENERATOR__
+</script>
+<script>
+//__APP__
+</script>
+</body>
+</html>

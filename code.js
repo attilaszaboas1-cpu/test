@@ -1,112 +1,109 @@
-// HTML5 Banner Animator — Figma main thread.
-// Reads the selected banner frame(s), stores animation settings as plugin data
-// and exports every top-level layer as an image for the UI to assemble into HTML.
+// Banner Automation — Figma main thread.
+// Serves the layer tree of a banner frame, persists sessions as plugin data and
+// exports the layers the user added to the HTML as images.
 
-figma.showUI(__html__, { width: 880, height: 660, themeColors: true, title: 'HTML5 Banner Animator' });
+figma.showUI(__html__, { width: 1120, height: 800, themeColors: true, title: 'Banner Automation' });
 
-const ANIM_KEY = 'bannerAnim';
-const BANNER_KEY = 'bannerSettings';
-const FALLBACK_KEY = 'bannerAnimFallback'; // per-frame map for layers that can't hold plugin data
-
-const DEFAULT_ANIM = {
-  in: 'none', delay: 0, dur: 0.6, ease: 'expo-out', dist: 40,
-  out: 'none', outAt: 4, outDur: 0.4, outEase: 'ease-in',
-  emph: 'none', emphPeriod: 1.2
-};
-
-const DEFAULT_BANNER = {
-  duration: 6, loops: 1, clickTag: 'https://www.example.com',
-  scale: 2, svg: false, border: true, borderColor: '#000000'
-};
-
+const SESSION_KEY = 'ba.session';
+const SNAPSHOT_KEY = 'ba.snapshot';
+const PACKAGE_KEY = 'ba.package';
 const FRAME_TYPES = ['FRAME', 'COMPONENT', 'INSTANCE'];
-const VECTOR_TYPES = ['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'LINE', 'ELLIPSE', 'POLYGON', 'RECTANGLE'];
+const MAX_NODES = 4000;
 
 function parseJSON(text) {
   if (!text) return null;
   try { return JSON.parse(text); } catch (e) { return null; }
 }
 
-function readBanner(frame) {
-  return Object.assign({}, DEFAULT_BANNER, parseJSON(frame.getPluginData(BANNER_KEY)));
-}
-
-function readAnim(node, frame) {
-  let saved = parseJSON(node.getPluginData(ANIM_KEY));
-  if (!saved) {
-    const map = parseJSON(frame.getPluginData(FALLBACK_KEY)) || {};
-    saved = map[node.id] || null;
-  }
-  return { anim: Object.assign({}, DEFAULT_ANIM, saved), saved: !!saved };
-}
-
-function writeAnim(node, frame, anim) {
-  try {
-    node.setPluginData(ANIM_KEY, JSON.stringify(anim));
-  } catch (e) {
-    // Layers inside instances may be read-only; keep their settings on the frame.
-    const map = parseJSON(frame.getPluginData(FALLBACK_KEY)) || {};
-    map[node.id] = anim;
-    frame.setPluginData(FALLBACK_KEY, JSON.stringify(map));
-  }
-}
-
-// A selected frame is used as-is; any other selected layer resolves to its top-level frame.
-function bannerFrameOf(node) {
-  if (FRAME_TYPES.indexOf(node.type) !== -1) return node;
-  let n = node;
-  while (n.parent && n.parent.type !== 'PAGE' && n.parent.type !== 'SECTION') n = n.parent;
-  return FRAME_TYPES.indexOf(n.type) !== -1 ? n : null;
-}
-
-function selectedFrames() {
-  const seen = {};
-  const frames = [];
-  for (const node of figma.currentPage.selection) {
-    const frame = bannerFrameOf(node);
-    if (frame && !seen[frame.id]) {
-      seen[frame.id] = true;
-      frames.push(frame);
-    }
-  }
-  return frames;
-}
-
-function describeFrame(frame) {
-  const area = frame.width * frame.height;
-  const layers = frame.children.filter((c) => c.visible).map((c) => {
-    const data = readAnim(c, frame);
-    const box = c.absoluteBoundingBox;
-    return {
-      id: c.id,
-      name: c.name,
-      type: c.type,
-      cover: !!box && (box.width * box.height) >= area * 0.9,
-      anim: data.anim,
-      saved: data.saved
-    };
-  });
-  return {
-    id: frame.id,
-    name: frame.name,
-    width: Math.round(frame.width),
-    height: Math.round(frame.height),
-    banner: readBanner(frame),
-    layers: layers
-  };
-}
-
-function sendSelection() {
-  figma.ui.postMessage({ type: 'selection', frames: selectedFrames().map(describeFrame) });
-}
-
 function round(n) {
   return Math.round(n * 100) / 100;
+}
+
+async function getNode(id) {
+  const node = await figma.getNodeByIdAsync(id);
+  if (!node || node.removed) throw new Error('Layer not found — it may have been deleted.');
+  return node;
+}
+
+function isTopLevel(node) {
+  return node.parent && (node.parent.type === 'PAGE' || node.parent.type === 'SECTION');
+}
+
+// The banner a node belongs to is its top-level frame on the page.
+function bannerOf(node) {
+  let n = node;
+  while (n && n.parent && !isTopLevel(n)) n = n.parent;
+  return n && isTopLevel(n) && FRAME_TYPES.indexOf(n.type) !== -1 ? n : null;
+}
+
+function listBanners() {
+  const out = [];
+  const visit = (parent) => {
+    for (const n of parent.children) {
+      if (FRAME_TYPES.indexOf(n.type) !== -1) out.push(n);
+      else if (n.type === 'SECTION') visit(n);
+    }
+  };
+  visit(figma.currentPage);
+  return out.map((f) => {
+    const session = parseJSON(f.getPluginData(SESSION_KEY));
+    return {
+      id: f.id,
+      name: f.name,
+      width: Math.round(f.width),
+      height: Math.round(f.height),
+      elements: session && session.elements ? session.elements.length : 0
+    };
+  });
 }
 
 function hasImageFill(node) {
   const fills = node.fills;
   return Array.isArray(fills) && fills.some((f) => f.type === 'IMAGE' || f.type === 'VIDEO');
+}
+
+// Masks clip the siblings stacked above them, so look below the node and below each ancestor.
+function maskFor(node, frame) {
+  let n = node;
+  while (n && n !== frame && n.parent) {
+    const siblings = n.parent.children;
+    for (let i = siblings.indexOf(n) - 1; i >= 0; i--) {
+      if (siblings[i].isMask) return siblings[i];
+    }
+    if (n.parent === frame) break;
+    n = n.parent;
+  }
+  return null;
+}
+
+function serializeTree(frame) {
+  let count = 0;
+  const walk = (node) => {
+    count++;
+    const box = node.absoluteBoundingBox;
+    const mask = node.isMask ? null : maskFor(node, frame);
+    const item = {
+      id: node.id,
+      name: node.name,
+      type: node.type,
+      visible: node.visible,
+      w: box ? Math.round(box.width) : 0,
+      h: box ? Math.round(box.height) : 0,
+      isMask: !!node.isMask,
+      img: hasImageFill(node),
+      maskId: mask ? mask.id : null,
+      maskName: mask ? mask.name : null,
+      children: []
+    };
+    if ('children' in node && count < MAX_NODES) {
+      for (const child of node.children) {
+        if (count >= MAX_NODES) break;
+        item.children.push(walk(child));
+      }
+    }
+    return item;
+  };
+  return frame.children.map(walk);
 }
 
 function solidFillCss(fills) {
@@ -124,7 +121,6 @@ function solidFillCss(fills) {
 async function exportBackground(frame, scale) {
   const css = solidFillCss(frame.fills);
   if (css) return { css: css };
-  // Gradients / images: render the frame's fills alone on a temporary rectangle.
   const rect = figma.createRectangle();
   try {
     rect.resize(frame.width, frame.height);
@@ -136,93 +132,173 @@ async function exportBackground(frame, scale) {
   }
 }
 
-async function exportFrame(frame, options) {
-  const scale = Number(options.scale) || 2;
-  const origin = frame.absoluteBoundingBox;
-  const layers = [];
-  const warnings = [];
+function exportSettings(format, scale) {
+  if (format === 'svg') return { format: 'SVG' };
+  if (format === 'jpg') return { format: 'JPG', constraint: { type: 'SCALE', value: scale } };
+  return { format: 'PNG', constraint: { type: 'SCALE', value: scale } };
+}
 
-  for (const node of frame.children) {
-    if (!node.visible) continue;
-    if (node.isMask) {
-      warnings.push('"' + node.name + '" is a mask — group it with the layers it masks.');
-      continue;
+// Exports one node relative to the banner. Layers listed in `hide` (elements nested
+// inside this one that are animated separately) are hidden so they aren't baked in twice.
+async function exportNode(node, origin, opts) {
+  const restore = [];
+  try {
+    if (!node.visible) {
+      node.visible = true;
+      restore.push(node);
+    }
+    for (const id of opts.hide || []) {
+      const child = await figma.getNodeByIdAsync(id);
+      if (child && child.visible) {
+        child.visible = false;
+        restore.push(child);
+      }
     }
     const bounds = node.absoluteRenderBounds;
-    if (!bounds || bounds.width < 0.01 || bounds.height < 0.01) continue;
-
-    const useSvg = !!options.svg && VECTOR_TYPES.indexOf(node.type) !== -1 && !hasImageFill(node);
-    let bytes;
-    try {
-      bytes = useSvg
-        ? await node.exportAsync({ format: 'SVG' })
-        : await node.exportAsync({ format: 'PNG', constraint: { type: 'SCALE', value: scale } });
-    } catch (e) {
-      warnings.push('Could not export "' + node.name + '": ' + e.message);
-      continue;
-    }
-    layers.push({
-      id: node.id,
-      name: node.name,
+    if (!bounds || bounds.width < 0.01 || bounds.height < 0.01) return null;
+    const format = opts.format || 'png';
+    const bytes = await node.exportAsync(exportSettings(format, Number(opts.scale) || 2));
+    return {
       x: round(bounds.x - origin.x),
       y: round(bounds.y - origin.y),
       width: round(bounds.width),
       height: round(bounds.height),
-      ext: useSvg ? 'svg' : 'png',
+      ext: format,
       bytes: bytes
-    });
+    };
+  } finally {
+    for (const n of restore) n.visible = !n.visible;
   }
-
-  return {
-    id: frame.id,
-    radius: typeof frame.cornerRadius === 'number' ? frame.cornerRadius : 0,
-    background: await exportBackground(frame, scale),
-    layers: layers,
-    warnings: warnings
-  };
 }
 
+function sendSelection() {
+  const sel = figma.currentPage.selection;
+  const banner = sel.length ? bannerOf(sel[0]) : null;
+  figma.ui.postMessage({ type: 'selection', ids: sel.map((n) => n.id), bannerId: banner ? banner.id : null });
+}
+
+const handlers = {
+  async init() {
+    const sel = figma.currentPage.selection;
+    const banner = sel.length ? bannerOf(sel[0]) : null;
+    return {
+      banners: listBanners(),
+      current: banner ? banner.id : null,
+      pkg: parseJSON(figma.root.getPluginData(PACKAGE_KEY)),
+      selection: sel.map((n) => n.id)
+    };
+  },
+
+  async listBanners() {
+    return listBanners();
+  },
+
+  async getBanner(p) {
+    const frame = await getNode(p.id);
+    return {
+      info: { id: frame.id, name: frame.name, width: Math.round(frame.width), height: Math.round(frame.height) },
+      tree: serializeTree(frame),
+      session: parseJSON(frame.getPluginData(SESSION_KEY))
+    };
+  },
+
+  async saveSession(p) {
+    const frame = await getNode(p.id);
+    frame.setPluginData(SESSION_KEY, JSON.stringify(p.session));
+    return true;
+  },
+
+  async saveSnapshot(p) {
+    const frame = await getNode(p.id);
+    frame.setPluginData(SNAPSHOT_KEY, JSON.stringify({ at: Date.now(), session: p.session }));
+    return true;
+  },
+
+  async loadSnapshot(p) {
+    const frame = await getNode(p.id);
+    return parseJSON(frame.getPluginData(SNAPSHOT_KEY));
+  },
+
+  async savePackage(p) {
+    figma.root.setPluginData(PACKAGE_KEY, JSON.stringify(p.pkg));
+    return true;
+  },
+
+  async exportAssets(p) {
+    const frame = await getNode(p.id);
+    const origin = frame.absoluteBoundingBox;
+    const result = { items: {}, masks: {}, warnings: [] };
+
+    for (const item of p.items || []) {
+      const node = await figma.getNodeByIdAsync(item.id);
+      if (!node || node.removed) {
+        result.warnings.push('A layer in the HTML no longer exists.');
+        continue;
+      }
+      try {
+        const out = await exportNode(node, origin, item);
+        if (out) result.items[item.key] = out;
+        else result.warnings.push('"' + node.name + '" is empty and was skipped.');
+      } catch (e) {
+        result.warnings.push('Could not export "' + node.name + '": ' + e.message);
+      }
+    }
+
+    for (const mask of p.masks || []) {
+      const node = await figma.getNodeByIdAsync(mask.id);
+      if (!node) continue;
+      try {
+        const out = await exportNode(node, origin, { format: 'png', scale: mask.scale });
+        if (out) result.masks[mask.key] = out;
+      } catch (e) {
+        result.warnings.push('Could not export mask "' + node.name + '": ' + e.message);
+      }
+    }
+
+    if (p.background) {
+      result.background = await exportBackground(frame, 2);
+      result.radius = typeof frame.cornerRadius === 'number' ? frame.cornerRadius : 0;
+    }
+    return result;
+  },
+
+  async locate(p) {
+    const node = await getNode(p.id);
+    if (node.type === 'PAGE' || node.type === 'DOCUMENT') return false;
+    figma.currentPage.selection = [node];
+    figma.viewport.scrollAndZoomIntoView([node]);
+    return true;
+  },
+
+  async selectParent() {
+    const sel = figma.currentPage.selection;
+    if (!sel.length) return null;
+    const parent = sel[0].parent;
+    if (!parent || parent.type === 'PAGE' || parent.type === 'SECTION') return null;
+    figma.currentPage.selection = [parent];
+    return parent.id;
+  },
+
+  async notify(p) {
+    figma.notify(p.text, { error: !!p.error });
+    return true;
+  }
+};
+
 figma.on('selectionchange', sendSelection);
-figma.on('currentpagechange', sendSelection);
+figma.on('currentpagechange', async () => {
+  figma.ui.postMessage({ type: 'banners', banners: listBanners() });
+  sendSelection();
+});
 
 figma.ui.onmessage = async (msg) => {
-  switch (msg.type) {
-    case 'ready':
-      sendSelection();
-      break;
-
-    case 'save-anims': {
-      const frame = await figma.getNodeByIdAsync(msg.frameId);
-      if (!frame) break;
-      for (const item of msg.items) {
-        const node = await figma.getNodeByIdAsync(item.id);
-        if (node) writeAnim(node, frame, item.anim);
-      }
-      break;
-    }
-
-    case 'save-banner': {
-      const frame = await figma.getNodeByIdAsync(msg.frameId);
-      if (frame) frame.setPluginData(BANNER_KEY, JSON.stringify(msg.banner));
-      break;
-    }
-
-    case 'export': {
-      try {
-        const frames = [];
-        for (const req of msg.frames) {
-          const frame = await figma.getNodeByIdAsync(req.id);
-          if (frame) frames.push(await exportFrame(frame, req));
-        }
-        figma.ui.postMessage({ type: 'assets', requestId: msg.requestId, frames: frames });
-      } catch (e) {
-        figma.ui.postMessage({ type: 'assets', requestId: msg.requestId, error: String(e && e.message || e) });
-      }
-      break;
-    }
-
-    case 'notify':
-      figma.notify(msg.text, { error: !!msg.error });
-      break;
+  if (!msg || msg.type !== 'call') return;
+  try {
+    const handler = handlers[msg.method];
+    if (!handler) throw new Error('Unknown method ' + msg.method);
+    const result = await handler(msg.params || {});
+    figma.ui.postMessage({ type: 'response', id: msg.id, result: result });
+  } catch (e) {
+    figma.ui.postMessage({ type: 'response', id: msg.id, error: String(e && e.message || e) });
   }
 };

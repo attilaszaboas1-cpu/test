@@ -3,910 +3,2442 @@
 <head>
 <meta charset="utf-8">
 <style>
-  :root {
-    --bg: var(--figma-color-bg, #ffffff);
-    --bg2: var(--figma-color-bg-secondary, #f5f5f5);
-    --bg3: var(--figma-color-bg-tertiary, #e6e6e6);
-    --text: var(--figma-color-text, #1e1e1e);
-    --muted: var(--figma-color-text-secondary, #6b6b6b);
-    --border: var(--figma-color-border, #e3e3e3);
-    --brand: var(--figma-color-bg-brand, #0d99ff);
-    --brand-text: var(--figma-color-text-onbrand, #ffffff);
-    --sel: var(--figma-color-bg-selected, #e5f4ff);
-    --warn: var(--figma-color-text-warning, #b86200);
-    --danger: var(--figma-color-text-danger, #dc3412);
-    --in: #3ba55d;
-    --hold: #9aa6b2;
-    --out: #e5553b;
-    --emph: #a259ff;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; height: 100%; }
-  body {
-    font: 11px/1.4 Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
-    color: var(--text); background: var(--bg);
-    display: flex; flex-direction: column;
-  }
-  button, input, select { font: inherit; color: inherit; }
-  header {
-    display: flex; align-items: center; gap: 8px;
-    padding: 8px 12px; border-bottom: 1px solid var(--border);
-  }
-  header .title { font-weight: 600; font-size: 12px; }
-  header .spacer { flex: 1; }
-  .muted { color: var(--muted); }
-  .btn {
-    border: 1px solid var(--border); background: var(--bg); border-radius: 5px;
-    padding: 4px 10px; cursor: pointer; white-space: nowrap;
-  }
-  .btn:hover { background: var(--bg2); }
-  .btn.primary { background: var(--brand); color: var(--brand-text); border-color: transparent; font-weight: 600; }
-  .btn.primary:hover { filter: brightness(1.08); }
-  .btn:disabled { opacity: .5; cursor: default; }
-  select, input[type=number], input[type=text], input[type=url] {
-    border: 1px solid var(--border); background: var(--bg); border-radius: 4px;
-    padding: 3px 5px; min-width: 0;
-  }
-  input[type=number] { width: 100%; }
-  main { flex: 1; display: grid; grid-template-columns: 340px 1fr; min-height: 0; }
-  .col { display: flex; flex-direction: column; min-height: 0; }
-  .col.left { border-right: 1px solid var(--border); }
-  .section-head {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: 8px 12px; font-weight: 600; border-bottom: 1px solid var(--border);
-  }
-  #layers { overflow-y: auto; flex: 0 0 230px; border-bottom: 1px solid var(--border); }
-  .layer {
-    padding: 5px 12px; cursor: pointer; display: grid; grid-template-columns: 1fr 110px; gap: 8px; align-items: center;
-  }
-  .layer:hover { background: var(--bg2); }
-  .layer.selected { background: var(--sel); }
-  .layer .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .layer .type { color: var(--muted); font-size: 10px; }
-  .track { position: relative; height: 8px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
-  .track span { position: absolute; top: 0; bottom: 0; }
-  #editor { overflow-y: auto; flex: 1; padding: 4px 12px 12px; }
-  fieldset { border: 0; padding: 0; margin: 10px 0 0; }
-  legend { font-weight: 600; padding: 0; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
-  legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
-  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 8px; }
-  .grid.three { grid-template-columns: repeat(3, 1fr); }
-  label.f { display: flex; flex-direction: column; gap: 2px; color: var(--muted); }
-  label.f > * { color: var(--text); }
-  label.f.wide { grid-column: 1 / -1; }
-  .empty { padding: 24px 16px; color: var(--muted); text-align: center; }
-  #stage {
-    flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;
-    background-color: var(--bg2);
-    background-image: linear-gradient(45deg, var(--bg3) 25%, transparent 25%), linear-gradient(-45deg, var(--bg3) 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, var(--bg3) 75%), linear-gradient(-45deg, transparent 75%, var(--bg3) 75%);
-    background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;
-  }
-  #frameBox { position: relative; flex: none; }
-  #preview { border: 0; display: block; transform-origin: 0 0; background: transparent; }
-  #stageMsg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); text-align: center; padding: 20px; }
-  .bar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-top: 1px solid var(--border); }
-  #settings { padding: 8px 12px; border-top: 1px solid var(--border); }
-  #settings .grid { grid-template-columns: repeat(4, 1fr); }
-  .check { display: flex; align-items: center; gap: 5px; }
-  #warnings { color: var(--warn); padding: 0 12px; }
-  #warnings:empty { display: none; }
-  .size.over { color: var(--danger); font-weight: 600; }
-  .legend-dots { display: flex; gap: 10px; color: var(--muted); font-size: 10px; }
-  .legend-dots i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 3px; vertical-align: -1px; }
+:root {
+  --app: #e4e5ea;
+  --panel: #eeeff2;
+  --card: #ffffff;
+  --card-2: #f6f6f9;
+  --border: #dcdde3;
+  --border-strong: #c8c9d2;
+  --text: #1c1d26;
+  --muted: #6c6f7c;
+  --brand: #2a2d86;
+  --brand-2: #3c40b8;
+  --brand-soft: #e7e8f8;
+  --green: #2f8a55;
+  --green-soft: #ecf6ef;
+  --green-line: #3d9d64;
+  --danger: #d2422d;
+  --warn: #b26a00;
+  --in: #3d9d64;
+  --out: #d2422d;
+  --loop: #7b5cff;
+  --shadow: 0 1px 2px rgba(20, 22, 40, .06), 0 2px 8px rgba(20, 22, 40, .05);
+  --radius: 10px;
+}
+.figma-dark {
+  --app: #1b1c21;
+  --panel: #23242b;
+  --card: #2c2d35;
+  --card-2: #33343d;
+  --border: #3c3d47;
+  --border-strong: #4a4b57;
+  --text: #ecedf2;
+  --muted: #9a9caa;
+  --brand: #8c90ff;
+  --brand-2: #a3a6ff;
+  --brand-soft: #34355a;
+  --green: #6bcf93;
+  --green-soft: #243a2d;
+  --green-line: #4caf74;
+  --shadow: none;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  font: 12px/1.4 Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
+  color: var(--text);
+  background: var(--app);
+  overflow: hidden;
+}
+button, input, select { font: inherit; color: inherit; }
+[hidden] { display: none !important; }
+.grow { flex: 1; }
+.muted { color: var(--muted); }
+.mono { font-variant-numeric: tabular-nums; }
+svg.ic { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+#app { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; height: 100%; padding: 10px; }
+.panel { background: var(--panel); border-radius: 14px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+
+/* ---------- buttons & fields ---------- */
+.btn, .text-btn, .icon-btn, .mini-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  border: 1px solid var(--border); background: var(--card); border-radius: 8px;
+  padding: 6px 12px; cursor: pointer; white-space: nowrap; font-weight: 500;
+}
+.btn:hover, .icon-btn:hover, .mini-btn:hover { border-color: var(--border-strong); }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn.primary:hover { background: var(--brand-2); }
+.btn:disabled, .btn.primary:disabled { opacity: .45; cursor: default; }
+.text-btn { border-color: transparent; background: transparent; color: var(--muted); padding: 6px 8px; }
+.text-btn:hover { color: var(--text); }
+.icon-btn { width: 34px; height: 34px; padding: 0; }
+.icon-btn.ghost { border-color: transparent; background: transparent; }
+.icon-btn.ghost:hover { background: var(--card); }
+.icon-btn.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.icon-btn.sm { width: 28px; height: 28px; border-radius: 7px; }
+.icon-btn.danger:hover { color: var(--danger); }
+.mini-btn { padding: 2px 8px; min-width: 26px; height: 26px; border-radius: 6px; }
+.mini-btn.strong { font-weight: 600; }
+select, input[type=text], input[type=number], input[type=url] {
+  border: 1px solid var(--border); background: var(--card); border-radius: 8px; padding: 6px 8px; min-width: 0; outline: none;
+}
+select:focus, input:focus { border-color: var(--brand-2); box-shadow: 0 0 0 2px var(--brand-soft); }
+.unit { position: relative; display: block; }
+.unit input { width: 100%; padding-right: 22px; }
+.unit::after { content: attr(data-unit); position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 11px; pointer-events: none; }
+
+/* ---------- left panel ---------- */
+.pane-card.toolbar { display: flex; align-items: center; gap: 8px; margin: 10px 10px 0; padding: 8px; background: var(--card-2); border-radius: 12px; }
+.search-row { display: flex; gap: 8px; padding: 10px; }
+.search { flex: 1; display: flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 0 10px; color: var(--muted); }
+.search input { border: 0; background: transparent; flex: 1; padding: 7px 0; box-shadow: none !important; color: var(--text); }
+.filters { margin: 0 10px 8px; padding: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
+.chip { border: 1px solid var(--border); background: var(--card); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
+.chip.on { background: var(--brand); color: #fff; border-color: var(--brand); }
+.bulk { margin: 0 10px 8px; padding: 8px 10px; background: var(--brand-soft); border-radius: 10px; display: flex; gap: 8px; align-items: center; }
+.tree { flex: 1; overflow-y: auto; padding: 0 10px 10px; }
+.node {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px;
+  box-shadow: var(--shadow); border-left-width: 1px;
+}
+.node.in-html { background: var(--green-soft); border-left: 3px solid var(--green-line); }
+.node.canvas-sel { border-color: var(--brand); box-shadow: 0 0 0 1.5px var(--brand); }
+.node .row { display: flex; align-items: center; gap: 8px; padding: 10px 10px 6px; }
+.node .row2 { display: flex; align-items: center; gap: 6px; padding: 0 10px 10px 10px; }
+.node .row2 select { padding: 5px 6px; }
+.node .info { flex: 1; min-width: 0; }
+.node .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node .meta { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.node .meta .ok { color: var(--green); font-weight: 600; }
+.node .meta .hid { color: var(--warn); }
+.caret { width: 20px; height: 20px; border: 0; background: transparent; cursor: pointer; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; padding: 0; }
+.caret.closed svg { transform: rotate(-90deg); }
+.caret-space { width: 20px; flex: none; }
+.cb { width: 16px; height: 16px; accent-color: var(--brand); flex: none; }
+.type-ic { width: 26px; height: 26px; border-radius: 6px; background: var(--card-2); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); flex: none; }
+.add-btn { min-width: 86px; }
+.add-btn.remove { background: var(--card); }
+.clip-btn.on { color: var(--green); border-color: var(--green-line); background: var(--green-soft); }
+.empty { text-align: center; color: var(--muted); padding: 30px 16px; }
+
+.status-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--border); background: var(--card-2); min-height: 46px; }
+.status { display: flex; align-items: center; gap: 6px; color: var(--muted); min-width: 0; flex: 1; }
+.status span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ---------- right panel ---------- */
+.right-scroll { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 10px 0; }
+.right-scroll > * { flex: none; }
+.top-row { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.size-select { font-weight: 600; padding: 7px 10px; max-width: 260px; }
+.frames-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+.frames-row .label { font-weight: 700; color: var(--muted); letter-spacing: .04em; font-size: 11px; }
+.frames-row .count { font-weight: 700; min-width: 16px; text-align: center; }
+.inline-field { display: flex; align-items: center; gap: 6px; color: var(--muted); }
+.inline-field select { padding: 4px 6px; }
+.inline-check { display: flex; align-items: center; gap: 5px; color: var(--muted); }
+.scene-durations { display: flex; gap: 6px; margin-top: 8px; }
+.scene-dur { position: relative; min-width: 56px; }
+.scene-dur input { width: 100%; text-align: center; font-weight: 600; background: var(--card-2); border-color: transparent; padding-right: 18px; }
+.scene-dur.cur input { border-color: var(--brand-2); background: var(--card); }
+.scene-dur::after { content: 's'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 11px; }
+.scene-dur .tag { position: absolute; left: 7px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 10px; font-weight: 600; }
+#scrubber { width: 100%; margin: 10px 0 4px; accent-color: #b9a225; }
+.transport { display: flex; align-items: center; gap: 4px; }
+.scene-label { font-weight: 700; min-width: 26px; text-align: center; }
+
+.stage {
+  position: relative; height: 300px; margin-top: 8px; padding-bottom: 40px; border-radius: 12px; overflow: hidden;
+  display: flex; align-items: center; justify-content: center;
+  background-color: var(--card);
+  background-image: linear-gradient(45deg, var(--card-2) 25%, transparent 25%), linear-gradient(-45deg, var(--card-2) 25%, transparent 25%),
+    linear-gradient(45deg, transparent 75%, var(--card-2) 75%), linear-gradient(-45deg, transparent 75%, var(--card-2) 75%);
+  background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+}
+.frame-box { position: relative; flex: none; box-shadow: 0 0 0 1px var(--border-strong); }
+#preview { border: 0; display: block; transform-origin: 0 0; background: transparent; }
+.stage-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--muted); padding: 24px; }
+.zoom { position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 4px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
+.zoom span { min-width: 42px; text-align: center; color: var(--muted); }
+.warnings { color: var(--warn); font-size: 11px; margin-top: 6px; }
+.warnings:empty { display: none; }
+
+.elements { flex: 1 1 auto !important; min-height: 120px; overflow-y: auto; margin: 10px -10px 0; padding: 0 10px 10px; }
+.el {
+  background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; box-shadow: var(--shadow);
+}
+.el.open { border-color: var(--brand-2); box-shadow: 0 0 0 1px var(--brand-2); }
+.el.off-scene .el-head .name { color: var(--muted); }
+.el-head { display: flex; align-items: center; gap: 8px; padding: 10px; cursor: pointer; }
+.el-head .name { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.order { display: flex; flex-direction: column; }
+.order button { border: 0; background: transparent; cursor: pointer; padding: 0 2px; height: 13px; color: var(--muted); display: flex; align-items: center; }
+.order button:hover { color: var(--text); }
+.order svg { width: 14px; height: 14px; }
+.link-btn.on { color: var(--brand-2); background: var(--brand-soft); border-color: var(--brand-soft); }
+.el-body { padding: 0 14px 14px; }
+.scene-bars { display: flex; gap: 8px; margin-bottom: 12px; }
+.scene-bar {
+  flex: 1; height: 26px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-2); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--muted);
+}
+.scene-bar.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+.scene-bar.cur { outline: 2px solid var(--brand-2); outline-offset: 2px; }
+.io { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
+.io h4 { margin: 0 0 6px; display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.io h4 .dot { width: 8px; height: 8px; border-radius: 2px; }
+.fields { display: grid; grid-template-columns: 74px 1fr 74px; gap: 6px; }
+.fields.two { grid-template-columns: 1fr 1fr; }
+.fields.four { grid-template-columns: repeat(4, 1fr); }
+.field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.field > span { color: var(--muted); font-size: 11px; }
+.field select, .field input { width: 100%; }
+.field input[type=checkbox], .check input[type=checkbox] { width: 16px; }
+.adv-only { display: none !important; }
+body.adv .adv-only { display: grid !important; }
+.tabs { display: flex; gap: 8px; margin: 14px 0 12px; }
+.tab { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border-radius: 9px; border: 1px solid transparent; background: transparent; cursor: pointer; color: var(--text); }
+.tab:hover { background: var(--card-2); }
+.tab.on { border-color: var(--brand-2); background: var(--brand-soft); color: var(--brand); font-weight: 600; }
+.tab .badge { width: 6px; height: 6px; border-radius: 50%; background: var(--brand-2); }
+.summary { color: var(--muted); margin-top: 8px; font-size: 11px; }
+.not-in-scene { background: var(--card-2); border-radius: 10px; padding: 14px; text-align: center; color: var(--muted); }
+.not-in-scene .btn { margin-top: 8px; }
+
+.right-foot .seg { display: inline-flex; background: var(--card); border: 1px solid var(--border); border-radius: 9px; padding: 3px; }
+.seg button { border: 0; background: transparent; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; color: var(--muted); }
+.seg button.on { background: var(--card-2); color: var(--text); box-shadow: var(--shadow); }
+
+/* ---------- sheets ---------- */
+.sheet-wrap { position: fixed; inset: 0; background: rgba(20, 22, 40, .35); display: flex; align-items: flex-end; justify-content: flex-start; padding: 10px; z-index: 10; }
+.sheet { width: calc(50% - 5px); max-height: 82%; background: var(--card); border-radius: 14px; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,.25); }
+.sheet.wide { width: 100%; height: 100%; max-height: 100%; }
+#previewSheet { z-index: 11; }
+.sheet-head { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
+.sheet-head h2 { margin: 0; font-size: 16px; flex: 1; }
+.sheet-icon { width: 34px; height: 34px; border-radius: 9px; background: var(--brand-soft); color: var(--brand); display: inline-flex; align-items: center; justify-content: center; }
+.sheet-body { overflow-y: auto; padding: 4px 18px 12px; flex: 1; }
+.sheet-foot { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-top: 1px solid var(--border); justify-content: flex-end; }
+.sec { padding: 14px 0; border-bottom: 1px solid var(--border); }
+.sec:last-child { border-bottom: 0; }
+.sec-title { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 10px; }
+.sec-title .grow { flex: 1; }
+.pkg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.color-field { display: flex; gap: 6px; align-items: center; }
+.color-field input[type=color] { width: 34px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+.color-field input[type=text] { flex: 1; }
+.check { display: flex; align-items: center; gap: 8px; padding-top: 6px; }
+.exit { background: var(--brand-soft); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
+.exit-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.exit-head input { flex: 1; font-weight: 600; background: transparent; border-color: transparent; padding: 3px 4px; }
+.exit-head .primary { color: var(--brand-2); font-weight: 600; }
+.exit input[type=url] { width: 100%; }
+.size-list { display: flex; flex-direction: column; gap: 6px; }
+.size-list label { display: flex; align-items: center; gap: 8px; }
+.dropdown { position: relative; }
+.menu { position: absolute; bottom: calc(100% + 6px); left: 0; min-width: 280px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.18); padding: 6px; z-index: 5; }
+.menu button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 9px 10px; border-radius: 7px; cursor: pointer; }
+.menu button:hover, .menu button.on { background: var(--card-2); }
+.menu small { display: block; color: var(--muted); }
+.files-count { display: inline-flex; align-items: center; gap: 4px; }
+.previews { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; padding-top: 16px; background: var(--card-2); }
+.previews figure { margin: 0; }
+.previews figcaption { color: var(--muted); margin-top: 6px; font-size: 11px; }
+.previews iframe { border: 0; display: block; transform-origin: 0 0; }
+
 </style>
 </head>
 <body>
-<header>
-  <span class="title">HTML5 Banner Animator</span>
-  <select id="frameSelect" style="display:none"></select>
-  <span id="frameInfo" class="muted"></span>
-  <span class="spacer"></span>
-  <button class="btn" id="refreshBtn" title="Re-export layers after editing the design">↻ Refresh from Figma</button>
-</header>
+<div id="app">
+  <!-- ============================== LEFT: layer tree ============================== -->
+  <aside class="panel left">
+    <div class="pane-card toolbar">
+      <button class="icon-btn" data-act="select-parent" title="Select parent layer in Figma"><i data-icon="arrow-up"></i></button>
+      <button class="icon-btn" data-act="add-selection" title="Add the layers selected in Figma to the HTML"><i data-icon="arrow-right"></i></button>
+      <button class="icon-btn" id="followBtn" data-act="toggle-follow" title="Follow Figma selection"><i data-icon="select"></i></button>
+      <span class="grow"></span>
+      <button class="text-btn" data-act="restore-session" title="Restore the last saved session"><i data-icon="history"></i>Restore session</button>
+      <button class="icon-btn ghost" data-act="save-session" title="Save session snapshot"><i data-icon="save"></i></button>
+    </div>
 
-<main>
-  <div class="col left">
-    <div class="section-head">
-      <span>Layers <span class="muted" style="font-weight:400">(top → bottom)</span></span>
-      <button class="btn" id="autoBtn" title="Give every layer a staggered entrance">✨ Auto-animate</button>
+    <div class="search-row">
+      <label class="search"><i data-icon="search"></i><input id="search" type="text" placeholder="Search node"></label>
+      <button class="btn" id="filtersBtn" data-act="toggle-filters"><i data-icon="filter"></i>Filters</button>
     </div>
-    <div id="layers"><div class="empty">Select one or more banner frames in Figma.</div></div>
-    <div id="editor"></div>
-  </div>
+    <div id="filters" class="filters" hidden></div>
+    <div id="bulkNodes" class="bulk" hidden></div>
+    <div id="tree" class="tree"></div>
 
-  <div class="col right">
-    <div id="stage">
-      <div id="frameBox"><iframe id="preview" title="Banner preview" sandbox="allow-scripts"></iframe></div>
-      <div id="stageMsg">Select a frame (e.g. 300×250) to preview its animation.</div>
+    <footer class="status-bar">
+      <span id="status" class="status"><i data-icon="info"></i><span>Select a banner frame in Figma.</span></span>
+      <button class="text-btn" data-act="open-package"><i data-icon="package"></i>Package</button>
+    </footer>
+  </aside>
+
+  <!-- ============================== RIGHT: timeline & preview ============================== -->
+  <section class="panel right">
+    <div class="right-scroll">
+      <div class="top-row">
+        <button class="icon-btn" data-act="open-sync" title="Copy this animation to other sizes"><i data-icon="layout"></i></button>
+        <select id="bannerSelect" class="size-select" title="Banner"></select>
+        <button class="icon-btn" data-act="refresh" title="Re-export layers from Figma"><i data-icon="refresh"></i></button>
+      </div>
+
+      <div class="frames-row">
+        <span class="label">FRAMES</span>
+        <button class="mini-btn" data-act="scene-remove" title="Remove last frame">−</button>
+        <span id="sceneCount" class="count">1</span>
+        <button class="mini-btn" data-act="scene-add" title="Add frame">+</button>
+        <span class="grow"></span>
+        <label class="inline-field" title="How many times the banner plays">Plays
+          <select id="playsSelect"><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option><option value="0">∞</option></select>
+        </label>
+        <label class="inline-check" title="On the final play, the last frame skips its exits and stays on screen"><input type="checkbox" id="endOnLast">End on last frame</label>
+        <span id="totalTime" class="muted"></span>
+      </div>
+      <div id="sceneDurations" class="scene-durations"></div>
+      <input id="scrubber" type="range" min="0" max="10" step="0.01" value="0">
+      <div class="transport">
+        <button class="icon-btn ghost" id="playBtn" data-act="play" title="Play / pause"><i data-icon="play"></i></button>
+        <button class="icon-btn ghost" data-act="restart" title="Restart"><i data-icon="restart"></i></button>
+        <span id="timeLabel" class="muted mono">0.00s</span>
+        <span class="grow"></span>
+        <button class="icon-btn ghost" data-act="scene-prev" title="Previous frame"><i data-icon="chevron-left"></i></button>
+        <span id="sceneLabel" class="scene-label">F1</span>
+        <button class="icon-btn ghost" data-act="scene-next" title="Next frame"><i data-icon="chevron-right"></i></button>
+        <button class="icon-btn ghost" id="outlineBtn" data-act="toggle-outline" title="Show element outlines"><i data-icon="eye"></i></button>
+      </div>
+
+      <div id="stage" class="stage">
+        <div id="frameBox" class="frame-box"><iframe id="preview" title="Banner preview" sandbox="allow-scripts"></iframe></div>
+        <div id="stageMsg" class="stage-msg">Select a banner frame in Figma.</div>
+        <div class="zoom">
+          <button class="mini-btn" data-act="zoom-out">−</button>
+          <span id="zoomLabel">100%</span>
+          <button class="mini-btn" data-act="zoom-in">+</button>
+          <button class="mini-btn strong" data-act="zoom-fit">Fit</button>
+        </div>
+      </div>
+      <div id="warnings" class="warnings"></div>
+
+      <div id="bulkEls" class="bulk" hidden></div>
+      <div id="elements" class="elements"></div>
     </div>
-    <div class="bar">
-      <button class="btn" id="replayBtn">▶ Replay</button>
-      <span class="legend-dots"><span><i style="background:var(--in)"></i>entrance</span><span><i style="background:var(--hold)"></i>visible</span><span><i style="background:var(--emph)"></i>emphasis</span><span><i style="background:var(--out)"></i>exit</span></span>
-      <span class="spacer" style="flex:1"></span>
-      <span id="sizeInfo" class="size muted"></span>
+
+    <footer class="status-bar right-foot">
+      <span id="sizeInfo" class="muted"></span>
+      <span class="grow"></span>
+      <div class="seg" id="modeSeg">
+        <button data-act="mode" data-mode="fast" class="on">FAST</button>
+        <button data-act="mode" data-mode="adv">ADV</button>
+      </div>
+    </footer>
+  </section>
+</div>
+
+<!-- ============================== Package sheet ============================== -->
+<div id="packageSheet" class="sheet-wrap" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <span class="sheet-icon"><i data-icon="package"></i></span>
+      <h2>Banner Package</h2>
+      <button class="icon-btn ghost" data-act="close-package"><i data-icon="close"></i></button>
     </div>
-    <div id="warnings"></div>
-    <div id="settings"></div>
-    <div class="bar">
-      <span class="muted" id="exportInfo"></span>
-      <span style="flex:1"></span>
-      <button class="btn" id="htmlBtn" title="One self-contained HTML file with images inlined">Download single HTML</button>
-      <button class="btn primary" id="zipBtn">Export HTML5 ZIP</button>
+    <div class="sheet-body" id="packageBody"></div>
+    <div class="sheet-foot">
+      <div class="dropdown" id="channelDrop">
+        <button class="btn" data-act="toggle-channel"><span id="channelLabel">Channel</span><i data-icon="chevron-down"></i></button>
+        <div class="menu" id="channelMenu" hidden></div>
+      </div>
+      <button class="btn" data-act="package-preview"><i data-icon="external"></i>Preview</button>
+      <button class="btn primary" id="downloadAllBtn" data-act="download-all"><i data-icon="download"></i>Download all</button>
+      <span class="muted files-count"><i data-icon="files"></i><span id="filesCount">0 files</span></span>
     </div>
   </div>
-</main>
+</div>
+
+<!-- ============================== Preview all sizes ============================== -->
+<div id="previewSheet" class="sheet-wrap" hidden>
+  <div class="sheet wide">
+    <div class="sheet-head">
+      <span class="sheet-icon"><i data-icon="external"></i></span>
+      <h2>Package preview</h2>
+      <button class="btn" data-act="replay-all"><i data-icon="restart"></i>Replay all</button>
+      <button class="icon-btn ghost" data-act="close-preview"><i data-icon="close"></i></button>
+    </div>
+    <div class="sheet-body previews" id="previewBody"></div>
+  </div>
+</div>
+
+<!-- ============================== Sync sizes ============================== -->
+<div id="syncSheet" class="sheet-wrap" hidden>
+  <div class="sheet">
+    <div class="sheet-head">
+      <span class="sheet-icon"><i data-icon="layout"></i></span>
+      <h2>Copy animation to other sizes</h2>
+      <button class="icon-btn ghost" data-act="close-sync"><i data-icon="close"></i></button>
+    </div>
+    <div class="sheet-body" id="syncBody"></div>
+    <div class="sheet-foot">
+      <span class="muted">Layers are matched by name. Existing animations on the target sizes are replaced.</span>
+      <span class="grow"></span>
+      <button class="btn primary" data-act="apply-sync">Copy animation</button>
+    </div>
+  </div>
+</div>
 
 <script>
-// ============================================================================
-// Generator: turns exported layers + animation settings into an HTML5 banner.
-// ============================================================================
-
-const EASINGS = {
-  'linear': 'linear',
-  'ease': 'ease',
-  'ease-in': 'ease-in',
-  'ease-out': 'ease-out',
-  'ease-in-out': 'ease-in-out',
-  'expo-out': 'cubic-bezier(.16,1,.3,1)',
-  'expo-in': 'cubic-bezier(.7,0,.84,0)',
-  'back-out': 'cubic-bezier(.34,1.56,.64,1)',
-  'back-in': 'cubic-bezier(.36,0,.66,-.56)'
-};
-
-const MOTIONS = {
-  'none': 'None',
-  'fade': 'Fade',
-  'slide-up': 'Slide up + fade',
-  'slide-down': 'Slide down + fade',
-  'slide-left': 'Slide left + fade',
-  'slide-right': 'Slide right + fade',
-  'fly-up': 'Fly up (no fade)',
-  'fly-down': 'Fly down (no fade)',
-  'fly-left': 'Fly left (no fade)',
-  'fly-right': 'Fly right (no fade)',
-  'zoom-in': 'Zoom in + fade',
-  'zoom-out': 'Zoom out + fade',
-  'pop': 'Pop',
-  'blur': 'Blur + fade',
-  'wipe-right': 'Wipe →',
-  'wipe-left': 'Wipe ←',
-  'wipe-down': 'Wipe ↓',
-  'wipe-up': 'Wipe ↑'
-};
-
-const DIRECTIONS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
-
-// Wipes: [hidden-before-entrance, hidden-after-exit]
-const WIPES = {
-  'wipe-right': ['inset(0 100% 0 0)', 'inset(0 0 0 100%)'],
-  'wipe-left': ['inset(0 0 0 100%)', 'inset(0 100% 0 0)'],
-  'wipe-down': ['inset(0 0 100% 0)', 'inset(100% 0 0 0)'],
-  'wipe-up': ['inset(100% 0 0 0)', 'inset(0 0 100% 0)']
-};
-
-// Emphasis loops run on an inner wrapper so they don't fight entrance/exit transforms.
-const EMPHASIS = {
-  'none': { label: 'None' },
-  'pulse': { label: 'Pulse', steps: [[0, 'scale(1)'], [0.5, 'scale(1.08)'], [1, 'scale(1)']] },
-  'heartbeat': { label: 'Heartbeat', steps: [[0, 'scale(1)'], [0.15, 'scale(1.12)'], [0.3, 'scale(1)'], [0.45, 'scale(1.12)'], [0.6, 'scale(1)'], [1, 'scale(1)']] },
-  'float': { label: 'Float', steps: [[0, 'translateY(0)'], [0.5, 'translateY(-6px)'], [1, 'translateY(0)']] },
-  'shake': { label: 'Shake', steps: [[0, 'rotate(0deg)'], [0.25, 'rotate(-5deg)'], [0.75, 'rotate(5deg)'], [1, 'rotate(0deg)']] }
-};
-
-const VISIBLE = { 'opacity': '1', 'transform': 'none', 'filter': 'none', 'clip-path': 'inset(0 0 0 0)' };
-
-// The hidden state a layer comes from (phase 'in') or goes to (phase 'out').
-function motionState(type, distance, phase) {
-  const d = Number(distance) || 0;
-  const sign = phase === 'in' ? -1 : 1;
-  const m = /^(slide|fly)-(up|down|left|right)$/.exec(type);
-  if (m) {
-    const v = DIRECTIONS[m[2]];
-    const state = { transform: 'translate(' + (sign * v[0] * d) + 'px,' + (sign * v[1] * d) + 'px)' };
-    if (m[1] === 'slide') state.opacity = '0';
-    return state;
-  }
-  if (WIPES[type]) return { 'clip-path': WIPES[type][phase === 'in' ? 0 : 1] };
-  switch (type) {
-    case 'fade': return { opacity: '0' };
-    case 'zoom-in': return { opacity: '0', transform: phase === 'in' ? 'scale(.6)' : 'scale(1.4)' };
-    case 'zoom-out': return { opacity: '0', transform: phase === 'in' ? 'scale(1.4)' : 'scale(.6)' };
-    case 'pop': return { transform: 'scale(0)' };
-    case 'blur': return { opacity: '0', filter: 'blur(12px)' };
-  }
-  return {};
-}
-
-function pct(t, total) {
-  return String(Math.round((t / total) * 100000) / 1000) + '%';
-}
-
-function num(v, fallback) {
-  const n = Number(v);
-  return isFinite(n) ? n : fallback;
-}
-
-// Builds a timeline of {t, state, ease}. Points are clamped to [0, total] and kept in order.
-function buildMotionPoints(anim, total) {
-  const points = [];
-  const add = (t, state, ease) => {
-    t = Math.min(Math.max(t, 0), total);
-    const prev = points[points.length - 1];
-    if (prev && t < prev.t) t = prev.t;
-    if (prev && t - prev.t < 1e-6) points.pop();
-    points.push({ t: t, state: state, ease: ease });
-  };
-  const hasIn = anim.in && anim.in !== 'none';
-  const hasOut = anim.out && anim.out !== 'none';
-  const delay = Math.max(0, num(anim.delay, 0));
-  const dur = Math.max(0.05, num(anim.dur, 0.6));
-  let last = 'visible';
-
-  if (hasIn) {
-    const from = motionState(anim.in, anim.dist, 'in');
-    add(0, from);
-    add(delay, from, EASINGS[anim.ease] || 'ease-out');
-    add(delay + dur, 'visible');
-  } else {
-    add(0, 'visible');
-  }
-  if (hasOut) {
-    const to = motionState(anim.out, anim.dist, 'out');
-    const outAt = Math.max(num(anim.outAt, total), hasIn ? delay + dur : 0);
-    add(outAt, 'visible', EASINGS[anim.outEase] || 'ease-in');
-    add(outAt + Math.max(0.05, num(anim.outDur, 0.4)), to);
-    last = to;
-  }
-  add(total, last);
-  return points;
-}
-
-function motionKeyframes(name, anim, total) {
-  const points = buildMotionPoints(anim, total);
-  const props = {};
-  points.forEach((p) => { if (p.state !== 'visible') Object.keys(p.state).forEach((k) => { props[k] = true; }); });
-  const keys = Object.keys(props);
-  if (!keys.length) return '';
-  const body = points.map((p) => {
-    const decls = keys.map((k) => k + ':' + (p.state === 'visible' || p.state[k] === undefined ? VISIBLE[k] : p.state[k]));
-    if (p.ease) decls.push('animation-timing-function:' + p.ease);
-    return pct(p.t, total) + '{' + decls.join(';') + '}';
-  });
-  return '@keyframes ' + name + '{' + body.join('') + '}';
-}
-
-// Emphasis window: after the entrance finishes, until the exit starts (or the end of the timeline).
-function emphasisWindow(anim, total) {
-  const hasIn = anim.in && anim.in !== 'none';
-  const start = hasIn ? Math.max(0, num(anim.delay, 0)) + Math.max(0.05, num(anim.dur, 0.6)) : 0;
-  const end = anim.out && anim.out !== 'none' ? Math.min(total, num(anim.outAt, total)) : total;
-  return [Math.min(start, total), Math.max(Math.min(start, total), end)];
-}
-
-function emphasisKeyframes(name, anim, total) {
-  const def = EMPHASIS[anim.emph];
-  if (!def || !def.steps) return '';
-  const period = Math.max(0.2, num(anim.emphPeriod, 1.2));
-  const win = emphasisWindow(anim, total);
-  const cycles = Math.floor((win[1] - win[0]) / period + 1e-6);
-  if (cycles < 1) return '';
-  const rest = def.steps[0][1];
-  const frames = [[0, rest], [win[0], rest]];
-  for (let i = 0; i < cycles; i++) {
-    def.steps.forEach((s, j) => { if (i === 0 || j > 0) frames.push([win[0] + (i + s[0]) * period, s[1]]); });
-  }
-  frames.push([total, rest]);
-  const seen = {};
-  const body = [];
-  frames.forEach((f) => {
-    const key = pct(f[0], total);
-    if (seen[key]) return;
-    seen[key] = true;
-    body.push(key + '{transform:' + f[1] + ';animation-timing-function:ease-in-out}');
-  });
-  return '@keyframes ' + name + '{' + body.join('') + '}';
-}
-
-function escapeHtml(s) {
-  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-}
-
-function slug(s) {
-  return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'layer';
-}
-
-function bytesToBase64(bytes) {
-  let bin = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
-  return btoa(bin);
-}
-
-const MIME = { png: 'image/png', jpg: 'image/jpeg', svg: 'image/svg+xml' };
-
-function round2(n) {
-  return Math.round(n * 100) / 100;
-}
-
-/**
- * frame:  { name, width, height, banner, layers:[{id, name, anim}] }  (layers bottom → top)
- * assets: { radius, background:{css, bytes?, ext?}, layers:[{id, x, y, width, height, ext, bytes}] }
- * inline: true → images embedded as data URIs (single file); false → separate files under images/
- * Returns { html, files:[{name, data}] }
+/*
+ * Banner Automation — HTML5 generator.
+ * Pure functions shared by the plugin UI (inlined into ui.html) and the Node tests.
+ *
+ * Session model (stored per banner frame):
+ *   scenes:   [{ dur }]                       the banner timeline is split into "frames"
+ *   plays:    1..3, or 0 for forever
+ *   endOnLast true → on the final play the last frame skips its exits and stays on screen
+ *   elements: front → back; each has per-scene { on, in, out, loop, motion }
  */
-function generateBanner(frame, assets, inline) {
-  const b = frame.banner;
-  const W = frame.width, H = frame.height;
-  const total = Math.max(0.5, num(b.duration, 6));
-  const loops = Math.max(0, Math.floor(num(b.loops, 1)));
-  const iterations = loops === 0 ? 'infinite' : String(loops);
-  const files = [];
-  const css = [];
-  const keyframes = [];
-  const markup = [];
+(function (root, factory) {
+  const api = factory();
+  if (typeof module === 'object' && module.exports) module.exports = api;
+  else root.BannerGen = api;
+})(typeof self !== 'undefined' ? self : this, function () {
+  'use strict';
 
-  const src = (bytes, ext, fileName) => {
-    if (inline) return 'data:' + MIME[ext] + ';base64,' + bytesToBase64(bytes);
-    files.push({ name: fileName, data: bytes });
-    return fileName;
+  const EASINGS = {
+    'linear': 'linear',
+    'ease': 'ease',
+    'ease-in': 'ease-in',
+    'ease-out': 'ease-out',
+    'ease-in-out': 'ease-in-out',
+    'expo-out': 'cubic-bezier(.16,1,.3,1)',
+    'expo-in': 'cubic-bezier(.7,0,.84,0)',
+    'back-out': 'cubic-bezier(.34,1.56,.64,1)',
+    'back-in': 'cubic-bezier(.36,0,.66,-.56)'
   };
 
-  const byId = {};
-  assets.layers.forEach((l) => { byId[l.id] = l; });
+  const EASE_LABELS = {
+    'linear': 'Linear', 'ease': 'Ease', 'ease-in': 'Ease in', 'ease-out': 'Ease out', 'ease-in-out': 'Ease in-out',
+    'expo-out': 'Expo out', 'expo-in': 'Expo in', 'back-out': 'Back out', 'back-in': 'Back in'
+  };
 
-  let bgCss = assets.background.css || 'transparent';
-  if (assets.background.bytes) {
-    bgCss += ' url("' + src(assets.background.bytes, assets.background.ext, 'images/background.' + assets.background.ext) + '") 0 0/100% 100% no-repeat';
+  // Directional presets name the direction of travel.
+  const IN_PRESETS = {
+    'none': 'None (cut)',
+    'fade': 'Fade in',
+    'slide-up': 'Slide in ↑',
+    'slide-down': 'Slide in ↓',
+    'slide-left': 'Slide in ←',
+    'slide-right': 'Slide in →',
+    'fly-up': 'Fly in ↑',
+    'fly-down': 'Fly in ↓',
+    'fly-left': 'Fly in ←',
+    'fly-right': 'Fly in →',
+    'zoom-in': 'Zoom in',
+    'zoom-out': 'Zoom out',
+    'pop': 'Pop in',
+    'blur': 'Blur in',
+    'wipe-right': 'Wipe →',
+    'wipe-left': 'Wipe ←',
+    'wipe-down': 'Wipe ↓',
+    'wipe-up': 'Wipe ↑'
+  };
+
+  const OUT_PRESETS = {
+    'none': 'None (cut)',
+    'fade': 'Fade out',
+    'slide-up': 'Slide out ↑',
+    'slide-down': 'Slide out ↓',
+    'slide-left': 'Slide out ←',
+    'slide-right': 'Slide out →',
+    'fly-up': 'Fly out ↑',
+    'fly-down': 'Fly out ↓',
+    'fly-left': 'Fly out ←',
+    'fly-right': 'Fly out →',
+    'zoom-in': 'Zoom in',
+    'zoom-out': 'Zoom out',
+    'pop': 'Pop out',
+    'blur': 'Blur out',
+    'wipe-right': 'Wipe →',
+    'wipe-left': 'Wipe ←',
+    'wipe-down': 'Wipe ↓',
+    'wipe-up': 'Wipe ↑'
+  };
+
+  const LOOP_EFFECTS = {
+    'none': { label: 'None' },
+    'pulse': { label: 'Pulse', steps: [[0, { transform: 'scale(1)' }], [0.5, { transform: 'scale(1.08)' }], [1, { transform: 'scale(1)' }]] },
+    'heartbeat': { label: 'Heartbeat', steps: [[0, { transform: 'scale(1)' }], [0.15, { transform: 'scale(1.12)' }], [0.3, { transform: 'scale(1)' }], [0.45, { transform: 'scale(1.12)' }], [0.6, { transform: 'scale(1)' }], [1, { transform: 'scale(1)' }]] },
+    'float': { label: 'Float', steps: [[0, { transform: 'translateY(0px)' }], [0.5, { transform: 'translateY(-6px)' }], [1, { transform: 'translateY(0px)' }]] },
+    'bounce': { label: 'Bounce', steps: [[0, { transform: 'translateY(0px)' }], [0.3, { transform: 'translateY(-10px)' }], [0.5, { transform: 'translateY(0px)' }], [0.7, { transform: 'translateY(-4px)' }], [1, { transform: 'translateY(0px)' }]] },
+    'shake': { label: 'Shake', steps: [[0, { transform: 'rotate(0deg)' }], [0.25, { transform: 'rotate(-5deg)' }], [0.75, { transform: 'rotate(5deg)' }], [1, { transform: 'rotate(0deg)' }]] },
+    'wiggle': { label: 'Wiggle', steps: [[0, { transform: 'translateX(0px)' }], [0.2, { transform: 'translateX(-4px)' }], [0.4, { transform: 'translateX(4px)' }], [0.6, { transform: 'translateX(-4px)' }], [0.8, { transform: 'translateX(4px)' }], [1, { transform: 'translateX(0px)' }]] },
+    'blink': { label: 'Blink', steps: [[0, { opacity: '1' }], [0.5, { opacity: '0.35' }], [1, { opacity: '1' }]] }
+  };
+
+  // Motion runs continuously while the element is on screen (e.g. a slow Ken Burns zoom).
+  const MOTION_PRESETS = {
+    'none': { label: 'None' },
+    'zoom-in': { label: 'Slow zoom in', x: 0, y: 0, s: 1.1, r: 0 },
+    'zoom-out': { label: 'Slow zoom out', x: 0, y: 0, s: 0.9, r: 0 },
+    'pan-left': { label: 'Drift left', x: -20, y: 0, s: 1, r: 0 },
+    'pan-right': { label: 'Drift right', x: 20, y: 0, s: 1, r: 0 },
+    'pan-up': { label: 'Drift up', x: 0, y: -20, s: 1, r: 0 },
+    'pan-down': { label: 'Drift down', x: 0, y: 20, s: 1, r: 0 },
+    'custom': { label: 'Custom' }
+  };
+
+  const CHANNELS = {
+    'html5': { label: 'HTML5', desc: 'Standard clickTag — Google Ads, DV360, most DSPs' },
+    'gwd': { label: 'GWD', desc: 'Google Studio / CM360 — Enabler.js exits' },
+    'adform': { label: 'Adform', desc: 'Adform DHTML clickTAG + manifest.json' },
+    'xandr': { label: 'Xandr', desc: 'Xandr (AppNexus) HTML5 library click tag' }
+  };
+
+  const DIRECTIONS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+  const WIPES = {
+    'wipe-right': ['inset(0 100% 0 0)', 'inset(0 0 0 100%)'],
+    'wipe-left': ['inset(0 0 0 100%)', 'inset(0 100% 0 0)'],
+    'wipe-down': ['inset(0 0 100% 0)', 'inset(100% 0 0 0)'],
+    'wipe-up': ['inset(100% 0 0 0)', 'inset(0 0 100% 0)']
+  };
+
+  const VISIBLE = {};
+  const HIDDEN = { opacity: '0' };
+  const OUTER_DEFAULTS = { 'opacity': '1', 'transform': 'none', 'filter': 'none', 'clip-path': 'inset(0 0 0 0)' };
+  const IDENTITY = { transform: 'translate(0px,0px) scale(1) rotate(0deg)' };
+  const MOTION_DEFAULTS = { transform: 'translate(0px,0px) scale(1) rotate(0deg)' };
+  const LOOP_DEFAULTS = { transform: 'none', opacity: '1' };
+  const EPS = 0.002;
+  const MIME = { png: 'image/png', jpg: 'image/jpeg', svg: 'image/svg+xml' };
+
+  function num(v, fallback) {
+    const n = Number(v);
+    return isFinite(n) ? n : fallback;
   }
 
-  let index = 0;
-  frame.layers.forEach((layer) => {
-    const a = byId[layer.id];
-    if (!a) return;
-    const i = index++;
-    const anim = layer.anim;
-    const fileName = 'images/' + String(i + 1).padStart(2, '0') + '-' + slug(layer.name) + '.' + a.ext;
-    const box = 'left:' + round2(a.x) + 'px;top:' + round2(a.y) + 'px;width:' + round2(a.width) + 'px;height:' + round2(a.height) + 'px';
-    const motion = motionKeyframes('m' + i, anim, total);
-    const emph = emphasisKeyframes('e' + i, anim, total);
-    css.push('.l' + i + '{' + box + (motion ? ';animation:m' + i + ' ' + total + 's linear 0s ' + iterations + ' both' : '') + '}');
-    if (motion) keyframes.push(motion);
-    if (emph) {
-      css.push('.l' + i + '>.e{animation:e' + i + ' ' + total + 's linear 0s ' + iterations + ' both}');
-      keyframes.push(emph);
+  function dur(v, fallback) {
+    return Math.max(0.05, num(v, fallback === undefined ? 0.5 : fallback));
+  }
+
+  function easing(name, fallback) {
+    return EASINGS[name] || EASINGS[fallback] || 'ease';
+  }
+
+  // The hidden state an element comes from (phase 'in') or leaves to (phase 'out').
+  function presetState(type, distance, phase) {
+    const d = num(distance, 30);
+    const sign = phase === 'in' ? -1 : 1;
+    const m = /^(slide|fly)-(up|down|left|right)$/.exec(type);
+    if (m) {
+      const v = DIRECTIONS[m[2]];
+      const state = { transform: 'translate(' + (sign * v[0] * d) + 'px,' + (sign * v[1] * d) + 'px)' };
+      if (m[1] === 'slide') state.opacity = '0';
+      return state;
     }
-    markup.push('<div class="l l' + i + '"><div class="e"><img src="' + escapeHtml(src(a.bytes, a.ext, fileName)) + '" alt="' + escapeHtml(layer.name) + '"></div></div>');
+    if (WIPES[type]) return { 'clip-path': WIPES[type][phase === 'in' ? 0 : 1] };
+    switch (type) {
+      case 'fade': return { opacity: '0' };
+      case 'zoom-in': return { opacity: '0', transform: phase === 'in' ? 'scale(.6)' : 'scale(1.4)' };
+      case 'zoom-out': return { opacity: '0', transform: phase === 'in' ? 'scale(1.4)' : 'scale(.6)' };
+      case 'pop': return { transform: 'scale(0)' };
+      case 'blur': return { opacity: '0', filter: 'blur(12px)' };
+    }
+    return HIDDEN;
+  }
+
+  function motionTarget(m) {
+    const p = MOTION_PRESETS[m.p] && m.p !== 'custom' ? MOTION_PRESETS[m.p] : m;
+    return {
+      transform: 'translate(' + num(p.x, 0) + 'px,' + num(p.y, 0) + 'px) scale(' + num(p.s, 1) + ') rotate(' + num(p.r, 0) + 'deg)'
+    };
+  }
+
+  function sameState(a, b) {
+    return JSON.stringify(a) === JSON.stringify(b);
+  }
+
+  /*
+   * A keyframe track. Each point holds a state and the timing function of the
+   * segment that follows it; holds use step-end so states never blend through gaps.
+   */
+  function makeTrack(total) {
+    const pts = [];
+    return {
+      pts: pts,
+      last: function () { return pts.length ? pts[pts.length - 1].state : null; },
+      add: function (t, state, ease) {
+        t = Math.min(Math.max(t, 0), total);
+        const last = pts[pts.length - 1];
+        if (last) {
+          if (t < last.t) t = last.t;
+          if (t - last.t < 1e-6) {
+            if (sameState(last.state, state)) {
+              if (ease) last.ease = ease;
+              return;
+            }
+            if (last.t + EPS > total) {
+              last.state = state;
+              if (ease) last.ease = ease;
+              return;
+            }
+            t = last.t + EPS;
+            last.ease = 'step-end';
+          }
+        }
+        pts.push({ t: t, state: state, ease: ease || 'step-end' });
+      },
+      css: function (name, defaults) {
+        const distinct = {};
+        pts.forEach(function (p) { distinct[JSON.stringify(p.state)] = true; });
+        const keys = {};
+        pts.forEach(function (p) { Object.keys(p.state).forEach(function (k) { keys[k] = true; }); });
+        const props = Object.keys(keys);
+        if (!props.length || Object.keys(distinct).length < 2) return '';
+        const body = pts.map(function (p) {
+          const decls = props.map(function (k) { return k + ':' + (p.state[k] !== undefined ? p.state[k] : defaults[k]); });
+          decls.push('animation-timing-function:' + p.ease);
+          return pct(p.t, total) + '{' + decls.join(';') + '}';
+        });
+        if (pts[pts.length - 1].t < total) {
+          const lastState = pts[pts.length - 1].state;
+          body.push('100%{' + props.map(function (k) { return k + ':' + (lastState[k] !== undefined ? lastState[k] : defaults[k]); }).join(';') + '}');
+        }
+        return '@keyframes ' + name + '{' + body.join('') + '}';
+      }
+    };
+  }
+
+  function pct(t, total) {
+    return String(Math.round((t / total) * 1000000) / 10000) + '%';
+  }
+
+  /*
+   * Unrolls the scenes for every play so the final play can end on the last frame.
+   * Forever-looping banners use one pass with an infinite iteration count.
+   */
+  function timeline(session) {
+    const scenes = session.scenes && session.scenes.length ? session.scenes : [{ dur: 5 }];
+    const plays = Math.max(0, Math.floor(num(session.plays, 1)));
+    const passes = plays > 0 ? plays : 1;
+    const playLen = scenes.reduce(function (s, sc) { return s + Math.max(0.1, num(sc.dur, 3)); }, 0);
+    const seq = [];
+    let t = 0;
+    for (let p = 0; p < passes; p++) {
+      scenes.forEach(function (sc, i) {
+        const d = Math.max(0.1, num(sc.dur, 3));
+        seq.push({
+          i: i,
+          start: t,
+          end: t + d,
+          final: plays > 0 && session.endOnLast !== false && p === passes - 1 && i === scenes.length - 1
+        });
+        t += d;
+      });
+    }
+    return { seq: seq, total: t, playLen: playLen, iterations: plays > 0 ? '1' : 'infinite' };
+  }
+
+  function sceneStarts(session) {
+    const out = [];
+    let t = 0;
+    (session.scenes || []).forEach(function (sc) {
+      out.push(t);
+      t += Math.max(0.1, num(sc.dur, 3));
+    });
+    return out;
+  }
+
+  /*
+   * Compiles one element into three tracks:
+   *   outer  — entrance / exit per scene (opacity, transform, filter, clip-path)
+   *   motion — continuous move/scale while visible
+   *   loop   — repeating emphasis effect
+   * Returns null when the element is never visible.
+   */
+  function compileElement(el, tl) {
+    const total = tl.total;
+    const seq = tl.seq;
+    const cfg = function (k) { return el.scenes && el.scenes[seq[k].i]; };
+    const on = function (k) { return k >= 0 && k < seq.length && !!cfg(k) && !!cfg(k).on; };
+
+    let first = -1;
+    for (let k = 0; k < seq.length; k++) if (on(k)) { first = k; break; }
+    if (first === -1) return null;
+
+    const outer = makeTrack(total);
+    const motion = makeTrack(total);
+    const loop = makeTrack(total);
+
+    const c0 = cfg(first);
+    const startsVisible = seq[first].start === 0 && c0.in.p === 'none' && num(c0.in.d, 0) <= 0;
+    outer.add(0, startsVisible ? VISIBLE : (c0.in.p === 'none' ? HIDDEN : presetState(c0.in.p, c0.in.dist, 'in')));
+    motion.add(0, IDENTITY);
+    loop.add(0, {});
+
+    for (let k = 0; k < seq.length; k++) {
+      if (!on(k)) continue;
+      const c = cfg(k);
+      const sc = seq[k];
+      const contIn = on(k - 1) && !seq[k - 1].final && cfg(k - 1).out.p === 'none' && c.in.p === 'none';
+      const contOut = !sc.final && on(k + 1) && c.out.p === 'none' && cfg(k + 1).in.p === 'none';
+
+      // Entrance
+      let appear = sc.start;
+      let inEnd = sc.start;
+      if (!contIn) {
+        appear = sc.start + Math.max(0, num(c.in.d, 0));
+        if (c.in.p === 'none') {
+          outer.add(appear, VISIBLE);
+          inEnd = appear;
+        } else {
+          outer.add(appear, presetState(c.in.p, c.in.dist, 'in'), easing(c.in.e, 'ease-out'));
+          inEnd = appear + dur(c.in.t);
+          outer.add(inEnd, VISIBLE);
+        }
+      }
+
+      // Exit
+      let visEnd = sc.end;
+      let goneAt = sc.end;
+      let hides = false;
+      if (sc.final) {
+        visEnd = goneAt = total;
+      } else if (!contOut) {
+        hides = true;
+        if (c.out.p === 'none') {
+          outer.add(sc.end, HIDDEN);
+        } else {
+          const t0 = Math.max(inEnd, sc.end + num(c.out.d, 0));
+          outer.add(t0, VISIBLE, easing(c.out.e, 'ease-in'));
+          goneAt = t0 + dur(c.out.t);
+          outer.add(goneAt, presetState(c.out.p, c.out.dist, 'out'));
+          visEnd = t0;
+        }
+      }
+
+      // Motion
+      if (c.motion && c.motion.p && c.motion.p !== 'none') {
+        const m0 = (contIn ? sc.start : appear) + Math.max(0, num(c.motion.d, 0));
+        motion.add(m0, motion.last(), easing(c.motion.e, 'linear'));
+        motion.add(Math.max(m0, goneAt), motionTarget(c.motion));
+      }
+      if (hides && !sameState(motion.last(), IDENTITY)) motion.add(goneAt, IDENTITY);
+
+      // Loop
+      const fx = c.loop && LOOP_EFFECTS[c.loop.p];
+      if (fx && fx.steps) {
+        const period = Math.max(0.1, num(c.loop.t, 0.6));
+        const start = inEnd + Math.max(0, num(c.loop.d, 0));
+        const fits = Math.floor((visEnd - start) / period + 1e-6);
+        const wanted = c.loop.r === 'inf' ? fits : Math.max(1, Math.floor(num(c.loop.r, 1)));
+        const cycles = Math.max(0, Math.min(fits, wanted));
+        for (let i = 0; i < cycles; i++) {
+          fx.steps.forEach(function (step, j) {
+            if (i > 0 && j === 0) return;
+            const lastStep = i === cycles - 1 && j === fx.steps.length - 1;
+            loop.add(start + (i + step[0]) * period, step[1], lastStep ? undefined : 'ease-in-out');
+          });
+        }
+        if (cycles > 0) loop.add(start + cycles * period, {});
+      }
+    }
+
+    outer.add(total, outer.last());
+    return { outer: outer, motion: motion, loop: loop };
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, function (c) {
+      return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  function jsString(s) {
+    return JSON.stringify(String(s || '')).replace(/</g, '\\u003c');
+  }
+
+  function slug(s) {
+    return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'layer';
+  }
+
+  function bytesToBase64(bytes) {
+    if (typeof btoa !== 'function') return Buffer.from(bytes).toString('base64');
+    let bin = '';
+    for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    return btoa(bin);
+  }
+
+  function r2(n) {
+    return Math.round(n * 100) / 100;
+  }
+
+  const EXIT_PREAMBLE = 'if(e){e.preventDefault();e.stopPropagation();}';
+
+  // Click-through implementation for each ad channel.
+  function channelCode(channel, exits, name, W, H) {
+    const urls = exits.map(function (x) { return x.url || ''; });
+    const lines = [];
+    const files = [];
+    let root = '<div id="banner" onclick="return bannerExit(event,0)">';
+    let rootClose = '</div>';
+
+    switch (channel) {
+      case 'gwd':
+        lines.push('<script src="https://s0.2mdn.net/ads/studio/Enabler.js"><\/script>');
+        lines.push('<script>var EXITS=' + JSON.stringify(exits.map(function (x, i) { return { name: x.name || ('Exit ' + (i + 1)), url: x.url || '' }; })).replace(/</g, '\\u003c') + ';' +
+          'function bannerExit(e,i){' + EXIT_PREAMBLE + 'var x=EXITS[i]||EXITS[0];Enabler.exit(x.name,x.url);return false;}<\/script>');
+        break;
+      case 'adform': {
+        lines.push('<script>document.write(\'<script src="\'+(window.API_URL||\'https://s1.adform.net/banners/scripts/rmb/Adform.DHTML.js?bv=\'+Math.random())+\'"><\\/script>\');<\/script>');
+        lines.push('<script>var EXITS=' + JSON.stringify(urls).replace(/</g, '\\u003c') + ';' +
+          'function bannerExit(e,i){' + EXIT_PREAMBLE + 'var n=\'clickTAG\'+(i?i+1:\'\');' +
+          'window.open(dhtml.getVar(n,EXITS[i]),dhtml.getVar(\'landingPageTarget\',\'_blank\'));return false;}<\/script>');
+        const clicktags = {};
+        urls.forEach(function (u, i) { clicktags['clickTAG' + (i ? i + 1 : '')] = u; });
+        files.push({
+          name: 'manifest.json',
+          data: JSON.stringify({
+            version: '1.0', title: name, description: '', width: String(W), height: String(H),
+            events: { enabled: 1, list: {} }, clicktags: clicktags, source: 'index.html'
+          }, null, 2)
+        });
+        break;
+      }
+      case 'xandr':
+        lines.push('<script src="https://acdn.adnxs.com/html5-lib/1.3.0/appnexus-html5-lib.min.js"><\/script>');
+        lines.push('<script>function bannerExit(e,i){' + EXIT_PREAMBLE + 'window.open(APPNEXUS.getClickTag(),\'_blank\');return false;}<\/script>');
+        break;
+      case 'preview':
+        lines.push('<script>function bannerExit(e,i){' + EXIT_PREAMBLE + 'return false;}<\/script>');
+        break;
+      default: // html5
+        lines.push('<script>' + urls.map(function (u, i) { return 'var clickTag' + (i ? i + 1 : '') + ' = ' + jsString(u) + ';'; }).join('\n') + '\n' +
+          'function bannerExit(e,i){' + EXIT_PREAMBLE + 'window.open(window[\'clickTag\'+(i?i+1:\'\')]);return false;}<\/script>');
+        root = '<a id="banner" href="javascript:window.open(window.clickTag)">';
+        rootClose = '</a>';
+    }
+    return { head: lines.join('\n'), root: root, rootClose: rootClose, files: files };
+  }
+
+  function previewControls(playLen) {
+    return '<script>(function(){' +
+      'function A(){return document.getAnimations?document.getAnimations():[];}' +
+      'window.addEventListener("message",function(e){var d=e.data||{};if(!d.bannerCmd)return;' +
+      'if(d.bannerCmd==="seek"){A().forEach(function(a){a.pause();a.currentTime=d.t*1000;});}' +
+      'else if(d.bannerCmd==="play"){A().forEach(function(a){if(typeof d.t==="number")a.currentTime=d.t*1000;a.play();});}' +
+      'else if(d.bannerCmd==="pause"){A().forEach(function(a){a.pause();});}' +
+      'else if(d.bannerCmd==="outline"){document.documentElement.classList.toggle("outline",!!d.on);}});' +
+      'function tick(){var a=A()[0];parent.postMessage({bannerPreview:true,t:a?(a.currentTime||0)/1000:0,playLen:' + playLen + ',playing:a?a.playState==="running":null},"*");setTimeout(tick,60);}' +
+      'tick();})();<\/script>';
+  }
+
+  /*
+   * opts: { name, width, height, session, assets, pkg, channel, inline, preview, outline }
+   * assets: { radius, background:{css, bytes?, ext?},
+   *           items:{ [id]: {x,y,width,height,ext,bytes} }, masks:{ [id]: {...} } }
+   * Returns { html, files:[{name,data}], total }
+   */
+  function buildBanner(opts) {
+    const W = opts.width, H = opts.height;
+    const session = opts.session;
+    const assets = opts.assets;
+    const pkg = opts.pkg || {};
+    const exits = pkg.exits && pkg.exits.length ? pkg.exits : [{ name: 'Main exit', url: '' }];
+    const tl = timeline(session);
+    const total = r2(tl.total * 1000) / 1000;
+    const files = [];
+    const usedNames = {};
+    const css = [];
+    const keyframes = [];
+    const markup = [];
+
+    const src = function (bytes, ext, base) {
+      if (opts.inline) return 'data:' + MIME[ext] + ';base64,' + bytesToBase64(bytes);
+      let name = 'images/' + base + '.' + ext;
+      for (let n = 2; usedNames[name]; n++) name = 'images/' + base + '-' + n + '.' + ext;
+      usedNames[name] = true;
+      files.push({ name: name, data: bytes });
+      return name;
+    };
+    const anim = function (name) {
+      return 'animation:' + name + ' ' + total + 's linear 0s ' + tl.iterations + ' both';
+    };
+
+    let bg = (assets.background && assets.background.css) || '#ffffff';
+    if (assets.background && assets.background.bytes) {
+      bg += ' url("' + src(assets.background.bytes, assets.background.ext, 'background') + '") 0 0/100% 100% no-repeat';
+    }
+
+    const maskFiles = {};
+    const elements = (session.elements || []).slice().reverse(); // back → front
+    let index = 0;
+    elements.forEach(function (el) {
+      const a = assets.items && assets.items[el.id];
+      if (!a) return;
+      const compiled = compileElement(el, tl);
+      if (!compiled) return;
+      const i = index++;
+      const base = String(i + 1).padStart(2, '0') + '-' + slug(el.name);
+
+      let ox = 0, oy = 0, open = '', close = '';
+      const mask = el.clip && el.maskId && assets.masks && assets.masks[el.maskId];
+      if (mask) {
+        if (!maskFiles[el.maskId]) maskFiles[el.maskId] = src(mask.bytes, mask.ext, 'mask-' + slug(el.maskName || 'shape'));
+        const url = 'url("' + maskFiles[el.maskId] + '") 0 0/100% 100% no-repeat';
+        ox = mask.x;
+        oy = mask.y;
+        css.push('.k' + i + '{left:' + r2(mask.x) + 'px;top:' + r2(mask.y) + 'px;width:' + r2(mask.width) + 'px;height:' + r2(mask.height) + 'px;-webkit-mask:' + url + ';mask:' + url + '}');
+        open = '<div class="k k' + i + '">';
+        close = '</div>';
+      }
+
+      const outerCss = compiled.outer.css('o' + i, OUTER_DEFAULTS);
+      const motionCss = compiled.motion.css('m' + i, MOTION_DEFAULTS);
+      const loopCss = compiled.loop.css('e' + i, LOOP_DEFAULTS);
+      css.push('.l' + i + '{left:' + r2(a.x - ox) + 'px;top:' + r2(a.y - oy) + 'px;width:' + r2(a.width) + 'px;height:' + r2(a.height) + 'px' +
+        (outerCss ? ';' + anim('o' + i) : '') + '}');
+      if (motionCss) css.push('.l' + i + '>.m{' + anim('m' + i) + '}');
+      if (loopCss) css.push('.l' + i + ' .e{' + anim('e' + i) + '}');
+      [outerCss, motionCss, loopCss].forEach(function (k) { if (k) keyframes.push(k); });
+
+      const exitIndex = num(el.exit, -1);
+      const click = exitIndex >= 0 && exitIndex < exits.length ? ' onclick="return bannerExit(event,' + exitIndex + ')" style="cursor:pointer"' : '';
+      markup.push(open + '<div class="l l' + i + '"' + click + '><div class="m"><div class="e"><img src="' +
+        escapeHtml(src(a.bytes, a.ext, base)) + '" alt="' + escapeHtml(el.name) + '"></div></div></div>' + close);
+    });
+
+    const channel = opts.preview ? 'preview' : (opts.channel || 'html5');
+    const ch = channelCode(channel, exits, opts.name, W, H);
+    const radius = assets.radius ? 'border-radius:' + assets.radius + 'px;' : '';
+    const border = pkg.border !== false
+      ? '<div id="border" style="border-color:' + escapeHtml(pkg.borderColor || '#000000') + '"></div>'
+      : '';
+
+    const html = [
+      '<!DOCTYPE html>',
+      '<html lang="en"' + (opts.preview && opts.outline ? ' class="outline"' : '') + '>',
+      '<head>',
+      '<meta charset="utf-8">',
+      '<meta name="ad.size" content="width=' + W + ',height=' + H + '">',
+      '<title>' + escapeHtml(opts.name) + '</title>',
+      ch.head,
+      '<style>',
+      '*{margin:0;padding:0;box-sizing:border-box}',
+      'html,body{width:' + W + 'px;height:' + H + 'px;overflow:hidden;background:transparent}',
+      '#banner{position:relative;display:block;width:' + W + 'px;height:' + H + 'px;overflow:hidden;cursor:pointer;' + radius + 'background:' + bg + '}',
+      '#banner .k,#banner .l{position:absolute}',
+      '#banner .l{will-change:transform,opacity}',
+      '#banner .m,#banner .e,#banner img{display:block;width:100%;height:100%}',
+      '#border{position:absolute;left:0;top:0;width:100%;height:100%;border:1px solid #000;pointer-events:none;' + radius + '}',
+      '.outline #banner .l{outline:1px dashed rgba(236,72,153,.9);outline-offset:-1px}',
+      css.join('\n'),
+      keyframes.join('\n'),
+      '@media (prefers-reduced-motion:reduce){#banner *{animation-delay:0s!important;animation-duration:1ms!important;animation-iteration-count:1!important}}',
+      '</style>',
+      '</head>',
+      '<body>',
+      ch.root,
+      markup.join('\n'),
+      border,
+      ch.rootClose,
+      opts.preview ? previewControls(tl.playLen) : '',
+      '</body>',
+      '</html>'
+    ].join('\n');
+
+    files.unshift({ name: 'index.html', data: html });
+    ch.files.forEach(function (f) { files.push(f); });
+    return { html: html, files: files, total: tl.total, playLen: tl.playLen };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Minimal ZIP writer (STORE — images are already compressed).
+  // ---------------------------------------------------------------------------
+  const CRC_TABLE = (function () {
+    const t = new Uint32Array(256);
+    for (let n = 0; n < 256; n++) {
+      let c = n;
+      for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+      t[n] = c >>> 0;
+    }
+    return t;
+  })();
+
+  function crc32(bytes) {
+    let c = 0xFFFFFFFF;
+    for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+    return (c ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function makeZip(files) {
+    const enc = new TextEncoder();
+    const now = new Date();
+    const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+    const date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+    const parts = [];
+    const central = [];
+    let offset = 0;
+
+    files.forEach(function (f) {
+      const data = typeof f.data === 'string' ? enc.encode(f.data) : f.data;
+      const name = enc.encode(f.name);
+      const crc = crc32(data);
+
+      const local = new Uint8Array(30 + name.length);
+      const lv = new DataView(local.buffer);
+      lv.setUint32(0, 0x04034b50, true);
+      lv.setUint16(4, 20, true);
+      lv.setUint16(6, 0x0800, true);
+      lv.setUint16(10, time, true);
+      lv.setUint16(12, date, true);
+      lv.setUint32(14, crc, true);
+      lv.setUint32(18, data.length, true);
+      lv.setUint32(22, data.length, true);
+      lv.setUint16(26, name.length, true);
+      local.set(name, 30);
+
+      const cen = new Uint8Array(46 + name.length);
+      const cv = new DataView(cen.buffer);
+      cv.setUint32(0, 0x02014b50, true);
+      cv.setUint16(4, 20, true);
+      cv.setUint16(6, 20, true);
+      cv.setUint16(8, 0x0800, true);
+      cv.setUint16(12, time, true);
+      cv.setUint16(14, date, true);
+      cv.setUint32(16, crc, true);
+      cv.setUint32(20, data.length, true);
+      cv.setUint32(24, data.length, true);
+      cv.setUint16(28, name.length, true);
+      cv.setUint32(42, offset, true);
+      cen.set(name, 46);
+
+      parts.push(local, data);
+      central.push(cen);
+      offset += local.length + data.length;
+    });
+
+    const cdSize = central.reduce(function (s, c) { return s + c.length; }, 0);
+    const end = new Uint8Array(22);
+    const ev = new DataView(end.buffer);
+    ev.setUint32(0, 0x06054b50, true);
+    ev.setUint16(8, files.length, true);
+    ev.setUint16(10, files.length, true);
+    ev.setUint32(12, cdSize, true);
+    ev.setUint32(16, offset, true);
+
+    const all = parts.concat(central, [end]);
+    const out = new Uint8Array(all.reduce(function (s, p) { return s + p.length; }, 0));
+    let pos = 0;
+    all.forEach(function (p) { out.set(p, pos); pos += p.length; });
+    return out;
+  }
+
+  return {
+    EASINGS: EASINGS,
+    EASE_LABELS: EASE_LABELS,
+    IN_PRESETS: IN_PRESETS,
+    OUT_PRESETS: OUT_PRESETS,
+    LOOP_EFFECTS: LOOP_EFFECTS,
+    MOTION_PRESETS: MOTION_PRESETS,
+    CHANNELS: CHANNELS,
+    MIME: MIME,
+    timeline: timeline,
+    sceneStarts: sceneStarts,
+    compileElement: compileElement,
+    buildBanner: buildBanner,
+    makeZip: makeZip,
+    escapeHtml: escapeHtml,
+    slug: slug
+  };
+});
+
+</script>
+<script>
+/* Banner Automation — plugin UI. */
+(function () {
+  'use strict';
+
+  const G = window.BannerGen;
+  const esc = G.escapeHtml;
+  const $ = (id) => document.getElementById(id);
+  const clone = (v) => JSON.parse(JSON.stringify(v));
+
+  // -------------------------------------------------------------------------
+  // Icons (24px stroke icons)
+  // -------------------------------------------------------------------------
+  const ICONS = {
+    'arrow-up': '<path d="M12 19V5M5 12l7-7 7 7"/>',
+    'arrow-right': '<path d="M5 12h14M12 5l7 7-7 7"/>',
+    'select': '<path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M4 15v4a1 1 0 0 0 1 1h4"/><path d="M13 13l8 3-3.5 1.5L16 21z"/>',
+    'history': '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
+    'save': '<path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8M7 21v-7h10v7"/>',
+    'search': '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+    'filter': '<path d="M4 6h16M7 12h10M10 18h4"/>',
+    'info': '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+    'package': '<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/>',
+    'layout': '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M9 12h12"/>',
+    'refresh': '<path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/>',
+    'play': '<path d="M7 4l13 8-13 8z"/>',
+    'pause': '<path d="M8 5v14M16 5v14"/>',
+    'restart': '<path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 3v6h6"/>',
+    'chevron-left': '<path d="M15 6l-6 6 6 6"/>',
+    'chevron-right': '<path d="M9 6l6 6-6 6"/>',
+    'chevron-down': '<path d="M6 9l6 6 6-6"/>',
+    'chevron-up': '<path d="M6 15l6-6 6 6"/>',
+    'eye': '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
+    'close': '<path d="M6 6l12 12M18 6L6 18"/>',
+    'external': '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
+    'download': '<path d="M12 4v12M6 10l6 6 6-6M4 20h16"/>',
+    'files': '<path d="M9 3h7l4 4v11a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M16 3v4h4M5 7v13a1 1 0 0 0 1 1h9"/>',
+    'locate': '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
+    'link': '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
+    'mask': '<path d="M9 4H5v16h4M15 4h4v16h-4M12 2v20"/>',
+    'trash': '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+    'text': '<path d="M4 7V5h11v2M9.5 5v14M7.5 19h4M14 12v-1h7v1M17.5 11v8M16 19h3"/>',
+    'frame': '<path d="M8 3v18M16 3v18M3 8h18M3 16h18"/>',
+    'group': '<path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>',
+    'image': '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M21 16l-5-5-9 8"/>',
+    'shape': '<rect x="4" y="4" width="16" height="16" rx="2"/>',
+    'settings': '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
+    'loop': '<path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
+    'motion': '<path d="M3 17c3-7 6-7 9 0s6 7 9 0"/><path d="M18 6l3 0 0 3"/>',
+    'star': '<path d="M12 3l2.8 6 6.2.6-4.8 4.2 1.4 6.2-5.6-3.2-5.6 3.2 1.4-6.2L3 9.6 9.2 9z"/>',
+    'in': '<path d="M10 17l5-5-5-5M15 12H3M14 4h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-5"/>',
+    'out': '<path d="M15 17l5-5-5-5M20 12H8M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h5"/>'
+  };
+
+  function icon(name) {
+    return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
+  }
+
+  function hydrateIcons(root) {
+    (root || document).querySelectorAll('i[data-icon]').forEach((i) => { i.outerHTML = icon(i.dataset.icon); });
+  }
+
+  // -------------------------------------------------------------------------
+  // RPC with the Figma main thread
+  // -------------------------------------------------------------------------
+  let rpcSeq = 0;
+  const waiting = {};
+
+  function call(method, params) {
+    return new Promise((resolve, reject) => {
+      const id = ++rpcSeq;
+      waiting[id] = { resolve, reject };
+      parent.postMessage({ pluginMessage: { type: 'call', id, method, params: params || {} } }, '*');
+    });
+  }
+
+  // -------------------------------------------------------------------------
+  // Defaults & state
+  // -------------------------------------------------------------------------
+  const DEFAULT_EXPORT = { mode: 'framed', scale: 2, format: 'png' };
+  const VECTOR_TYPES = ['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'LINE', 'ELLIPSE', 'POLYGON', 'RECTANGLE'];
+  const CONTAINER_TYPES = ['GROUP', 'FRAME', 'COMPONENT', 'INSTANCE', 'COMPONENT_SET'];
+
+  function defaultScene(on) {
+    return {
+      on: !!on,
+      in: { p: 'fade', d: 0, t: 0.5, e: 'ease-out', dist: 30 },
+      out: { p: 'fade', d: -0.5, t: 0.5, e: 'ease-in', dist: 30 },
+      loop: { p: 'none', t: 0.6, d: 0, r: 2 },
+      motion: { p: 'none', x: 0, y: 0, s: 1.1, r: 0, d: 0, e: 'linear' }
+    };
+  }
+
+  function newSession() {
+    return { v: 1, scenes: [{ dur: 4 }, { dur: 6 }], plays: 1, endOnLast: true, elements: [], exportOpts: {} };
+  }
+
+  function defaultPackage() {
+    return { border: true, borderColor: '#000000', compress: true, channel: '', exits: [{ name: 'Main exit', url: '' }], exclude: {} };
+  }
+
+  function merge(def, val) {
+    if (val === undefined || val === null) return clone(def);
+    if (typeof def !== 'object' || def === null || Array.isArray(def)) return val;
+    const out = {};
+    Object.keys(def).forEach((k) => { out[k] = merge(def[k], val[k]); });
+    Object.keys(val).forEach((k) => { if (!(k in out)) out[k] = val[k]; });
+    return out;
+  }
+
+  function normalizeSession(raw) {
+    const s = merge(newSession(), raw);
+    if (!Array.isArray(s.scenes) || !s.scenes.length) s.scenes = [{ dur: 4 }];
+    s.elements = (s.elements || []).map((el) => {
+      const e = merge({ id: '', name: '', type: '', exit: -1, clip: true, maskId: null, maskName: null, scenes: [] }, el);
+      e.scenes = s.scenes.map((_, i) => merge(defaultScene(false), e.scenes[i]));
+      return e;
+    });
+    return s;
+  }
+
+  const S = {
+    banners: [],
+    ctx: null,
+    pkg: defaultPackage(),
+    scene: 0,
+    open: null,
+    tab: 'loop',
+    follow: true,
+    outline: false,
+    expanded: {},
+    search: '',
+    filter: { kind: 'all', inHtml: false, hidden: true },
+    checkedNodes: new Set(),
+    checkedEls: new Set(),
+    canvasSel: [],
+    zoom: 'fit',
+    playing: true,
+    time: 0,
+    playLen: 0,
+    resume: null,
+    ignoreTicksUntil: 0,
+    scrubbing: false
+  };
+
+  const ctxs = {};
+
+  function makeCtx(data, oldCache) {
+    const ctx = {
+      id: data.info.id,
+      info: data.info,
+      tree: data.tree,
+      session: normalizeSession(data.session),
+      index: {},
+      order: [],
+      cache: oldCache || { items: {}, masks: {}, bg: null, processed: {}, warnings: [], pending: null }
+    };
+    const walk = (nodes, parentNode, depth) => nodes.forEach((n) => {
+      n.parent = parentNode;
+      n.depth = depth;
+      n.order = ctx.order.length;
+      ctx.order.push(n);
+      ctx.index[n.id] = n;
+      walk(n.children, n, depth + 1);
+    });
+    walk(ctx.tree, null, 0);
+    ctx.session.elements.forEach((el) => {
+      const n = ctx.index[el.id];
+      if (!n) return;
+      el.name = n.name;
+      el.type = n.type;
+      el.maskId = n.maskId;
+      el.maskName = n.maskName;
+    });
+    return ctx;
+  }
+
+  async function loadCtx(id, fresh) {
+    if (!fresh && ctxs[id]) return ctxs[id];
+    const data = await call('getBanner', { id });
+    const old = ctxs[id];
+    const ctx = makeCtx(data, old && old.cache);
+    ctxs[id] = ctx;
+    return ctx;
+  }
+
+  const sess = () => S.ctx && S.ctx.session;
+  const elById = (id) => sess() && sess().elements.find((e) => e.id === id);
+  const isAdded = (id) => !!sess() && sess().elements.some((e) => e.id === id);
+  const expOf = (ctx, id) => Object.assign({}, DEFAULT_EXPORT, ctx.session.exportOpts[id]);
+
+  function addedDescendants(ctx, id) {
+    const node = ctx.index[id];
+    if (!node) return [];
+    const ids = new Set(ctx.session.elements.map((e) => e.id));
+    const out = [];
+    const walk = (n) => n.children.forEach((c) => { if (ids.has(c.id)) out.push(c.id); walk(c); });
+    walk(node);
+    return out;
+  }
+
+  // -------------------------------------------------------------------------
+  // Persistence
+  // -------------------------------------------------------------------------
+  let saveTimer = null;
+  function persist() {
+    const ctx = S.ctx;
+    if (!ctx) return;
+    const b = S.banners.find((x) => x.id === ctx.id);
+    if (b) b.elements = ctx.session.elements.length;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => call('saveSession', { id: ctx.id, session: ctx.session }).catch(showError), 300);
+  }
+
+  let pkgTimer = null;
+  function persistPkg() {
+    clearTimeout(pkgTimer);
+    pkgTimer = setTimeout(() => call('savePackage', { pkg: S.pkg }).catch(showError), 300);
+  }
+
+  function setStatus(text, warn) {
+    const el = $('status');
+    el.innerHTML = icon('info') + '<span>' + esc(text) + '</span>';
+    el.style.color = warn ? 'var(--warn)' : '';
+  }
+
+  function showError(e) {
+    setStatus('Error: ' + (e && e.message || e), true);
+  }
+
+  // -------------------------------------------------------------------------
+  // Labels
+  // -------------------------------------------------------------------------
+  const TYPE_LABELS = {
+    TEXT: 'Text', GROUP: 'Group', FRAME: 'Frame', COMPONENT: 'Component', INSTANCE: 'Instance',
+    RECTANGLE: 'Rectangle', ELLIPSE: 'Ellipse', VECTOR: 'Vector', BOOLEAN_OPERATION: 'Boolean',
+    STAR: 'Star', LINE: 'Line', POLYGON: 'Polygon', COMPONENT_SET: 'Variants'
+  };
+
+  function typeLabel(n) {
+    return TYPE_LABELS[n.type] || (n.type.charAt(0) + n.type.slice(1).toLowerCase().replace(/_/g, ' '));
+  }
+
+  function typeIcon(n) {
+    if (!n) return 'shape';
+    if (n.type === 'TEXT') return 'text';
+    if (n.img) return 'image';
+    if (n.type === 'GROUP') return 'group';
+    if (CONTAINER_TYPES.indexOf(n.type) !== -1) return 'frame';
+    return 'shape';
+  }
+
+  function options(map, value) {
+    return Object.keys(map).map((k) => {
+      const label = typeof map[k] === 'string' ? map[k] : map[k].label;
+      return '<option value="' + esc(k) + '"' + (String(k) === String(value) ? ' selected' : '') + '>' + esc(label) + '</option>';
+    }).join('');
+  }
+
+  // -------------------------------------------------------------------------
+  // Left panel — layer tree
+  // -------------------------------------------------------------------------
+  function matchesFilter(n) {
+    if (!S.filter.hidden && !n.visible) return false;
+    if (S.filter.inHtml && !isAdded(n.id)) return false;
+    const k = S.filter.kind;
+    if (k === 'text' && n.type !== 'TEXT') return false;
+    if (k === 'image' && !n.img) return false;
+    if (k === 'vector' && (n.img || VECTOR_TYPES.indexOf(n.type) === -1)) return false;
+    if (k === 'container' && CONTAINER_TYPES.indexOf(n.type) === -1) return false;
+    if (S.search && n.name.toLowerCase().indexOf(S.search.toLowerCase()) === -1) return false;
+    return true;
+  }
+
+  function renderTree() {
+    const ctx = S.ctx;
+    const box = $('tree');
+    if (!ctx) {
+      box.innerHTML = '<div class="empty">Select a banner frame in Figma (e.g. 300×250).<br>Its layers appear here — add the ones you want to animate.</div>';
+      return;
+    }
+    const rows = [];
+    const flat = !!S.search || S.filter.kind !== 'all' || S.filter.inHtml;
+    if (flat) {
+      ctx.order.forEach((n) => { if (matchesFilter(n)) rows.push({ n: n, depth: 0, flat: true }); });
+    } else {
+      const walk = (nodes) => nodes.forEach((n) => {
+        if (!S.filter.hidden && !n.visible) return;
+        rows.push({ n: n, depth: n.depth });
+        if (S.expanded[n.id]) walk(n.children);
+      });
+      walk(ctx.tree);
+    }
+    box.innerHTML = rows.length ? rows.map(nodeCard).join('') : '<div class="empty">No layers match.</div>';
+    renderBulkNodes();
+  }
+
+  function nodeCard(row) {
+    const n = row.n;
+    const ctx = S.ctx;
+    const added = isAdded(n.id);
+    const el = added ? elById(n.id) : null;
+    const x = expOf(ctx, n.id);
+    const hasKids = n.children.length && !row.flat;
+    const meta = (added ? '<span class="ok">✓ In HTML</span> · ' : '') + n.w + ' × ' + n.h + ' · ' + typeLabel(n) +
+      (n.isMask ? ' · mask' : '') + (!n.visible ? ' · <span class="hid">hidden</span>' : '') +
+      (row.flat && n.parent ? ' · in ' + esc(n.parent.name) : '');
+    return '<div class="node' + (added ? ' in-html' : '') + (S.canvasSel.indexOf(n.id) !== -1 ? ' canvas-sel' : '') + '" data-node="' + n.id + '" style="margin-left:' + Math.min(row.depth, 6) * 18 + 'px">' +
+      '<div class="row">' +
+        (hasKids ? '<button class="caret' + (S.expanded[n.id] ? '' : ' closed') + '" data-act="toggle-node" title="Expand">' + icon('chevron-down') + '</button>' : '<span class="caret-space"></span>') +
+        '<input type="checkbox" class="cb" data-act="check-node"' + (S.checkedNodes.has(n.id) ? ' checked' : '') + '>' +
+        '<span class="type-ic">' + icon(typeIcon(n)) + '</span>' +
+        '<div class="info"><div class="name">' + esc(n.name) + '</div><div class="meta">' + meta + '</div></div>' +
+        '<button class="icon-btn ghost sm" data-act="locate" title="Select in Figma">' + icon('locate') + '</button>' +
+        '<button class="btn add-btn' + (added ? ' remove' : '') + '" data-act="' + (added ? 'remove-node' : 'add-node') + '">' + (added ? 'Remove' : '+ Add') + '</button>' +
+      '</div>' +
+      '<div class="row2">' +
+        '<select data-xf="mode" title="Framed: crop to the banner · Full: keep the whole layer">' + options({ framed: 'Framed', full: 'Full' }, x.mode) + '</select>' +
+        '<select data-xf="scale" title="Export scale">' + options({ 1: '1x', 2: '2x', 3: '3x' }, x.scale) + '</select>' +
+        '<select data-xf="format" title="Image format">' + options({ png: 'PNG', jpg: 'JPG', svg: 'SVG' }, x.format) + '</select>' +
+        '<span class="grow"></span>' +
+        (el && n.maskId ? '<button class="icon-btn sm clip-btn' + (el.clip ? ' on' : '') + '" data-act="toggle-clip" title="Clip to mask “' + esc(n.maskName || '') + '”">' + icon('mask') + '</button>' : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  function renderBulkNodes() {
+    const bar = $('bulkNodes');
+    const n = S.checkedNodes.size;
+    bar.hidden = !n;
+    if (!n) return;
+    bar.innerHTML = '<b>' + n + ' selected</b><span class="grow"></span>' +
+      '<button class="btn" data-act="bulk-add">+ Add</button><button class="btn" data-act="bulk-remove">Remove</button>' +
+      '<button class="text-btn" data-act="bulk-clear-nodes">Clear</button>';
+  }
+
+  function renderFilters() {
+    const f = $('filters');
+    f.hidden = !S.showFilters;
+    $('filtersBtn').classList.toggle('on', S.filter.kind !== 'all' || S.filter.inHtml || !S.filter.hidden);
+    if (!S.showFilters) return;
+    const kinds = { all: 'All', text: 'Text', image: 'Images', vector: 'Shapes', container: 'Groups & frames' };
+    f.innerHTML = Object.keys(kinds).map((k) => '<button class="chip' + (S.filter.kind === k ? ' on' : '') + '" data-act="filter-kind" data-kind="' + k + '">' + kinds[k] + '</button>').join('') +
+      '<span class="grow"></span>' +
+      '<label class="inline-check"><input type="checkbox" data-filter="inHtml"' + (S.filter.inHtml ? ' checked' : '') + '>In HTML only</label>' +
+      '<label class="inline-check"><input type="checkbox" data-filter="hidden"' + (S.filter.hidden ? ' checked' : '') + '>Show hidden</label>';
+  }
+
+  function addElements(ids) {
+    const ctx = S.ctx;
+    if (!ctx) return;
+    const added = [];
+    ids.forEach((id) => {
+      const n = ctx.index[id];
+      if (!n || isAdded(id)) return;
+      const el = {
+        id: id, name: n.name, type: n.type, exit: -1,
+        clip: !!n.maskId, maskId: n.maskId, maskName: n.maskName,
+        scenes: ctx.session.scenes.map((_, i) => defaultScene(i === S.scene))
+      };
+      // Keep Figma's stacking order: the list runs front → back.
+      const list = ctx.session.elements;
+      let pos = list.findIndex((e) => (ctx.index[e.id] ? ctx.index[e.id].order : -1) < n.order);
+      if (pos === -1) pos = list.length;
+      list.splice(pos, 0, el);
+      added.push(el);
+    });
+    if (!added.length) return;
+    S.open = added[added.length - 1].id;
+    persist();
+    renderTree();
+    renderElements();
+    schedulePreview();
+    setStatus(added.length === 1 ? '“' + added[0].name + '” added as ' + added[0].type + '.' : added.length + ' elements added.');
+  }
+
+  function removeElements(ids) {
+    const s = sess();
+    if (!s) return;
+    const before = s.elements.length;
+    s.elements = s.elements.filter((e) => ids.indexOf(e.id) === -1);
+    ids.forEach((id) => S.checkedEls.delete(id));
+    if (ids.indexOf(S.open) !== -1) S.open = null;
+    if (s.elements.length === before) return;
+    persist();
+    renderTree();
+    renderElements();
+    schedulePreview();
+    setStatus((before - s.elements.length) + ' element' + (before - s.elements.length > 1 ? 's' : '') + ' removed.');
+  }
+
+  // -------------------------------------------------------------------------
+  // Right panel — banner select, frames, transport
+  // -------------------------------------------------------------------------
+  function renderTop() {
+    const sel = $('bannerSelect');
+    const cur = S.ctx && S.ctx.id;
+    sel.innerHTML = S.banners.length
+      ? S.banners.map((b) => '<option value="' + b.id + '"' + (b.id === cur ? ' selected' : '') + '>' + b.width + '×' + b.height + ' · ' + esc(b.name) + (b.elements ? ' ●' : '') + '</option>').join('')
+      : '<option>No frames on this page</option>';
+    if (!cur && S.banners.length) sel.insertAdjacentHTML('afterbegin', '<option value="" selected>Choose banner…</option>');
+  }
+
+  function renderTimeline() {
+    const s = sess();
+    const scenes = s ? s.scenes : [];
+    $('sceneCount').textContent = scenes.length;
+    $('sceneDurations').innerHTML = scenes.map((sc, i) =>
+      '<label class="scene-dur' + (i === S.scene ? ' cur' : '') + '" style="flex:' + Math.max(0.5, sc.dur) + '"><span class="tag">F' + (i + 1) + '</span>' +
+      '<input type="number" min="0.5" step="0.5" data-scene-dur="' + i + '" value="' + sc.dur + '"></label>').join('');
+    if (s) {
+      $('playsSelect').value = String(s.plays);
+      $('endOnLast').checked = s.endOnLast !== false;
+      $('endOnLast').disabled = s.plays === 0;
+      const len = G.timeline(s).playLen;
+      S.playLen = len;
+      $('scrubber').max = String(len);
+      $('totalTime').textContent = round1(len) + 's' + (s.plays > 1 ? ' × ' + s.plays : s.plays === 0 ? ' · loops' : '');
+    }
+    $('sceneLabel').textContent = 'F' + (S.scene + 1);
+    updateTransport();
+  }
+
+  function round1(n) {
+    return Math.round(n * 100) / 100;
+  }
+
+  function updateTransport() {
+    $('playBtn').innerHTML = icon(S.playing ? 'pause' : 'play');
+    const t = S.playLen ? Math.min(S.time % (S.playLen + 1e-9), S.playLen) : 0;
+    if (!S.scrubbing) $('scrubber').value = String(t);
+    $('timeLabel').textContent = t.toFixed(2) + 's';
+    $('outlineBtn').classList.toggle('on', S.outline);
+    $('followBtn').classList.toggle('on', S.follow);
+  }
+
+  function sceneStart(i) {
+    return G.sceneStarts(sess())[i] || 0;
+  }
+
+  function selectScene(i, seek) {
+    const s = sess();
+    if (!s) return;
+    S.scene = Math.max(0, Math.min(s.scenes.length - 1, i));
+    if (seek) {
+      S.time = sceneStart(S.scene) + s.scenes[S.scene].dur * 0.6;
+      S.playing = false;
+      sendPreview({ bannerCmd: 'seek', t: S.time });
+    }
+    renderTimeline();
+    renderElements();
+  }
+
+  // -------------------------------------------------------------------------
+  // Right panel — element cards
+  // -------------------------------------------------------------------------
+  function renderElements() {
+    const box = $('elements');
+    const s = sess();
+    if (!s) { box.innerHTML = ''; renderBulkEls(); return; }
+    if (!s.elements.length) {
+      box.innerHTML = '<div class="empty">No elements in the HTML yet.<br>Click <b>+ Add</b> on the layers you want to animate.</div>';
+      renderBulkEls();
+      return;
+    }
+    box.innerHTML = s.elements.map(elementCard).join('');
+    renderBulkEls();
+  }
+
+  function exitLabel(i) {
+    const x = S.pkg.exits[i];
+    return x ? (x.name || 'Exit ' + (i + 1)) : 'Banner click (main exit)';
+  }
+
+  function elementCard(el) {
+    const sc = el.scenes[S.scene];
+    const n = S.ctx.index[el.id];
+    const open = S.open === el.id;
+    return '<div class="el' + (open ? ' open' : '') + (sc.on ? '' : ' off-scene') + '" data-id="' + el.id + '">' +
+      '<div class="el-head" data-act="toggle-el">' +
+        '<div class="order"><button data-act="el-up" title="Bring forward">' + icon('chevron-up') + '</button><button data-act="el-down" title="Send backward">' + icon('chevron-down') + '</button></div>' +
+        '<input type="checkbox" class="cb" data-act="check-el"' + (S.checkedEls.has(el.id) ? ' checked' : '') + '>' +
+        '<span class="type-ic">' + icon(typeIcon(n || el)) + '</span>' +
+        '<span class="name">' + esc(el.name) + (!n ? ' <span class="muted">(layer missing)</span>' : '') + '</span>' +
+        '<button class="icon-btn sm ghost link-btn' + (el.exit >= 0 ? ' on' : '') + '" data-act="cycle-exit" title="Click target: ' + esc(el.exit >= 0 ? exitLabel(el.exit) : 'banner click (main exit)') + '">' + icon('link') + '</button>' +
+        (el.maskId ? '<button class="icon-btn sm ghost clip-btn' + (el.clip ? ' on' : '') + '" data-act="toggle-clip" title="Clip to mask “' + esc(el.maskName || '') + '”">' + icon('mask') + '</button>' : '') +
+        '<button class="icon-btn sm ghost danger" data-act="remove-el" title="Remove from HTML">' + icon('trash') + '</button>' +
+      '</div>' +
+      (open ? '<div class="el-body">' + elementBody(el) + '</div>' : '') +
+    '</div>';
+  }
+
+  function unitInput(field, value, step, unit, min) {
+    return '<span class="unit" data-unit="' + unit + '"><input type="number" step="' + step + '"' + (min !== undefined ? ' min="' + min + '"' : '') + ' data-f="' + field + '" value="' + value + '"></span>';
+  }
+
+  function field(label, control, cls) {
+    return '<label class="field' + (cls ? ' ' + cls : '') + '"><span>' + label + '</span>' + control + '</label>';
+  }
+
+  function elementBody(el) {
+    const s = sess();
+    const sc = el.scenes[S.scene];
+    const bars = '<div class="scene-bars">' + s.scenes.map((_, i) =>
+      '<div class="scene-bar' + (el.scenes[i].on ? ' on' : '') + (i === S.scene ? ' cur' : '') + '" data-act="toggle-scene" data-i="' + i + '" title="' +
+      (el.scenes[i].on ? 'Visible' : 'Hidden') + ' in F' + (i + 1) + ' — click to toggle">F' + (i + 1) + '</div>').join('') + '</div>';
+    if (!sc.on) {
+      return bars + '<div class="not-in-scene">Not visible in F' + (S.scene + 1) + '.<br><button class="btn" data-act="toggle-scene" data-i="' + S.scene + '">Show in F' + (S.scene + 1) + '</button></div>';
+    }
+    const io = '<div class="io">' +
+      '<div><h4>' + icon('in') + 'In</h4><div class="fields">' +
+        field('Delay', unitInput('in.d', sc.in.d, 0.1, 's', 0)) +
+        field('Preset', '<select data-f="in.p">' + options(G.IN_PRESETS, sc.in.p) + '</select>') +
+        field('Duration', unitInput('in.t', sc.in.t, 0.1, 's', 0.05)) +
+      '</div><div class="fields two adv-only" style="margin-top:6px">' +
+        field('Easing', '<select data-f="in.e">' + options(G.EASE_LABELS, sc.in.e) + '</select>') +
+        field('Distance', unitInput('in.dist', sc.in.dist, 5, 'px')) +
+      '</div></div>' +
+      '<div><h4>' + icon('out') + 'Out</h4><div class="fields">' +
+        field('Delay', unitInput('out.d', sc.out.d, 0.1, 's')) +
+        field('Preset', '<select data-f="out.p">' + options(G.OUT_PRESETS, sc.out.p) + '</select>') +
+        field('Duration', unitInput('out.t', sc.out.t, 0.1, 's', 0.05)) +
+      '</div><div class="fields two adv-only" style="margin-top:6px">' +
+        field('Easing', '<select data-f="out.e">' + options(G.EASE_LABELS, sc.out.e) + '</select>') +
+        field('Distance', unitInput('out.dist', sc.out.dist, 5, 'px')) +
+      '</div></div>' +
+    '</div>';
+
+    const badge = '<span class="badge"></span>';
+    const tabs = '<div class="tabs">' +
+      '<button class="tab' + (S.tab === 'settings' ? ' on' : '') + '" data-act="tab" data-tab="settings">' + icon('settings') + 'Settings' + (el.exit >= 0 ? badge : '') + '</button>' +
+      '<button class="tab' + (S.tab === 'loop' ? ' on' : '') + '" data-act="tab" data-tab="loop">' + icon('loop') + 'Loop' + (sc.loop.p !== 'none' ? badge : '') + '</button>' +
+      '<button class="tab' + (S.tab === 'motion' ? ' on' : '') + '" data-act="tab" data-tab="motion">' + icon('motion') + 'Motion' + (sc.motion.p !== 'none' ? badge : '') + '</button>' +
+    '</div>';
+
+    let pane = '';
+    if (S.tab === 'settings') {
+      const x = expOf(S.ctx, el.id);
+      const exits = { '-1': 'Banner click (main exit)' };
+      S.pkg.exits.forEach((e, i) => { exits[i] = e.name || 'Exit ' + (i + 1); });
+      pane = '<div class="fields four">' +
+        field('Click target', '<select data-ef="exit">' + options(exits, el.exit) + '</select>', '') +
+        field('Crop', '<select data-xf="mode">' + options({ framed: 'Framed', full: 'Full' }, x.mode) + '</select>') +
+        field('Scale', '<select data-xf="scale">' + options({ 1: '1x', 2: '2x', 3: '3x' }, x.scale) + '</select>') +
+        field('Format', '<select data-xf="format">' + options({ png: 'PNG', jpg: 'JPG', svg: 'SVG' }, x.format) + '</select>') +
+      '</div>' +
+      (el.maskId ? '<label class="check"><input type="checkbox" class="cb" data-ef="clip"' + (el.clip ? ' checked' : '') + '>Clip to mask “' + esc(el.maskName || '') + '”</label>' : '');
+    } else if (S.tab === 'loop') {
+      pane = '<div class="fields four">' +
+        field('Effect', '<select data-f="loop.p">' + options(G.LOOP_EFFECTS, sc.loop.p) + '</select>') +
+        field('Duration', unitInput('loop.t', sc.loop.t, 0.1, 's', 0.1)) +
+        field('Delay', unitInput('loop.d', sc.loop.d, 0.1, 's', 0)) +
+        field('Repeat', '<select data-f="loop.r">' + options({ 1: '1×', 2: '2×', 3: '3×', 4: '4×', 5: '5×', inf: 'Until exit' }, sc.loop.r) + '</select>') +
+      '</div>';
+    } else {
+      pane = '<div class="fields four">' +
+        field('Motion', '<select data-f="motion.p">' + options(G.MOTION_PRESETS, sc.motion.p) + '</select>') +
+        field('Delay', unitInput('motion.d', sc.motion.d, 0.1, 's', 0)) +
+        field('Easing', '<select data-f="motion.e">' + options(G.EASE_LABELS, sc.motion.e) + '</select>') +
+        '<span></span>' +
+      '</div>' +
+      (sc.motion.p === 'custom' ? '<div class="fields four" style="margin-top:6px">' +
+        field('Move X', unitInput('motion.x', sc.motion.x, 1, 'px')) +
+        field('Move Y', unitInput('motion.y', sc.motion.y, 1, 'px')) +
+        field('Scale', unitInput('motion.s', sc.motion.s, 0.05, '×')) +
+        field('Rotate', unitInput('motion.r', sc.motion.r, 1, '°')) +
+      '</div>' : '') +
+      '<div class="summary">Motion runs from the moment the element appears until it has left.</div>';
+    }
+    return bars + io + tabs + pane + '<div class="summary" data-summary>' + esc(summary(el)) + '</div>';
+  }
+
+  function summary(el) {
+    const sc = el.scenes[S.scene];
+    if (!sc.on) return '';
+    const parts = [G.IN_PRESETS[sc.in.p] + (sc.in.p !== 'none' ? ' ' + sc.in.t + 's' : ''), G.OUT_PRESETS[sc.out.p] + (sc.out.p !== 'none' ? ' ' + sc.out.t + 's' : '')];
+    if (sc.loop.p !== 'none') parts.push(G.LOOP_EFFECTS[sc.loop.p].label + ' · ' + (sc.loop.r === 'inf' ? 'until exit' : sc.loop.r + '×'));
+    if (sc.motion.p !== 'none') parts.push(G.MOTION_PRESETS[sc.motion.p].label);
+    if (el.exit >= 0) parts.push('→ ' + exitLabel(el.exit));
+    return parts.join(' · ');
+  }
+
+  function renderBulkEls() {
+    const bar = $('bulkEls');
+    const n = S.checkedEls.size;
+    bar.hidden = !n;
+    if (!n) return;
+    const src = S.open && elById(S.open);
+    bar.innerHTML = '<b>' + n + ' selected</b><span class="grow"></span>' +
+      (src ? '<button class="btn" data-act="bulk-copy" title="Copy every frame’s In/Out/Loop/Motion">Copy animation from “' + esc(src.name) + '”</button>' : '<span class="muted">Open an element to copy its animation</span>') +
+      '<button class="btn" data-act="bulk-delete">Remove</button><button class="text-btn" data-act="bulk-clear-els">Clear</button>';
+  }
+
+  // -------------------------------------------------------------------------
+  // Assets
+  // -------------------------------------------------------------------------
+  function itemKey(ctx, el) {
+    const x = expOf(ctx, el.id);
+    return [el.id, x.scale, x.format, addedDescendants(ctx, el.id).join(',')].join('|');
+  }
+
+  async function ensureAssets(ctx) {
+    const c = ctx.cache;
+    if (c.pending) {
+      await c.pending.catch(() => {});
+      return ensureAssets(ctx);
+    }
+    const items = [];
+    const masks = [];
+    const seenMasks = {};
+    ctx.session.elements.forEach((el) => {
+      if (!ctx.index[el.id] || !el.scenes.some((sc) => sc.on)) return;
+      const x = expOf(ctx, el.id);
+      const key = itemKey(ctx, el);
+      if (!(key in c.items)) items.push({ id: el.id, key: key, scale: x.scale, format: x.format, hide: addedDescendants(ctx, el.id) });
+      if (el.clip && el.maskId) {
+        const mk = el.maskId + '|2';
+        if (!(mk in c.masks) && !seenMasks[mk]) {
+          seenMasks[mk] = true;
+          masks.push({ id: el.maskId, key: mk, scale: 2 });
+        }
+      }
+    });
+    const needBg = !c.bg;
+    if (!items.length && !masks.length && !needBg) return;
+    if (ctx === S.ctx) $('sizeInfo').textContent = 'Exporting ' + (items.length || 'background') + (items.length ? ' layer' + (items.length > 1 ? 's' : '') : '') + '…';
+    c.pending = call('exportAssets', { id: ctx.id, items: items, masks: masks, background: needBg }).then((res) => {
+      items.forEach((it) => { c.items[it.key] = res.items[it.key] || null; });
+      masks.forEach((m) => { c.masks[m.key] = res.masks[m.key] || null; });
+      if (needBg) c.bg = { background: res.background, radius: res.radius };
+      c.warnings = res.warnings || [];
+    });
+    try {
+      await c.pending;
+    } finally {
+      c.pending = null;
+    }
+  }
+
+  async function assembleAssets(ctx, compress) {
+    const c = ctx.cache;
+    const frame = { W: ctx.info.width, H: ctx.info.height };
+    const items = {};
+    const masks = {};
+    for (const el of ctx.session.elements) {
+      const key = itemKey(ctx, el);
+      const raw = c.items[key];
+      if (!raw) continue;
+      const x = expOf(ctx, el.id);
+      const pk = key + '|' + x.mode + '|' + (compress ? 1 : 0);
+      if (!c.processed[pk]) c.processed[pk] = processImage(raw, x.mode === 'framed' ? frame : null, compress);
+      const img = await c.processed[pk];
+      if (img) items[el.id] = img;
+      if (el.clip && el.maskId && c.masks[el.maskId + '|2']) masks[el.maskId] = c.masks[el.maskId + '|2'];
+    }
+    return {
+      background: c.bg ? c.bg.background : { css: '#ffffff' },
+      radius: c.bg ? c.bg.radius : 0,
+      items: items,
+      masks: masks,
+      warnings: c.warnings || []
+    };
+  }
+
+  function canvasBytes(canvas, type, quality) {
+    return new Promise((resolve, reject) => {
+      canvas.toBlob((blob) => {
+        if (!blob) return reject(new Error('Image encoding failed'));
+        blob.arrayBuffer().then((buf) => resolve(new Uint8Array(buf)), reject);
+      }, type, quality);
+    });
+  }
+
+  async function decode(img) {
+    return createImageBitmap(new Blob([img.bytes], { type: G.MIME[img.ext] }));
+  }
+
+  // Crops to the banner ("Framed") and optionally re-encodes opaque images as JPG.
+  async function processImage(raw, frame, compress) {
+    if (raw.ext === 'svg') return raw;
+    let img = raw;
+    try {
+      if (frame) {
+        const x0 = Math.max(0, raw.x), y0 = Math.max(0, raw.y);
+        const x1 = Math.min(frame.W, raw.x + raw.width), y1 = Math.min(frame.H, raw.y + raw.height);
+        if (x1 <= x0 || y1 <= y0) return null;
+        const cropped = x0 > raw.x + 0.5 || y0 > raw.y + 0.5 || x1 < raw.x + raw.width - 0.5 || y1 < raw.y + raw.height - 0.5;
+        if (cropped) {
+          const bmp = await decode(raw);
+          const sx = bmp.width / raw.width, sy = bmp.height / raw.height;
+          const canvas = document.createElement('canvas');
+          canvas.width = Math.max(1, Math.round((x1 - x0) * sx));
+          canvas.height = Math.max(1, Math.round((y1 - y0) * sy));
+          canvas.getContext('2d').drawImage(bmp, Math.round((x0 - raw.x) * sx), Math.round((y0 - raw.y) * sy), canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
+          img = Object.assign({}, raw, { x: x0, y: y0, width: x1 - x0, height: y1 - y0, bytes: await canvasBytes(canvas, G.MIME[raw.ext], 0.9) });
+        }
+      }
+      if (compress) img = await compressImage(img);
+    } catch (e) {
+      console.warn('Image processing failed', e);
+    }
+    return img;
+  }
+
+  async function compressImage(img) {
+    const bmp = await decode(img);
+    const canvas = document.createElement('canvas');
+    canvas.width = bmp.width;
+    canvas.height = bmp.height;
+    const g = canvas.getContext('2d');
+    g.drawImage(bmp, 0, 0);
+    if (img.ext === 'png') {
+      const data = g.getImageData(0, 0, canvas.width, canvas.height).data;
+      for (let i = 3; i < data.length; i += 4) if (data[i] < 255) return img; // keep transparency
+    }
+    const jpg = await canvasBytes(canvas, 'image/jpeg', 0.82);
+    return jpg.length < img.bytes.length ? Object.assign({}, img, { ext: 'jpg', bytes: jpg }) : img;
+  }
+
+  // -------------------------------------------------------------------------
+  // Preview
+  // -------------------------------------------------------------------------
+  let previewTimer = null;
+  let previewToken = 0;
+
+  function schedulePreview(delay) {
+    clearTimeout(previewTimer);
+    previewTimer = setTimeout(updatePreview, delay === undefined ? 160 : delay);
+  }
+
+  function stageMessage(text) {
+    $('stageMsg').hidden = !text;
+    $('stageMsg').textContent = text || '';
+    $('frameBox').hidden = !!text;
+  }
+
+  function layoutStage() {
+    const ctx = S.ctx;
+    if (!ctx) return;
+    const stage = $('stage');
+    const w = ctx.info.width, h = ctx.info.height;
+    const fit = Math.min(2, (stage.clientWidth - 40) / w, (stage.clientHeight - 64) / h);
+    const scale = S.zoom === 'fit' ? fit : S.zoom;
+    const iframe = $('preview');
+    iframe.width = w;
+    iframe.height = h;
+    iframe.style.transform = 'scale(' + scale + ')';
+    $('frameBox').style.width = w * scale + 'px';
+    $('frameBox').style.height = h * scale + 'px';
+    $('zoomLabel').textContent = Math.round(scale * 100) + '%';
+    S.currentScale = scale;
+  }
+
+  function sendPreview(msg) {
+    const win = $('preview').contentWindow;
+    if (win) win.postMessage(msg, '*');
+  }
+
+  async function updatePreview() {
+    const ctx = S.ctx;
+    const token = ++previewToken;
+    if (!ctx) { stageMessage('Select a banner frame in Figma.'); return; }
+    try {
+      if (!ctx.cache.bg) stageMessage('Exporting layers from Figma…');
+      await ensureAssets(ctx);
+      if (token !== previewToken || ctx !== S.ctx) return;
+      const assets = await assembleAssets(ctx, false);
+      if (token !== previewToken || ctx !== S.ctx) return;
+      const opts = { name: ctx.info.name, width: ctx.info.width, height: ctx.info.height, session: ctx.session, assets: assets, pkg: S.pkg };
+      const out = G.buildBanner(Object.assign({ inline: true, preview: true, outline: S.outline }, opts));
+      stageMessage('');
+      layoutStage();
+      S.resume = { t: S.time, playing: S.playing };
+      S.ignoreTicksUntil = Date.now() + 1e9;
+      $('preview').srcdoc = out.html;
+
+      const files = G.buildBanner(Object.assign({ inline: false, channel: S.pkg.channel || 'html5' }, opts)).files;
+      const enc = new TextEncoder();
+      const bytes = files.reduce((sum, f) => sum + (typeof f.data === 'string' ? enc.encode(f.data).length : f.data.length), 0);
+      const kb = Math.round(bytes / 102.4) / 10;
+      $('sizeInfo').textContent = ctx.session.elements.length + ' elements · ' + files.length + ' files · ≈ ' + kb + ' KB' + (S.pkg.compress ? ' before compression' : '');
+      $('warnings').textContent = (assets.warnings || []).join(' ');
+    } catch (e) {
+      if (token === previewToken) stageMessage('Export failed: ' + e.message);
+    }
+  }
+
+  function onPreviewLoaded() {
+    const r = S.resume || { t: 0, playing: true };
+    S.resume = null;
+    sendPreview({ bannerCmd: 'outline', on: S.outline });
+    if (r.playing) sendPreview({ bannerCmd: 'play', t: r.t });
+    else sendPreview({ bannerCmd: 'seek', t: r.t });
+    S.ignoreTicksUntil = Date.now() + 150;
+  }
+
+  function onPreviewTick(d) {
+    if (Date.now() < S.ignoreTicksUntil || S.scrubbing) return;
+    if (d.playing === null) return; // nothing animated yet
+    S.time = d.t;
+    S.playing = d.playing;
+    updateTransport();
+  }
+
+  // -------------------------------------------------------------------------
+  // Banner switching
+  // -------------------------------------------------------------------------
+  async function openBanner(id, fresh) {
+    if (!id) return;
+    try {
+      const ctx = await loadCtx(id, fresh !== false);
+      const switched = !S.ctx || S.ctx.id !== id;
+      S.ctx = ctx;
+      if (switched) {
+        S.scene = 0;
+        S.open = null;
+        S.checkedNodes.clear();
+        S.checkedEls.clear();
+        S.time = 0;
+        S.playing = true;
+        S.zoom = 'fit';
+        S.expanded = {};
+      }
+      S.scene = Math.min(S.scene, ctx.session.scenes.length - 1);
+      renderAll();
+      schedulePreview(0);
+      setStatus('Editing ' + ctx.info.width + '×' + ctx.info.height + ' “' + ctx.info.name + '”.');
+    } catch (e) {
+      showError(e);
+    }
+  }
+
+  function revealNode(id) {
+    const ctx = S.ctx;
+    const n = ctx && ctx.index[id];
+    if (!n) return;
+    for (let p = n.parent; p; p = p.parent) S.expanded[p.id] = true;
+    renderTree();
+    const card = document.querySelector('.node[data-node="' + CSS.escape(id) + '"]');
+    if (card) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  }
+
+  function onCanvasSelection(m) {
+    S.canvasSel = m.ids || [];
+    if (S.follow && m.bannerId && (!S.ctx || S.ctx.id !== m.bannerId)) {
+      openBanner(m.bannerId);
+      return;
+    }
+    if (S.follow && S.ctx && S.canvasSel.length && S.ctx.index[S.canvasSel[0]]) revealNode(S.canvasSel[0]);
+    else renderTree();
+  }
+
+  function renderAll() {
+    renderTop();
+    renderFilters();
+    renderTree();
+    renderTimeline();
+    renderElements();
+    if (!S.ctx) stageMessage('Select a banner frame in Figma.');
+  }
+
+  // -------------------------------------------------------------------------
+  // Package
+  // -------------------------------------------------------------------------
+  function packageBanners() {
+    return S.banners.filter((b) => b.elements > 0);
+  }
+
+  function includedBanners() {
+    return packageBanners().filter((b) => !S.pkg.exclude[b.id]);
+  }
+
+  function renderPackage() {
+    const p = S.pkg;
+    const sizes = packageBanners();
+    $('packageBody').innerHTML =
+      '<div class="sec"><div class="sec-title">' + icon('settings') + 'Package settings</div><div class="pkg-grid">' +
+        '<div class="field"><span>Border color</span><div class="color-field"><input type="color" data-pf="borderColor" value="' + esc(p.borderColor) + '"><input type="text" data-pf="borderColor" value="' + esc(p.borderColor) + '"></div></div>' +
+        '<div class="field"><span>Optimization</span>' +
+          '<label class="check"><input type="checkbox" class="cb" data-pf="compress"' + (p.compress ? ' checked' : '') + '>Compress images</label>' +
+          '<label class="check"><input type="checkbox" class="cb" data-pf="border"' + (p.border ? ' checked' : '') + '>Show border</label>' +
+        '</div>' +
+      '</div></div>' +
+      '<div class="sec"><div class="sec-title">' + icon('link') + 'Exits<span class="grow"></span><span class="muted">' + p.exits.length + ' exit' + (p.exits.length > 1 ? 's' : '') + '</span></div>' +
+        p.exits.map((x, i) =>
+          '<div class="exit" data-exit="' + i + '"><div class="exit-head">' + icon('star') +
+            '<input type="text" data-exf="name" value="' + esc(x.name) + '" placeholder="Exit name">' +
+            (i === 0 ? '<span class="primary">Primary</span>' : '<button class="icon-btn sm ghost danger" data-act="remove-exit" title="Remove exit">' + icon('trash') + '</button>') +
+          '</div><input type="url" data-exf="url" value="' + esc(x.url) + '" placeholder="https://..."></div>').join('') +
+        '<button class="btn" data-act="add-exit">+ Add exit</button>' +
+      '</div>' +
+      '<div class="sec"><div class="sec-title">' + icon('files') + 'Sizes</div><div class="size-list">' +
+        (sizes.length
+          ? sizes.map((b) => '<label><input type="checkbox" class="cb" data-size="' + b.id + '"' + (p.exclude[b.id] ? '' : ' checked') + '>' + b.width + '×' + b.height + ' <span class="muted">' + esc(b.name) + ' · ' + b.elements + ' elements</span></label>').join('')
+          : '<span class="muted">No banner on this page has elements yet.</span>') +
+      '</div></div>';
+    renderPackageFoot();
+  }
+
+  function renderPackageFoot() {
+    const p = S.pkg;
+    const ch = G.CHANNELS[p.channel];
+    $('channelLabel').textContent = ch ? ch.label : 'Channel';
+    $('channelMenu').innerHTML = Object.keys(G.CHANNELS).map((k) =>
+      '<button class="' + (p.channel === k ? 'on' : '') + '" data-act="set-channel" data-channel="' + k + '"><b>' + esc(G.CHANNELS[k].label) + '</b><small>' + esc(G.CHANNELS[k].desc) + '</small></button>').join('');
+    const n = includedBanners().length;
+    $('filesCount').textContent = n + ' file' + (n === 1 ? '' : 's');
+    const btn = $('downloadAllBtn');
+    btn.disabled = !p.channel || !n;
+    btn.title = !p.channel ? 'Choose a channel first' : !n ? 'No sizes to export' : '';
+  }
+
+  function download(data, name, type) {
+    const url = URL.createObjectURL(new Blob([data], { type: type || 'application/zip' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+  }
+
+  async function buildPackageBanner(id, preview) {
+    const ctx = id === (S.ctx && S.ctx.id) ? S.ctx : await loadCtx(id);
+    await ensureAssets(ctx);
+    const assets = await assembleAssets(ctx, preview ? false : S.pkg.compress);
+    const out = G.buildBanner({
+      name: ctx.info.name, width: ctx.info.width, height: ctx.info.height, session: ctx.session,
+      assets: assets, pkg: S.pkg, channel: S.pkg.channel, inline: !!preview, preview: !!preview
+    });
+    return { ctx: ctx, out: out };
+  }
+
+  async function downloadAll() {
+    const list = includedBanners();
+    const channel = S.pkg.channel;
+    if (!list.length || !channel) return;
+    const btn = $('downloadAllBtn');
+    btn.disabled = true;
+    try {
+      if (!S.pkg.exits[0].url) setStatus('Main exit URL is empty — the click-through will open a blank page.', true);
+      const zips = [];
+      for (const b of list) {
+        $('filesCount').textContent = 'Packaging ' + b.width + '×' + b.height + '…';
+        const r = await buildPackageBanner(b.id, false);
+        zips.push({ name: G.slug(r.ctx.info.name) + '_' + r.ctx.info.width + 'x' + r.ctx.info.height + '_' + channel + '.zip', data: G.makeZip(r.out.files) });
+      }
+      if (zips.length === 1) download(zips[0].data, zips[0].name);
+      else download(G.makeZip(zips), 'banners_' + channel + '.zip');
+      call('notify', { text: 'Packaged ' + zips.length + ' banner' + (zips.length > 1 ? 's' : '') + ' for ' + G.CHANNELS[channel].label });
+      if (S.pkg.exits[0].url) setStatus('Downloaded ' + zips.length + ' banner' + (zips.length > 1 ? 's' : '') + '.');
+    } catch (e) {
+      showError(e);
+    } finally {
+      renderPackageFoot();
+    }
+  }
+
+  async function openPackagePreview() {
+    const list = includedBanners();
+    $('previewSheet').hidden = false;
+    const body = $('previewBody');
+    if (!list.length) {
+      body.innerHTML = '<div class="empty">Nothing to preview yet.</div>';
+      return;
+    }
+    body.innerHTML = '<div class="empty">Building previews…</div>';
+    const maxW = body.clientWidth - 40;
+    const figures = [];
+    for (const b of list) {
+      try {
+        const r = await buildPackageBanner(b.id, true);
+        const w = r.ctx.info.width, h = r.ctx.info.height;
+        const scale = Math.min(1, maxW / w);
+        figures.push({ html: r.out.html, w: w, h: h, scale: scale, label: w + '×' + h + ' · ' + r.ctx.info.name });
+      } catch (e) {
+        figures.push({ error: e.message, label: b.name });
+      }
+    }
+    body.innerHTML = figures.map((f, i) => f.error
+      ? '<figure><div class="muted">' + esc(f.label) + ': ' + esc(f.error) + '</div></figure>'
+      : '<figure><div style="width:' + f.w * f.scale + 'px;height:' + f.h * f.scale + 'px;box-shadow:0 0 0 1px var(--border-strong)"><iframe data-pv="' + i + '" width="' + f.w + '" height="' + f.h + '" sandbox="allow-scripts" style="transform:scale(' + f.scale + ')"></iframe></div><figcaption>' + esc(f.label) + '</figcaption></figure>').join('');
+    S.previewDocs = figures;
+    body.querySelectorAll('iframe[data-pv]').forEach((fr) => { fr.srcdoc = figures[Number(fr.dataset.pv)].html; });
+  }
+
+  // -------------------------------------------------------------------------
+  // Copy animation to other sizes (matched by layer name)
+  // -------------------------------------------------------------------------
+  function renderSync() {
+    const others = S.banners.filter((b) => !S.ctx || b.id !== S.ctx.id);
+    $('syncBody').innerHTML = others.length
+      ? '<div class="sec"><div class="size-list">' + others.map((b) => '<label><input type="checkbox" class="cb" data-sync="' + b.id + '" checked>' + b.width + '×' + b.height + ' <span class="muted">' + esc(b.name) + (b.elements ? ' · has ' + b.elements + ' elements' : '') + '</span></label>').join('') + '</div></div>'
+      : '<div class="empty">There are no other frames on this page.</div>';
+  }
+
+  async function applySync() {
+    const src = S.ctx;
+    if (!src) return;
+    const ids = Array.from(document.querySelectorAll('[data-sync]')).filter((c) => c.checked).map((c) => c.dataset.sync);
+    let done = 0;
+    const report = [];
+    for (const id of ids) {
+      try {
+        const target = await loadCtx(id, true);
+        const byName = {};
+        target.order.forEach((n) => { if (!byName[n.name]) byName[n.name] = n; });
+        const elements = [];
+        const exportOpts = {};
+        src.session.elements.forEach((el) => {
+          const n = byName[el.name];
+          if (!n) return;
+          elements.push(Object.assign(clone(el), { id: n.id, type: n.type, maskId: n.maskId, maskName: n.maskName, clip: el.clip && !!n.maskId }));
+          if (src.session.exportOpts[el.id]) exportOpts[n.id] = clone(src.session.exportOpts[el.id]);
+        });
+        const session = clone(src.session);
+        session.elements = elements;
+        session.exportOpts = exportOpts;
+        target.session = normalizeSession(session);
+        await call('saveSession', { id: id, session: target.session });
+        const b = S.banners.find((x) => x.id === id);
+        if (b) b.elements = elements.length;
+        report.push(target.info.width + '×' + target.info.height + ': ' + elements.length + '/' + src.session.elements.length);
+        done++;
+      } catch (e) {
+        report.push(id + ': ' + e.message);
+      }
+    }
+    $('syncSheet').hidden = true;
+    renderTop();
+    setStatus('Copied to ' + done + ' size' + (done === 1 ? '' : 's') + ' (matched layers ' + report.join(', ') + ').');
+  }
+
+  // -------------------------------------------------------------------------
+  // Actions
+  // -------------------------------------------------------------------------
+  function nodeIdOf(t) {
+    const host = t.closest('[data-node]') || t.closest('[data-id]');
+    return host && (host.dataset.node || host.dataset.id);
+  }
+
+  const ACTIONS = {
+    'toggle-node': (t) => { const id = nodeIdOf(t); S.expanded[id] = !S.expanded[id]; renderTree(); },
+    'check-node': (t) => { const id = nodeIdOf(t); if (t.checked) S.checkedNodes.add(id); else S.checkedNodes.delete(id); renderBulkNodes(); },
+    'add-node': (t) => addElements([nodeIdOf(t)]),
+    'remove-node': (t) => removeElements([nodeIdOf(t)]),
+    'locate': (t) => call('locate', { id: nodeIdOf(t) }).catch(showError),
+    'bulk-add': () => { addElements(Array.from(S.checkedNodes)); S.checkedNodes.clear(); renderTree(); },
+    'bulk-remove': () => { removeElements(Array.from(S.checkedNodes)); S.checkedNodes.clear(); renderTree(); },
+    'bulk-clear-nodes': () => { S.checkedNodes.clear(); renderTree(); },
+    'toggle-clip': (t) => {
+      const el = elById(nodeIdOf(t));
+      if (!el) return;
+      el.clip = !el.clip;
+      persist();
+      renderTree();
+      renderElements();
+      schedulePreview();
+      setStatus('“' + el.name + '” ' + (el.clip ? 'clipped to' : 'no longer clipped to') + ' mask “' + (el.maskName || '') + '”.');
+    },
+    'toggle-filters': () => { S.showFilters = !S.showFilters; renderFilters(); },
+    'filter-kind': (t) => { S.filter.kind = t.dataset.kind; renderFilters(); renderTree(); },
+
+    'select-parent': () => call('selectParent').then((id) => { if (!id) setStatus('Nothing to go up to.'); }, showError),
+    'add-selection': () => {
+      const ids = S.canvasSel.filter((id) => S.ctx && S.ctx.index[id]);
+      if (!ids.length) setStatus('Select layers of this banner in Figma first.', true);
+      else addElements(ids);
+    },
+    'toggle-follow': () => { S.follow = !S.follow; updateTransport(); setStatus(S.follow ? 'Following the Figma selection.' : 'No longer following the Figma selection.'); },
+    'save-session': () => {
+      if (!S.ctx) return;
+      call('saveSnapshot', { id: S.ctx.id, session: S.ctx.session }).then(() => setStatus('Session saved. Use “Restore session” to come back to this point.'), showError);
+    },
+    'restore-session': async () => {
+      if (!S.ctx) return;
+      try {
+        const snap = await call('loadSnapshot', { id: S.ctx.id });
+        if (!snap) { setStatus('No saved session for this banner yet — use the save button first.', true); return; }
+        S.ctx.session = normalizeSession(snap.session);
+        S.ctx.session.elements.forEach((el) => {
+          const n = S.ctx.index[el.id];
+          if (n) Object.assign(el, { name: n.name, type: n.type, maskId: n.maskId, maskName: n.maskName });
+        });
+        S.scene = 0;
+        S.open = null;
+        persist();
+        renderAll();
+        schedulePreview();
+        setStatus('Session restored from ' + new Date(snap.at).toLocaleString() + '.');
+      } catch (e) {
+        showError(e);
+      }
+    },
+    'refresh': async () => {
+      if (!S.ctx) return;
+      S.ctx.cache = { items: {}, masks: {}, bg: null, processed: {}, warnings: [], pending: null };
+      await openBanner(S.ctx.id, true);
+      setStatus('Layers re-exported from Figma.');
+    },
+    'open-sync': () => { if (S.ctx) { renderSync(); $('syncSheet').hidden = false; } },
+    'close-sync': () => { $('syncSheet').hidden = true; },
+    'apply-sync': () => applySync(),
+
+    'scene-add': () => {
+      const s = sess();
+      if (!s) return;
+      s.scenes.push({ dur: 3 });
+      s.elements.forEach((el) => el.scenes.push(defaultScene(false)));
+      persist();
+      selectScene(s.scenes.length - 1, true);
+      schedulePreview();
+      setStatus('Frame F' + s.scenes.length + ' added. Turn elements on for it with the frame bars.');
+    },
+    'scene-remove': () => {
+      const s = sess();
+      if (!s || s.scenes.length < 2) return;
+      s.scenes.pop();
+      s.elements.forEach((el) => el.scenes.pop());
+      persist();
+      selectScene(Math.min(S.scene, s.scenes.length - 1), false);
+      schedulePreview();
+    },
+    'scene-prev': () => selectScene(S.scene - 1, true),
+    'scene-next': () => selectScene(S.scene + 1, true),
+    'play': () => {
+      if (S.playing) {
+        S.playing = false;
+        sendPreview({ bannerCmd: 'pause' });
+      } else {
+        const atEnd = S.time >= G.timeline(sess() || newSession()).total - 0.05;
+        S.playing = true;
+        sendPreview({ bannerCmd: 'play', t: atEnd ? 0 : S.time });
+      }
+      updateTransport();
+    },
+    'restart': () => { S.playing = true; S.time = 0; sendPreview({ bannerCmd: 'play', t: 0 }); updateTransport(); },
+    'toggle-outline': () => { S.outline = !S.outline; sendPreview({ bannerCmd: 'outline', on: S.outline }); updateTransport(); },
+    'zoom-in': () => { S.zoom = Math.min(4, (S.currentScale || 1) * 1.25); layoutStage(); },
+    'zoom-out': () => { S.zoom = Math.max(0.1, (S.currentScale || 1) / 1.25); layoutStage(); },
+    'zoom-fit': () => { S.zoom = 'fit'; layoutStage(); },
+    'mode': (t) => {
+      document.querySelectorAll('#modeSeg button').forEach((b) => b.classList.toggle('on', b === t));
+      document.body.classList.toggle('adv', t.dataset.mode === 'adv');
+    },
+
+    'toggle-el': (t) => { const id = nodeIdOf(t); S.open = S.open === id ? null : id; renderElements(); },
+    'check-el': (t) => { const id = nodeIdOf(t); if (t.checked) S.checkedEls.add(id); else S.checkedEls.delete(id); renderBulkEls(); },
+    'el-up': (t) => moveElement(nodeIdOf(t), -1),
+    'el-down': (t) => moveElement(nodeIdOf(t), 1),
+    'remove-el': (t) => removeElements([nodeIdOf(t)]),
+    'cycle-exit': (t) => {
+      const el = elById(nodeIdOf(t));
+      if (!el) return;
+      el.exit = el.exit + 1 >= S.pkg.exits.length ? -1 : el.exit + 1;
+      persist();
+      renderElements();
+      schedulePreview();
+      setStatus('“' + el.name + '” click target: ' + (el.exit >= 0 ? exitLabel(el.exit) : 'banner click (main exit)') + '.');
+    },
+    'toggle-scene': (t) => {
+      const el = elById(nodeIdOf(t));
+      const i = Number(t.dataset.i);
+      if (!el) return;
+      el.scenes[i].on = !el.scenes[i].on;
+      persist();
+      renderElements();
+      schedulePreview();
+      setStatus('“' + el.name + '” ' + (el.scenes[i].on ? 'shown' : 'hidden') + ' in F' + (i + 1) + '.');
+    },
+    'tab': (t) => { S.tab = t.dataset.tab; renderElements(); },
+    'bulk-copy': () => {
+      const src = S.open && elById(S.open);
+      if (!src) return;
+      let n = 0;
+      sess().elements.forEach((el) => { if (el !== src && S.checkedEls.has(el.id)) { el.scenes = clone(src.scenes); n++; } });
+      persist();
+      renderElements();
+      schedulePreview();
+      setStatus('Animation copied to ' + n + ' element' + (n === 1 ? '' : 's') + '.');
+    },
+    'bulk-delete': () => removeElements(Array.from(S.checkedEls)),
+    'bulk-clear-els': () => { S.checkedEls.clear(); renderElements(); },
+
+    'open-package': () => { renderPackage(); $('packageSheet').hidden = false; },
+    'close-package': () => { $('packageSheet').hidden = true; $('channelMenu').hidden = true; },
+    'toggle-channel': () => { $('channelMenu').hidden = !$('channelMenu').hidden; },
+    'set-channel': (t) => { S.pkg.channel = t.dataset.channel; $('channelMenu').hidden = true; persistPkg(); renderPackageFoot(); schedulePreview(); },
+    'add-exit': () => { S.pkg.exits.push({ name: 'Exit ' + (S.pkg.exits.length + 1), url: '' }); persistPkg(); renderPackage(); },
+    'remove-exit': (t) => {
+      const i = Number(t.closest('[data-exit]').dataset.exit);
+      S.pkg.exits.splice(i, 1);
+      Object.values(ctxs).forEach((ctx) => ctx.session.elements.forEach((el) => {
+        if (el.exit === i) el.exit = -1;
+        else if (el.exit > i) el.exit--;
+      }));
+      persist();
+      persistPkg();
+      renderPackage();
+      renderElements();
+    },
+    'package-preview': () => openPackagePreview(),
+    'download-all': () => downloadAll(),
+    'close-preview': () => { $('previewSheet').hidden = true; $('previewBody').innerHTML = ''; },
+    'replay-all': () => {
+      document.querySelectorAll('#previewBody iframe[data-pv]').forEach((fr) => { fr.srcdoc = S.previewDocs[Number(fr.dataset.pv)].html; });
+    }
+  };
+
+  function moveElement(id, dir) {
+    const list = sess().elements;
+    const i = list.findIndex((e) => e.id === id);
+    const j = i + dir;
+    if (i === -1 || j < 0 || j >= list.length) return;
+    const tmp = list[i];
+    list[i] = list[j];
+    list[j] = tmp;
+    persist();
+    renderElements();
+    schedulePreview();
+  }
+
+  function setPath(obj, path, value) {
+    const parts = path.split('.');
+    let o = obj;
+    for (let i = 0; i < parts.length - 1; i++) o = o[parts[i]];
+    o[parts[parts.length - 1]] = value;
+  }
+
+  function onInput(e) {
+    const t = e.target;
+    if (t.id === 'search') { S.search = t.value.trim(); renderTree(); return; }
+    if (t.id === 'scrubber') {
+      S.scrubbing = true;
+      S.playing = false;
+      S.time = Number(t.value);
+      sendPreview({ bannerCmd: 'seek', t: S.time });
+      updateTransport();
+      return;
+    }
+    if (t.dataset.f) {
+      const el = elById(nodeIdOf(t));
+      if (!el) return;
+      let v = t.value;
+      if (t.type === 'number') {
+        v = Number(v);
+        if (t.value === '' || !isFinite(v)) return;
+      } else if (t.dataset.f === 'loop.r' && v !== 'inf') {
+        v = Number(v);
+      }
+      setPath(el.scenes[S.scene], t.dataset.f, v);
+      persist();
+      const sum = t.closest('.el').querySelector('[data-summary]');
+      if (sum) sum.textContent = summary(el);
+      schedulePreview(250);
+      return;
+    }
+    if (t.dataset.sceneDur !== undefined) {
+      const v = Number(t.value);
+      if (!isFinite(v) || v < 0.1) return;
+      sess().scenes[Number(t.dataset.sceneDur)].dur = v;
+      t.parentElement.style.flex = String(Math.max(0.5, v));
+      persist();
+      schedulePreview(300);
+      return;
+    }
+    if (t.dataset.pf) {
+      S.pkg[t.dataset.pf] = t.type === 'checkbox' ? t.checked : t.value;
+      if (t.dataset.pf === 'borderColor') document.querySelectorAll('[data-pf="borderColor"]').forEach((o) => { if (o !== t) o.value = t.value; });
+      if (t.dataset.pf === 'compress') Object.values(ctxs).forEach((c) => { c.cache.processed = {}; });
+      persistPkg();
+      schedulePreview(300);
+      return;
+    }
+    if (t.dataset.exf) {
+      S.pkg.exits[Number(t.closest('[data-exit]').dataset.exit)][t.dataset.exf] = t.value;
+      persistPkg();
+    }
+  }
+
+  function onChange(e) {
+    const t = e.target;
+    if (t.id === 'scrubber') { S.scrubbing = false; return; }
+    if (t.id === 'bannerSelect') { openBanner(t.value); return; }
+    if (t.id === 'playsSelect') { sess().plays = Number(t.value); persist(); renderTimeline(); schedulePreview(); return; }
+    if (t.id === 'endOnLast') { sess().endOnLast = t.checked; persist(); schedulePreview(); return; }
+    if (t.dataset.f && t.tagName === 'SELECT') { renderElements(); return; }
+    if (t.dataset.f && t.type === 'number' && t.value === '') { renderElements(); return; }
+    if (t.dataset.sceneDur !== undefined) { renderTimeline(); return; }
+    if (t.dataset.filter) { S.filter[t.dataset.filter] = t.checked; renderFilters(); renderTree(); return; }
+    if (t.dataset.xf) {
+      const id = nodeIdOf(t);
+      const ctx = S.ctx;
+      const x = expOf(ctx, id);
+      x[t.dataset.xf] = t.dataset.xf === 'scale' ? Number(t.value) : t.value;
+      ctx.session.exportOpts[id] = x;
+      persist();
+      renderTree();
+      renderElements();
+      if (isAdded(id)) schedulePreview();
+      return;
+    }
+    if (t.dataset.ef) {
+      const el = elById(nodeIdOf(t));
+      if (!el) return;
+      el[t.dataset.ef] = t.dataset.ef === 'clip' ? t.checked : Number(t.value);
+      persist();
+      renderTree();
+      renderElements();
+      schedulePreview();
+      return;
+    }
+    if (t.dataset.size) {
+      if (t.checked) delete S.pkg.exclude[t.dataset.size];
+      else S.pkg.exclude[t.dataset.size] = true;
+      persistPkg();
+      renderPackageFoot();
+      return;
+    }
+    if (t.dataset.exf || t.dataset.pf) {
+      if (t.dataset.exf === 'name') renderElements();
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Wiring
+  // -------------------------------------------------------------------------
+  window.addEventListener('message', (ev) => {
+    const d = ev.data || {};
+    if (d.bannerPreview) {
+      if (ev.source === $('preview').contentWindow) onPreviewTick(d);
+      return;
+    }
+    const m = d.pluginMessage;
+    if (!m) return;
+    if (m.type === 'response') {
+      const w = waiting[m.id];
+      if (!w) return;
+      delete waiting[m.id];
+      if (m.error) w.reject(new Error(m.error));
+      else w.resolve(m.result);
+    } else if (m.type === 'selection') {
+      onCanvasSelection(m);
+    } else if (m.type === 'banners') {
+      S.banners = m.banners;
+      renderTop();
+    }
   });
 
-  const clickTag = JSON.stringify(String(b.clickTag || '')).replace(/</g, '\\u003c');
-  const border = b.border ? '<div id="border"></div>' : '';
-  const html = [
-    '<!DOCTYPE html>',
-    '<html lang="en">',
-    '<head>',
-    '<meta charset="utf-8">',
-    '<meta name="ad.size" content="width=' + W + ',height=' + H + '">',
-    '<title>' + escapeHtml(frame.name) + '</title>',
-    '<script>var clickTag = ' + clickTag + ';<\/script>',
-    '<style>',
-    '*{margin:0;padding:0;box-sizing:border-box}',
-    'html,body{width:' + W + 'px;height:' + H + 'px;overflow:hidden;background:transparent}',
-    '#banner{position:relative;display:block;width:' + W + 'px;height:' + H + 'px;overflow:hidden;cursor:pointer;background:' + bgCss + (assets.radius ? ';border-radius:' + assets.radius + 'px' : '') + '}',
-    '#banner .l{position:absolute;will-change:transform,opacity}',
-    '#banner .e,#banner img{display:block;width:100%;height:100%}',
-    '#border{position:absolute;left:0;top:0;width:100%;height:100%;border:1px solid ' + escapeHtml(b.borderColor || '#000') + ';pointer-events:none;z-index:2;' + (assets.radius ? 'border-radius:' + assets.radius + 'px' : '') + '}',
-    css.join('\n'),
-    keyframes.join('\n'),
-    '@media (prefers-reduced-motion:reduce){#banner *{animation-delay:0s!important;animation-duration:1ms!important;animation-iteration-count:1!important}}',
-    '</style>',
-    '</head>',
-    '<body>',
-    '<a id="banner" href="javascript:window.open(window.clickTag)" aria-label="' + escapeHtml(frame.name) + '">',
-    markup.join('\n'),
-    border,
-    '</a>',
-    '</body>',
-    '</html>'
-  ].join('\n');
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-act]');
+    if (!e.target.closest('#channelDrop')) $('channelMenu').hidden = true;
+    if (!t) return;
+    const fn = ACTIONS[t.dataset.act];
+    if (fn) fn(t, e);
+  });
+  document.addEventListener('input', onInput);
+  document.addEventListener('change', onChange);
+  $('preview').addEventListener('load', onPreviewLoaded);
+  window.addEventListener('resize', () => layoutStage());
 
-  files.unshift({ name: 'index.html', data: html });
-  return { html: html, files: files };
-}
-
-// ---------------------------------------------------------------------------
-// Minimal ZIP writer (STORE, no compression — images are already compressed).
-// ---------------------------------------------------------------------------
-const CRC_TABLE = (() => {
-  const t = new Uint32Array(256);
-  for (let n = 0; n < 256; n++) {
-    let c = n;
-    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
-    t[n] = c >>> 0;
+  async function init() {
+    hydrateIcons();
+    renderAll();
+    try {
+      const r = await call('init');
+      S.banners = r.banners || [];
+      S.pkg = merge(defaultPackage(), r.pkg);
+      if (!S.pkg.exits.length) S.pkg.exits = defaultPackage().exits;
+      S.canvasSel = r.selection || [];
+      const configured = S.banners.find((b) => b.elements > 0);
+      const id = r.current || (configured && configured.id);
+      if (id) await openBanner(id);
+      else renderAll();
+    } catch (e) {
+      showError(e);
+    }
   }
-  return t;
+
+  init();
 })();
 
-function crc32(bytes) {
-  let c = 0xFFFFFFFF;
-  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
-  return (c ^ 0xFFFFFFFF) >>> 0;
-}
-
-function makeZip(files) {
-  const enc = new TextEncoder();
-  const now = new Date();
-  const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
-  const date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
-  const parts = [];
-  const central = [];
-  let offset = 0;
-
-  files.forEach((f) => {
-    const data = typeof f.data === 'string' ? enc.encode(f.data) : f.data;
-    const name = enc.encode(f.name);
-    const crc = crc32(data);
-
-    const local = new Uint8Array(30 + name.length);
-    const lv = new DataView(local.buffer);
-    lv.setUint32(0, 0x04034b50, true);
-    lv.setUint16(4, 20, true);
-    lv.setUint16(6, 0x0800, true); // UTF-8 names
-    lv.setUint16(8, 0, true);
-    lv.setUint16(10, time, true);
-    lv.setUint16(12, date, true);
-    lv.setUint32(14, crc, true);
-    lv.setUint32(18, data.length, true);
-    lv.setUint32(22, data.length, true);
-    lv.setUint16(26, name.length, true);
-    lv.setUint16(28, 0, true);
-    local.set(name, 30);
-
-    const cen = new Uint8Array(46 + name.length);
-    const cv = new DataView(cen.buffer);
-    cv.setUint32(0, 0x02014b50, true);
-    cv.setUint16(4, 20, true);
-    cv.setUint16(6, 20, true);
-    cv.setUint16(8, 0x0800, true);
-    cv.setUint16(10, 0, true);
-    cv.setUint16(12, time, true);
-    cv.setUint16(14, date, true);
-    cv.setUint32(16, crc, true);
-    cv.setUint32(20, data.length, true);
-    cv.setUint32(24, data.length, true);
-    cv.setUint16(28, name.length, true);
-    cv.setUint32(42, offset, true);
-    cen.set(name, 46);
-
-    parts.push(local, data);
-    central.push(cen);
-    offset += local.length + data.length;
-  });
-
-  const cdSize = central.reduce((s, c) => s + c.length, 0);
-  const end = new Uint8Array(22);
-  const ev = new DataView(end.buffer);
-  ev.setUint32(0, 0x06054b50, true);
-  ev.setUint16(8, files.length, true);
-  ev.setUint16(10, files.length, true);
-  ev.setUint32(12, cdSize, true);
-  ev.setUint32(16, offset, true);
-
-  const all = parts.concat(central, [end]);
-  const out = new Uint8Array(all.reduce((s, p) => s + p.length, 0));
-  let pos = 0;
-  all.forEach((p) => { out.set(p, pos); pos += p.length; });
-  return out;
-}
-// ============================ end of generator ==============================
-</script>
-
-<script>
-// ============================================================================
-// Plugin UI
-// ============================================================================
-const $ = (id) => document.getElementById(id);
-const post = (msg) => parent.postMessage({ pluginMessage: msg }, '*');
-
-const state = {
-  frames: [],
-  current: 0,
-  layerId: null,
-  assets: {},        // frameId -> exported assets
-  assetKey: {},      // frameId -> export options used ("scale|svg")
-  loading: {}
-};
-let requestSeq = 0;
-const pending = {};
-
-function frame() { return state.frames[state.current]; }
-function exportKey(f) { return f.banner.scale + '|' + (f.banner.svg ? 1 : 0); }
-
-function requestAssets(frames) {
-  return new Promise((resolve, reject) => {
-    const requestId = ++requestSeq;
-    pending[requestId] = { resolve, reject };
-    post({
-      type: 'export',
-      requestId,
-      frames: frames.map((f) => ({ id: f.id, scale: f.banner.scale, svg: f.banner.svg }))
-    });
-  });
-}
-
-async function ensureAssets(frames, force) {
-  const missing = frames.filter((f) => force || !state.assets[f.id] || state.assetKey[f.id] !== exportKey(f));
-  if (!missing.length) return;
-  missing.forEach((f) => { state.loading[f.id] = true; });
-  renderStage();
-  try {
-    const result = await requestAssets(missing);
-    result.forEach((a) => {
-      state.assets[a.id] = a;
-      const f = state.frames.find((x) => x.id === a.id);
-      if (f) state.assetKey[a.id] = exportKey(f);
-    });
-  } finally {
-    missing.forEach((f) => { delete state.loading[f.id]; });
-  }
-}
-
-// ---------------------------------------------------------------- rendering
-
-function option(value, label, selected) {
-  return '<option value="' + value + '"' + (value === selected ? ' selected' : '') + '>' + label + '</option>';
-}
-
-function selectHtml(key, map, value) {
-  return '<select data-key="' + key + '">' + Object.keys(map).map((k) => option(k, typeof map[k] === 'string' ? map[k] : map[k].label, value)).join('') + '</select>';
-}
-
-function numberHtml(key, value, step, min) {
-  return '<input type="number" data-key="' + key + '" value="' + value + '" step="' + (step || 0.1) + '" min="' + (min === undefined ? 0 : min) + '">';
-}
-
-const EASE_LABELS = {
-  'linear': 'Linear', 'ease': 'Ease', 'ease-in': 'Ease in', 'ease-out': 'Ease out', 'ease-in-out': 'Ease in-out',
-  'expo-out': 'Expo out', 'expo-in': 'Expo in', 'back-out': 'Back out (overshoot)', 'back-in': 'Back in'
-};
-
-function trackHtml(anim, total) {
-  const p = (t) => Math.max(0, Math.min(100, (t / total) * 100));
-  const hasIn = anim.in !== 'none';
-  const hasOut = anim.out !== 'none';
-  const inStart = hasIn ? num(anim.delay, 0) : 0;
-  const inEnd = hasIn ? inStart + num(anim.dur, 0.6) : 0;
-  const outStart = hasOut ? Math.max(num(anim.outAt, total), inEnd) : total;
-  const outEnd = hasOut ? outStart + num(anim.outDur, 0.4) : total;
-  const seg = (a, b, color) => b > a ? '<span style="left:' + p(a) + '%;width:' + (p(b) - p(a)) + '%;background:' + color + '"></span>' : '';
-  const holdColor = anim.emph !== 'none' ? 'var(--emph)' : 'var(--hold)';
-  return '<div class="track">' + seg(inStart, inEnd, 'var(--in)') + seg(inEnd, outStart, holdColor) + seg(outStart, outEnd, 'var(--out)') + '</div>';
-}
-
-function renderHeader() {
-  const sel = $('frameSelect');
-  if (state.frames.length > 1) {
-    sel.style.display = '';
-    sel.innerHTML = state.frames.map((f, i) => option(String(i), escapeHtml(f.name) + ' — ' + f.width + '×' + f.height, String(state.current))).join('');
-    $('frameInfo').textContent = '';
-  } else {
-    sel.style.display = 'none';
-    const f = frame();
-    $('frameInfo').textContent = f ? f.name + ' — ' + f.width + '×' + f.height : '';
-  }
-  const n = state.frames.length;
-  $('zipBtn').textContent = n > 1 ? 'Export ' + n + ' banners (ZIP)' : 'Export HTML5 ZIP';
-  ['zipBtn', 'htmlBtn', 'replayBtn', 'autoBtn', 'refreshBtn'].forEach((id) => { $(id).disabled = !n; });
-}
-
-function renderLayers() {
-  const f = frame();
-  const el = $('layers');
-  if (!f) {
-    el.innerHTML = '<div class="empty">Select one or more banner frames in Figma.<br>Each top-level layer inside the frame becomes an animatable element.</div>';
-    return;
-  }
-  if (!f.layers.length) {
-    el.innerHTML = '<div class="empty">This frame has no visible layers.</div>';
-    return;
-  }
-  const total = Math.max(0.5, num(f.banner.duration, 6));
-  el.innerHTML = f.layers.slice().reverse().map((l) =>
-    '<div class="layer' + (l.id === state.layerId ? ' selected' : '') + '" data-id="' + l.id + '">' +
-      '<div><div class="name">' + escapeHtml(l.name) + '</div><div class="type">' + l.type.toLowerCase().replace('_', ' ') + ' · ' + MOTIONS[l.anim.in] + '</div></div>' +
-      trackHtml(l.anim, total) +
-    '</div>'
-  ).join('');
-}
-
-function renderEditor() {
-  const f = frame();
-  const layer = f && f.layers.find((l) => l.id === state.layerId);
-  const el = $('editor');
-  if (!layer) {
-    el.innerHTML = f && f.layers.length ? '<div class="empty">Pick a layer to edit its animation,<br>or press ✨ Auto-animate to start quickly.</div>' : '';
-    return;
-  }
-  const a = layer.anim;
-  el.innerHTML =
-    '<fieldset><legend><i style="background:var(--in)"></i>Entrance</legend><div class="grid">' +
-      '<label class="f wide">Effect' + selectHtml('in', MOTIONS, a.in) + '</label>' +
-      '<label class="f">Start (s)' + numberHtml('delay', a.delay) + '</label>' +
-      '<label class="f">Duration (s)' + numberHtml('dur', a.dur, 0.1, 0.05) + '</label>' +
-      '<label class="f">Easing' + selectHtml('ease', EASE_LABELS, a.ease) + '</label>' +
-      '<label class="f">Distance (px)' + numberHtml('dist', a.dist, 5) + '</label>' +
-    '</div></fieldset>' +
-    '<fieldset><legend><i style="background:var(--emph)"></i>Emphasis (while visible)</legend><div class="grid">' +
-      '<label class="f">Effect' + selectHtml('emph', EMPHASIS, a.emph) + '</label>' +
-      '<label class="f">Cycle (s)' + numberHtml('emphPeriod', a.emphPeriod, 0.1, 0.2) + '</label>' +
-    '</div></fieldset>' +
-    '<fieldset><legend><i style="background:var(--out)"></i>Exit</legend><div class="grid">' +
-      '<label class="f wide">Effect' + selectHtml('out', MOTIONS, a.out) + '</label>' +
-      '<label class="f">Start (s)' + numberHtml('outAt', a.outAt) + '</label>' +
-      '<label class="f">Duration (s)' + numberHtml('outDur', a.outDur, 0.1, 0.05) + '</label>' +
-      '<label class="f wide">Easing' + selectHtml('outEase', EASE_LABELS, a.outEase) + '</label>' +
-    '</div></fieldset>' +
-    '<div style="margin-top:12px;display:flex;gap:6px"><button class="btn" id="copyAllBtn">Copy effects to all layers</button></div>';
-}
-
-function renderSettings() {
-  const f = frame();
-  const el = $('settings');
-  if (!f) { el.innerHTML = ''; return; }
-  const b = f.banner;
-  el.innerHTML =
-    '<div class="grid">' +
-      '<label class="f">Timeline (s)<input type="number" data-bkey="duration" value="' + b.duration + '" step="0.5" min="0.5"></label>' +
-      '<label class="f">Plays<select data-bkey="loops">' + option('1', '1×', String(b.loops)) + option('2', '2×', String(b.loops)) + option('3', '3×', String(b.loops)) + option('0', 'Forever', String(b.loops)) + '</select></label>' +
-      '<label class="f">Image scale<select data-bkey="scale">' + option('1', '1×', String(b.scale)) + option('2', '2× (retina)', String(b.scale)) + option('3', '3×', String(b.scale)) + '</select></label>' +
-      '<label class="f">Border color<input type="text" data-bkey="borderColor" value="' + escapeHtml(b.borderColor) + '"></label>' +
-      '<label class="f" style="grid-column:span 2">Click-through URL (clickTag)<input type="url" data-bkey="clickTag" value="' + escapeHtml(b.clickTag) + '"></label>' +
-      '<label class="check" style="align-self:end"><input type="checkbox" data-bkey="border"' + (b.border ? ' checked' : '') + '>1px border</label>' +
-      '<label class="check" style="align-self:end" title="Export vector shapes as SVG instead of PNG"><input type="checkbox" data-bkey="svg"' + (b.svg ? ' checked' : '') + '>Vectors as SVG</label>' +
-    '</div>';
-}
-
-function renderStage() {
-  const f = frame();
-  const msg = $('stageMsg');
-  const box = $('frameBox');
-  const iframe = $('preview');
-  $('warnings').textContent = '';
-  $('sizeInfo').textContent = '';
-  $('exportInfo').textContent = '';
-  if (!f) {
-    box.style.display = 'none';
-    msg.style.display = '';
-    msg.textContent = 'Select a frame (e.g. 300×250) to preview its animation.';
-    return;
-  }
-  const assets = state.assets[f.id];
-  if (state.loading[f.id] || !assets) {
-    box.style.display = 'none';
-    msg.style.display = '';
-    msg.textContent = 'Exporting layers from Figma…';
-    return;
-  }
-  msg.style.display = 'none';
-  box.style.display = '';
-
-  const stage = $('stage');
-  const scale = Math.min(1, (stage.clientWidth - 24) / f.width, (stage.clientHeight - 24) / f.height);
-  iframe.width = f.width;
-  iframe.height = f.height;
-  iframe.style.transform = 'scale(' + scale + ')';
-  box.style.width = f.width * scale + 'px';
-  box.style.height = f.height * scale + 'px';
-
-  const result = generateBanner(f, assets, true);
-  iframe.srcdoc = result.html;
-
-  const zipSize = makeZip(generateBanner(f, assets, false).files).length;
-  const kb = Math.round(zipSize / 102.4) / 10;
-  const info = $('sizeInfo');
-  info.textContent = 'ZIP ≈ ' + kb + ' KB' + (zipSize > 150 * 1024 ? ' — over the common 150 KB ad limit' : '');
-  info.className = 'size ' + (zipSize > 150 * 1024 ? 'over' : 'muted');
-  $('exportInfo').textContent = (scale < 1 ? 'Preview at ' + Math.round(scale * 100) + '% · ' : '') + assets.layers.length + ' layers';
-  $('warnings').textContent = (assets.warnings || []).join(' ');
-}
-
-function renderAll() {
-  renderHeader();
-  renderLayers();
-  renderEditor();
-  renderSettings();
-  renderStage();
-}
-
-let previewTimer = null;
-function schedulePreview() {
-  clearTimeout(previewTimer);
-  previewTimer = setTimeout(renderStage, 200);
-}
-
-// ---------------------------------------------------------------- persistence
-
-function saveAnims(f, layers) {
-  post({ type: 'save-anims', frameId: f.id, items: layers.map((l) => ({ id: l.id, anim: l.anim })) });
-}
-
-function saveBanner(f) {
-  post({ type: 'save-banner', frameId: f.id, banner: f.banner });
-}
-
-// ---------------------------------------------------------------- actions
-
-function autoAnimate() {
-  const f = frame();
-  if (!f) return;
-  let t = 0.2;
-  let lastEnd = 0;
-  f.layers.forEach((l) => {
-    const name = l.name.toLowerCase();
-    const a = Object.assign({}, l.anim, { out: 'none', emph: 'none', ease: 'expo-out', dur: 0.7, dist: 30 });
-    if (l.cover) {
-      Object.assign(a, { in: 'fade', delay: 0, dur: 0.5, ease: 'ease-out' });
-    } else if (/cta|button|btn|shop|buy|learn/.test(name)) {
-      Object.assign(a, { in: 'pop', delay: t, dur: 0.6, ease: 'back-out', emph: 'pulse', emphPeriod: 1.2 });
-      t += 0.35;
-    } else if (/logo/.test(name)) {
-      Object.assign(a, { in: 'zoom-out', delay: t });
-      t += 0.35;
-    } else if (l.type === 'TEXT') {
-      Object.assign(a, { in: 'slide-up', delay: t });
-      t += 0.35;
-    } else {
-      Object.assign(a, { in: 'fade', delay: t, dur: 0.6, ease: 'ease-out' });
-      t += 0.25;
-    }
-    lastEnd = Math.max(lastEnd, a.delay + a.dur);
-    l.anim = a;
-  });
-  f.banner.duration = Math.max(f.banner.duration, Math.ceil((lastEnd + 3) * 2) / 2);
-  saveAnims(f, f.layers);
-  saveBanner(f);
-  if (!state.layerId && f.layers.length) state.layerId = f.layers[f.layers.length - 1].id;
-  renderAll();
-  post({ type: 'notify', text: 'Animations added to ' + f.layers.length + ' layers' });
-}
-
-function copyToAll() {
-  const f = frame();
-  const src = f && f.layers.find((l) => l.id === state.layerId);
-  if (!src) return;
-  const keys = ['in', 'dur', 'ease', 'dist', 'out', 'outDur', 'outEase', 'emph', 'emphPeriod'];
-  f.layers.forEach((l) => {
-    if (l === src) return;
-    keys.forEach((k) => { l.anim[k] = src.anim[k]; });
-  });
-  saveAnims(f, f.layers);
-  renderLayers();
-  schedulePreview();
-}
-
-function download(data, name, type) {
-  const url = URL.createObjectURL(new Blob([data], { type: type }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = name;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 2000);
-}
-
-function bannerFileName(f) {
-  return slug(f.name) + '_' + f.width + 'x' + f.height;
-}
-
-async function exportAll(inline) {
-  const frames = state.frames.slice();
-  if (!frames.length) return;
-  try {
-    await ensureAssets(frames, false);
-    renderStage();
-    if (frames.length === 1) {
-      const f = frames[0];
-      const out = generateBanner(f, state.assets[f.id], inline);
-      if (inline) download(out.html, bannerFileName(f) + '.html', 'text/html');
-      else download(makeZip(out.files), bannerFileName(f) + '.zip', 'application/zip');
-    } else {
-      // One archive holding an upload-ready ZIP (or single HTML file) per banner size.
-      const entries = frames.map((f) => {
-        const out = generateBanner(f, state.assets[f.id], inline);
-        return inline
-          ? { name: bannerFileName(f) + '.html', data: out.html }
-          : { name: bannerFileName(f) + '.zip', data: makeZip(out.files) };
-      });
-      download(makeZip(entries), 'banners.zip', 'application/zip');
-    }
-    post({ type: 'notify', text: 'Exported ' + frames.length + ' banner' + (frames.length > 1 ? 's' : '') });
-  } catch (e) {
-    post({ type: 'notify', text: 'Export failed: ' + e.message, error: true });
-  }
-}
-
-// ---------------------------------------------------------------- events
-
-$('layers').addEventListener('click', (e) => {
-  const row = e.target.closest('.layer');
-  if (!row) return;
-  state.layerId = row.dataset.id;
-  renderLayers();
-  renderEditor();
-});
-
-$('editor').addEventListener('input', (e) => {
-  const key = e.target.dataset.key;
-  const f = frame();
-  const layer = f && f.layers.find((l) => l.id === state.layerId);
-  if (!key || !layer) return;
-  layer.anim[key] = e.target.type === 'number' ? num(e.target.value, layer.anim[key]) : e.target.value;
-  saveAnims(f, [layer]);
-  renderLayers();
-  schedulePreview();
-});
-
-$('editor').addEventListener('click', (e) => {
-  if (e.target.id === 'copyAllBtn') copyToAll();
-});
-
-$('settings').addEventListener('input', (e) => {
-  const key = e.target.dataset.bkey;
-  const f = frame();
-  if (!key || !f) return;
-  const el = e.target;
-  let value = el.type === 'checkbox' ? el.checked : el.value;
-  if (key === 'duration') value = Math.max(0.5, num(value, f.banner.duration));
-  if (key === 'loops' || key === 'scale') value = Number(value);
-  f.banner[key] = value;
-  saveBanner(f);
-  renderLayers();
-  if (key === 'scale' || key === 'svg') ensureAssets([f], false).then(renderStage, showError);
-  else schedulePreview();
-});
-
-$('frameSelect').addEventListener('change', (e) => {
-  state.current = Number(e.target.value);
-  state.layerId = null;
-  renderAll();
-  ensureAssets([frame()], false).then(renderStage, showError);
-});
-
-$('autoBtn').onclick = autoAnimate;
-$('replayBtn').onclick = renderStage;
-$('refreshBtn').onclick = () => { if (frame()) ensureAssets([frame()], true).then(renderStage, showError); };
-$('zipBtn').onclick = () => exportAll(false);
-$('htmlBtn').onclick = () => exportAll(true);
-window.addEventListener('resize', schedulePreview);
-
-function showError(e) {
-  $('stageMsg').style.display = '';
-  $('stageMsg').textContent = 'Export failed: ' + (e && e.message || e);
-}
-
-window.onmessage = (event) => {
-  const msg = event.data.pluginMessage;
-  if (!msg) return;
-  if (msg.type === 'selection') {
-    const prevId = frame() && frame().id;
-    state.frames = msg.frames;
-    const idx = state.frames.findIndex((f) => f.id === prevId);
-    state.current = idx === -1 ? 0 : idx;
-    const f = frame();
-    if (!f || !f.layers.some((l) => l.id === state.layerId)) state.layerId = null;
-    renderAll();
-    if (f) ensureAssets([f], false).then(renderStage, showError);
-  } else if (msg.type === 'assets') {
-    const p = pending[msg.requestId];
-    if (!p) return;
-    delete pending[msg.requestId];
-    if (msg.error) p.reject(new Error(msg.error));
-    else p.resolve(msg.frames);
-  }
-};
-
-renderAll();
-post({ type: 'ready' });
 </script>
 </body>
 </html>

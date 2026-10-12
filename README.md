@@ -1,59 +1,88 @@
-# HTML5 Banner Animator (Figma plugin)
+# Banner Automation (Figma plugin)
 
-Turn a Figma frame into an animated HTML5 display banner, ready to upload to Google Ads, DV360, CM360 and most other ad networks.
-
-You design the banner as a normal frame (e.g. 300×250). Each **top-level layer** in the frame becomes an element you can animate. You can preview the result live in the plugin and export a ZIP with `index.html` and its images.
+Turn Figma banner frames into animated HTML5 ads, then package them for an ad channel (HTML5 clickTag, Google Studio/GWD, Adform, Xandr).
 
 ## Install (development)
 
 1. Open the **Figma desktop app**.
-2. Go to **Plugins → Development → Import plugin from manifest…**
-3. Choose `manifest.json` from this folder.
-4. Run it from **Plugins → Development → HTML5 Banner Animator**.
+2. Go to **Plugins → Development → Import plugin from manifest…** and choose `manifest.json`.
+3. Run it from **Plugins → Development → Banner Automation**.
 
-You don't need to build anything. The plugin is plain JavaScript (`code.js` + `ui.html`) with no dependencies.
+The committed `ui.html` is already built, so you don't need to build anything to use the plugin.
 
-## Workflow
+## How it works
 
-1. **Design the banner frame.** Every direct child of the frame is animated as one unit, so group the layers that should move together (for example, "Headline" or "CTA button").
-2. **Select the frame** (or any layer inside it) and run the plugin. If you select several frames, you can export all your banner sizes in one go.
-3. Click **✨ Auto-animate** for a staggered starting point. Layer names help it choose:
-   - `cta` / `button` layers get a pop entrance and a pulse.
-   - `logo` layers get a zoom.
-   - Text slides up.
-   - A full-size background fades in.
-4. Fine-tune each layer:
-   - **Entrance**: fade, slide (with fade), fly (no fade), zoom, pop, blur or wipe; start time, duration, easing (including overshoot), distance.
-   - **Emphasis**: pulse, heartbeat, float or shake, looping while the layer is visible.
-   - **Exit**: any of the same effects, at a chosen time.
-5. Set the **timeline length**, the number of **plays** (1–3× or forever) and the **clickTag** URL.
-6. Click **Export HTML5 ZIP**, or **Download single HTML** for one file with the images inlined.
+### Left panel: layers
 
-Your settings are saved in the Figma file. Duplicating a frame to make another size keeps its animations.
+- Selecting a banner frame in Figma (or any layer inside one) loads that frame's full layer tree.
+- **+ Add** puts a layer into the HTML as an animated element. You can add any layer at any depth, such as a group, the line inside a masked group, or the CTA button frame.
+- Each layer has its own export settings:
+  - **Framed** crops the image to the banner. **Full** keeps the whole layer, which you need for elements that move in from outside the banner.
+  - **1x/2x/3x** sets the export scale.
+  - **PNG/JPG/SVG** sets the image format.
+- If a layer sits under a mask, the mask icon clips it to that mask in the HTML. The mask becomes a CSS `mask-image`, so a line can slide through its window.
+- If a group and some of its children are both added, the children are left out of the group's image so nothing appears twice.
+- Searching and **Filters** (text, images, shapes, groups, "In HTML only", hidden layers) switch the tree to a flat list.
+- The **toolbar** buttons:
+  - **↑** selects the parent layer in Figma.
+  - **→** adds the layers selected in Figma.
+  - **The selection icon** follows the Figma selection.
+  - **Save** stores a snapshot of the session, and **Restore session** goes back to it.
 
-After you edit the design, click **↻ Refresh from Figma** to re-export the layer images.
+### Right panel: timeline and preview
 
-## What gets exported
+- **Banner selector** switches between frames on the page.
+- **Layout icon** copies the animation to other sizes, matching layers by name.
+- **Refresh** re-exports the layers after you edit the design.
+- **FRAMES −/+** splits the banner into frames (scenes), each with its own duration.
+  - **Plays** sets 1–3 plays or forever.
+  - **End on last frame** makes the final play stop on the last frame instead of running its exits.
+- **Playback**: the scrubber, ▶/↺, **‹ F2 ›** to jump between frames, 👁 for element outlines, and zoom −/+/Fit.
+- **Element cards** (front to back):
+  - **▲▼** changes the stacking order. The link icon picks the element's click target (exit), and the trash icon removes it.
+  - **Frame bars** (F1, F2…) set which frames the element appears in.
+  - **In / Out** set the Delay, Preset and Duration for the current frame. A negative Out delay starts the exit before the frame ends; for example, −0.5 s with a 0.5 s duration finishes exactly at the end of the frame.
+  - The **Loop** tab adds a repeating effect (pulse, heartbeat, float, bounce, shake, wiggle, blink) with a duration, delay and repeat count.
+  - The **Motion** tab adds continuous movement while the element is on screen: slow zoom, drift, or custom move/scale/rotate.
+  - The **Settings** tab holds the click target, crop/scale/format and mask clipping.
+  - If an element stays on screen into the next frame with a "None (cut)" exit and entrance, it carries over without flickering.
+- **FAST / ADV**: ADV adds easing and distance controls.
+
+### Package
+
+**Package** (bottom left) opens the Banner Package sheet:
+
+- **Package settings**: border color, show border, compress images. With compression on, opaque images are re-encoded as JPG when that makes them smaller.
+- **Exits**: the main exit plus extra exits. Elements can be bound to an exit with the link icon.
+- **Sizes**: which configured banners to export.
+- **Channel**:
+
+  | Channel | Click-through implementation |
+  |---|---|
+  | HTML5 | `clickTag` / `clickTag2`… variables with `window.open(window.clickTag)`. Works for Google Ads, DV360 and most DSPs. |
+  | GWD | Loads `Enabler.js` and uses `Enabler.exit(name, url)` (Google Studio / CM360). |
+  | Adform | Adform DHTML `clickTAG` plus a `manifest.json`. |
+  | Xandr | AppNexus HTML5 library and `APPNEXUS.getClickTag()`. |
+
+- **Preview** plays every size side by side.
+- **Download all** gives you one upload-ready ZIP per size. When you export several sizes, they come bundled in a single `banners_<channel>.zip`.
+
+The animation is pure CSS `@keyframes` with no runtime library. The output includes `<meta name="ad.size">` and respects `prefers-reduced-motion`.
+
+## Development
 
 ```
-summer-sale_300x250.zip
-├── index.html      # <meta name="ad.size">, clickTag, CSS @keyframes animation
-└── images/
-    ├── 01-background-shape.png
-    ├── 02-headline.png
-    └── …
+src/generator.js     HTML/CSS/ZIP generator (shared with the tests)
+src/app.js           plugin UI logic
+src/ui.css           UI styles
+src/ui.template.html UI markup
+code.js              Figma main thread (layer tree, plugin data, image export)
+build.js             inlines src/ into ui.html
 ```
 
-- The animation is **pure CSS** (no JavaScript libraries), so the banners are small and accepted by ad validators.
-- Click handling follows the standard `clickTag` convention: `<a href="javascript:window.open(window.clickTag)">`.
-- Layers are exported at 1×, 2× or 3× PNG. You can optionally export vector shapes as SVG.
-- Solid frame backgrounds become CSS. Gradient and image backgrounds are exported as an image.
-- The plugin shows the ZIP size and warns you above the common 150 KB limit.
-- The banner respects `prefers-reduced-motion`.
-- When you export several frames, you get `banners.zip` with one upload-ready ZIP per size.
+```
+npm run build   # regenerate ui.html after editing src/
+npm test        # generator unit tests
+```
 
-## Tips and limitations
-
-- Text is exported as images, so it looks exactly like Figma and no web fonts are needed.
-- Don't put a mask directly in the banner frame. Put the mask inside a group with the layers it masks.
-- Ad networks usually require animation to stop within 30 seconds. Keep timeline × plays ≤ 30 s. When a banner stops, it shows the final state of the timeline, so leave your end-frame layers without exits.
+Sessions are stored as plugin data on each banner frame, and package settings are stored on the document.
