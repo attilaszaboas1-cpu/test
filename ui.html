@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  :root {
+    --bg: var(--figma-color-bg, #ffffff);
+    --bg2: var(--figma-color-bg-secondary, #f5f5f5);
+    --bg3: var(--figma-color-bg-tertiary, #e6e6e6);
+    --text: var(--figma-color-text, #1e1e1e);
+    --muted: var(--figma-color-text-secondary, #6b6b6b);
+    --border: var(--figma-color-border, #e3e3e3);
+    --brand: var(--figma-color-bg-brand, #0d99ff);
+    --brand-text: var(--figma-color-text-onbrand, #ffffff);
+    --sel: var(--figma-color-bg-selected, #e5f4ff);
+    --warn: var(--figma-color-text-warning, #b86200);
+    --danger: var(--figma-color-text-danger, #dc3412);
+    --in: #3ba55d;
+    --hold: #9aa6b2;
+    --out: #e5553b;
+    --emph: #a259ff;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    font: 11px/1.4 Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--text); background: var(--bg);
+    display: flex; flex-direction: column;
+  }
+  button, input, select { font: inherit; color: inherit; }
+  header {
+    display: flex; align-items: center; gap: 8px;
+    padding: 8px 12px; border-bottom: 1px solid var(--border);
+  }
+  header .title { font-weight: 600; font-size: 12px; }
+  header .spacer { flex: 1; }
+  .muted { color: var(--muted); }
+  .btn {
+    border: 1px solid var(--border); background: var(--bg); border-radius: 5px;
+    padding: 4px 10px; cursor: pointer; white-space: nowrap;
+  }
+  .btn:hover { background: var(--bg2); }
+  .btn.primary { background: var(--brand); color: var(--brand-text); border-color: transparent; font-weight: 600; }
+  .btn.primary:hover { filter: brightness(1.08); }
+  .btn:disabled { opacity: .5; cursor: default; }
+  select, input[type=number], input[type=text], input[type=url] {
+    border: 1px solid var(--border); background: var(--bg); border-radius: 4px;
+    padding: 3px 5px; min-width: 0;
+  }
+  input[type=number] { width: 100%; }
+  main { flex: 1; display: grid; grid-template-columns: 340px 1fr; min-height: 0; }
+  .col { display: flex; flex-direction: column; min-height: 0; }
+  .col.left { border-right: 1px solid var(--border); }
+  .section-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; font-weight: 600; border-bottom: 1px solid var(--border);
+  }
+  #layers { overflow-y: auto; flex: 0 0 230px; border-bottom: 1px solid var(--border); }
+  .layer {
+    padding: 5px 12px; cursor: pointer; display: grid; grid-template-columns: 1fr 110px; gap: 8px; align-items: center;
+  }
+  .layer:hover { background: var(--bg2); }
+  .layer.selected { background: var(--sel); }
+  .layer .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .layer .type { color: var(--muted); font-size: 10px; }
+  .track { position: relative; height: 8px; background: var(--bg3); border-radius: 2px; overflow: hidden; }
+  .track span { position: absolute; top: 0; bottom: 0; }
+  #editor { overflow-y: auto; flex: 1; padding: 4px 12px 12px; }
+  fieldset { border: 0; padding: 0; margin: 10px 0 0; }
+  legend { font-weight: 600; padding: 0; margin-bottom: 6px; display: flex; align-items: center; gap: 6px; }
+  legend i { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 6px 8px; }
+  .grid.three { grid-template-columns: repeat(3, 1fr); }
+  label.f { display: flex; flex-direction: column; gap: 2px; color: var(--muted); }
+  label.f > * { color: var(--text); }
+  label.f.wide { grid-column: 1 / -1; }
+  .empty { padding: 24px 16px; color: var(--muted); text-align: center; }
+  #stage {
+    flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;
+    background-color: var(--bg2);
+    background-image: linear-gradient(45deg, var(--bg3) 25%, transparent 25%), linear-gradient(-45deg, var(--bg3) 25%, transparent 25%),
+      linear-gradient(45deg, transparent 75%, var(--bg3) 75%), linear-gradient(-45deg, transparent 75%, var(--bg3) 75%);
+    background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+  }
+  #frameBox { position: relative; flex: none; }
+  #preview { border: 0; display: block; transform-origin: 0 0; background: transparent; }
+  #stageMsg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: var(--muted); text-align: center; padding: 20px; }
+  .bar { display: flex; align-items: center; gap: 8px; padding: 6px 12px; border-top: 1px solid var(--border); }
+  #settings { padding: 8px 12px; border-top: 1px solid var(--border); }
+  #settings .grid { grid-template-columns: repeat(4, 1fr); }
+  .check { display: flex; align-items: center; gap: 5px; }
+  #warnings { color: var(--warn); padding: 0 12px; }
+  #warnings:empty { display: none; }
+  .size.over { color: var(--danger); font-weight: 600; }
+  .legend-dots { display: flex; gap: 10px; color: var(--muted); font-size: 10px; }
+  .legend-dots i { display: inline-block; width: 8px; height: 8px; border-radius: 2px; margin-right: 3px; vertical-align: -1px; }
+</style>
+</head>
+<body>
+<header>
+  <span class="title">HTML5 Banner Animator</span>
+  <select id="frameSelect" style="display:none"></select>
+  <span id="frameInfo" class="muted"></span>
+  <span class="spacer"></span>
+  <button class="btn" id="refreshBtn" title="Re-export layers after editing the design">↻ Refresh from Figma</button>
+</header>
+
+<main>
+  <div class="col left">
+    <div class="section-head">
+      <span>Layers <span class="muted" style="font-weight:400">(top → bottom)</span></span>
+      <button class="btn" id="autoBtn" title="Give every layer a staggered entrance">✨ Auto-animate</button>
+    </div>
+    <div id="layers"><div class="empty">Select one or more banner frames in Figma.</div></div>
+    <div id="editor"></div>
+  </div>
+
+  <div class="col right">
+    <div id="stage">
+      <div id="frameBox"><iframe id="preview" title="Banner preview" sandbox="allow-scripts"></iframe></div>
+      <div id="stageMsg">Select a frame (e.g. 300×250) to preview its animation.</div>
+    </div>
+    <div class="bar">
+      <button class="btn" id="replayBtn">▶ Replay</button>
+      <span class="legend-dots"><span><i style="background:var(--in)"></i>entrance</span><span><i style="background:var(--hold)"></i>visible</span><span><i style="background:var(--emph)"></i>emphasis</span><span><i style="background:var(--out)"></i>exit</span></span>
+      <span class="spacer" style="flex:1"></span>
+      <span id="sizeInfo" class="size muted"></span>
+    </div>
+    <div id="warnings"></div>
+    <div id="settings"></div>
+    <div class="bar">
+      <span class="muted" id="exportInfo"></span>
+      <span style="flex:1"></span>
+      <button class="btn" id="htmlBtn" title="One self-contained HTML file with images inlined">Download single HTML</button>
+      <button class="btn primary" id="zipBtn">Export HTML5 ZIP</button>
+    </div>
+  </div>
+</main>
+
+<script>
+// ============================================================================
+// Generator: turns exported layers + animation settings into an HTML5 banner.
+// ============================================================================
+
+const EASINGS = {
+  'linear': 'linear',
+  'ease': 'ease',
+  'ease-in': 'ease-in',
+  'ease-out': 'ease-out',
+  'ease-in-out': 'ease-in-out',
+  'expo-out': 'cubic-bezier(.16,1,.3,1)',
+  'expo-in': 'cubic-bezier(.7,0,.84,0)',
+  'back-out': 'cubic-bezier(.34,1.56,.64,1)',
+  'back-in': 'cubic-bezier(.36,0,.66,-.56)'
+};
+
+const MOTIONS = {
+  'none': 'None',
+  'fade': 'Fade',
+  'slide-up': 'Slide up + fade',
+  'slide-down': 'Slide down + fade',
+  'slide-left': 'Slide left + fade',
+  'slide-right': 'Slide right + fade',
+  'fly-up': 'Fly up (no fade)',
+  'fly-down': 'Fly down (no fade)',
+  'fly-left': 'Fly left (no fade)',
+  'fly-right': 'Fly right (no fade)',
+  'zoom-in': 'Zoom in + fade',
+  'zoom-out': 'Zoom out + fade',
+  'pop': 'Pop',
+  'blur': 'Blur + fade',
+  'wipe-right': 'Wipe →',
+  'wipe-left': 'Wipe ←',
+  'wipe-down': 'Wipe ↓',
+  'wipe-up': 'Wipe ↑'
+};
+
+const DIRECTIONS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
+
+// Wipes: [hidden-before-entrance, hidden-after-exit]
+const WIPES = {
+  'wipe-right': ['inset(0 100% 0 0)', 'inset(0 0 0 100%)'],
+  'wipe-left': ['inset(0 0 0 100%)', 'inset(0 100% 0 0)'],
+  'wipe-down': ['inset(0 0 100% 0)', 'inset(100% 0 0 0)'],
+  'wipe-up': ['inset(100% 0 0 0)', 'inset(0 0 100% 0)']
+};
+
+// Emphasis loops run on an inner wrapper so they don't fight entrance/exit transforms.
+const EMPHASIS = {
+  'none': { label: 'None' },
+  'pulse': { label: 'Pulse', steps: [[0, 'scale(1)'], [0.5, 'scale(1.08)'], [1, 'scale(1)']] },
+  'heartbeat': { label: 'Heartbeat', steps: [[0, 'scale(1)'], [0.15, 'scale(1.12)'], [0.3, 'scale(1)'], [0.45, 'scale(1.12)'], [0.6, 'scale(1)'], [1, 'scale(1)']] },
+  'float': { label: 'Float', steps: [[0, 'translateY(0)'], [0.5, 'translateY(-6px)'], [1, 'translateY(0)']] },
+  'shake': { label: 'Shake', steps: [[0, 'rotate(0deg)'], [0.25, 'rotate(-5deg)'], [0.75, 'rotate(5deg)'], [1, 'rotate(0deg)']] }
+};
+
+const VISIBLE = { 'opacity': '1', 'transform': 'none', 'filter': 'none', 'clip-path': 'inset(0 0 0 0)' };
+
+// The hidden state a layer comes from (phase 'in') or goes to (phase 'out').
+function motionState(type, distance, phase) {
+  const d = Number(distance) || 0;
+  const sign = phase === 'in' ? -1 : 1;
+  const m = /^(slide|fly)-(up|down|left|right)$/.exec(type);
+  if (m) {
+    const v = DIRECTIONS[m[2]];
+    const state = { transform: 'translate(' + (sign * v[0] * d) + 'px,' + (sign * v[1] * d) + 'px)' };
+    if (m[1] === 'slide') state.opacity = '0';
+    return state;
+  }
+  if (WIPES[type]) return { 'clip-path': WIPES[type][phase === 'in' ? 0 : 1] };
+  switch (type) {
+    case 'fade': return { opacity: '0' };
+    case 'zoom-in': return { opacity: '0', transform: phase === 'in' ? 'scale(.6)' : 'scale(1.4)' };
+    case 'zoom-out': return { opacity: '0', transform: phase === 'in' ? 'scale(1.4)' : 'scale(.6)' };
+    case 'pop': return { transform: 'scale(0)' };
+    case 'blur': return { opacity: '0', filter: 'blur(12px)' };
+  }
+  return {};
+}
+
+function pct(t, total) {
+  return String(Math.round((t / total) * 100000) / 1000) + '%';
+}
+
+function num(v, fallback) {
+  const n = Number(v);
+  return isFinite(n) ? n : fallback;
+}
+
+// Builds a timeline of {t, state, ease}. Points are clamped to [0, total] and kept in order.
+function buildMotionPoints(anim, total) {
+  const points = [];
+  const add = (t, state, ease) => {
+    t = Math.min(Math.max(t, 0), total);
+    const prev = points[points.length - 1];
+    if (prev && t < prev.t) t = prev.t;
+    if (prev && t - prev.t < 1e-6) points.pop();
+    points.push({ t: t, state: state, ease: ease });
+  };
+  const hasIn = anim.in && anim.in !== 'none';
+  const hasOut = anim.out && anim.out !== 'none';
+  const delay = Math.max(0, num(anim.delay, 0));
+  const dur = Math.max(0.05, num(anim.dur, 0.6));
+  let last = 'visible';
+
+  if (hasIn) {
+    const from = motionState(anim.in, anim.dist, 'in');
+    add(0, from);
+    add(delay, from, EASINGS[anim.ease] || 'ease-out');
+    add(delay + dur, 'visible');
+  } else {
+    add(0, 'visible');
+  }
+  if (hasOut) {
+    const to = motionState(anim.out, anim.dist, 'out');
+    const outAt = Math.max(num(anim.outAt, total), hasIn ? delay + dur : 0);
+    add(outAt, 'visible', EASINGS[anim.outEase] || 'ease-in');
+    add(outAt + Math.max(0.05, num(anim.outDur, 0.4)), to);
+    last = to;
+  }
+  add(total, last);
+  return points;
+}
+
+function motionKeyframes(name, anim, total) {
+  const points = buildMotionPoints(anim, total);
+  const props = {};
+  points.forEach((p) => { if (p.state !== 'visible') Object.keys(p.state).forEach((k) => { props[k] = true; }); });
+  const keys = Object.keys(props);
+  if (!keys.length) return '';
+  const body = points.map((p) => {
+    const decls = keys.map((k) => k + ':' + (p.state === 'visible' || p.state[k] === undefined ? VISIBLE[k] : p.state[k]));
+    if (p.ease) decls.push('animation-timing-function:' + p.ease);
+    return pct(p.t, total) + '{' + decls.join(';') + '}';
+  });
+  return '@keyframes ' + name + '{' + body.join('') + '}';
+}
+
+// Emphasis window: after the entrance finishes, until the exit starts (or the end of the timeline).
+function emphasisWindow(anim, total) {
+  const hasIn = anim.in && anim.in !== 'none';
+  const start = hasIn ? Math.max(0, num(anim.delay, 0)) + Math.max(0.05, num(anim.dur, 0.6)) : 0;
+  const end = anim.out && anim.out !== 'none' ? Math.min(total, num(anim.outAt, total)) : total;
+  return [Math.min(start, total), Math.max(Math.min(start, total), end)];
+}
+
+function emphasisKeyframes(name, anim, total) {
+  const def = EMPHASIS[anim.emph];
+  if (!def || !def.steps) return '';
+  const period = Math.max(0.2, num(anim.emphPeriod, 1.2));
+  const win = emphasisWindow(anim, total);
+  const cycles = Math.floor((win[1] - win[0]) / period + 1e-6);
+  if (cycles < 1) return '';
+  const rest = def.steps[0][1];
+  const frames = [[0, rest], [win[0], rest]];
+  for (let i = 0; i < cycles; i++) {
+    def.steps.forEach((s, j) => { if (i === 0 || j > 0) frames.push([win[0] + (i + s[0]) * period, s[1]]); });
+  }
+  frames.push([total, rest]);
+  const seen = {};
+  const body = [];
+  frames.forEach((f) => {
+    const key = pct(f[0], total);
+    if (seen[key]) return;
+    seen[key] = true;
+    body.push(key + '{transform:' + f[1] + ';animation-timing-function:ease-in-out}');
+  });
+  return '@keyframes ' + name + '{' + body.join('') + '}';
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function slug(s) {
+  return String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'layer';
+}
+
+function bytesToBase64(bytes) {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+}
+
+const MIME = { png: 'image/png', jpg: 'image/jpeg', svg: 'image/svg+xml' };
+
+function round2(n) {
+  return Math.round(n * 100) / 100;
+}
+
+/**
+ * frame:  { name, width, height, banner, layers:[{id, name, anim}] }  (layers bottom → top)
+ * assets: { radius, background:{css, bytes?, ext?}, layers:[{id, x, y, width, height, ext, bytes}] }
+ * inline: true → images embedded as data URIs (single file); false → separate files under images/
+ * Returns { html, files:[{name, data}] }
+ */
+function generateBanner(frame, assets, inline) {
+  const b = frame.banner;
+  const W = frame.width, H = frame.height;
+  const total = Math.max(0.5, num(b.duration, 6));
+  const loops = Math.max(0, Math.floor(num(b.loops, 1)));
+  const iterations = loops === 0 ? 'infinite' : String(loops);
+  const files = [];
+  const css = [];
+  const keyframes = [];
+  const markup = [];
+
+  const src = (bytes, ext, fileName) => {
+    if (inline) return 'data:' + MIME[ext] + ';base64,' + bytesToBase64(bytes);
+    files.push({ name: fileName, data: bytes });
+    return fileName;
+  };
+
+  const byId = {};
+  assets.layers.forEach((l) => { byId[l.id] = l; });
+
+  let bgCss = assets.background.css || 'transparent';
+  if (assets.background.bytes) {
+    bgCss += ' url("' + src(assets.background.bytes, assets.background.ext, 'images/background.' + assets.background.ext) + '") 0 0/100% 100% no-repeat';
+  }
+
+  let index = 0;
+  frame.layers.forEach((layer) => {
+    const a = byId[layer.id];
+    if (!a) return;
+    const i = index++;
+    const anim = layer.anim;
+    const fileName = 'images/' + String(i + 1).padStart(2, '0') + '-' + slug(layer.name) + '.' + a.ext;
+    const box = 'left:' + round2(a.x) + 'px;top:' + round2(a.y) + 'px;width:' + round2(a.width) + 'px;height:' + round2(a.height) + 'px';
+    const motion = motionKeyframes('m' + i, anim, total);
+    const emph = emphasisKeyframes('e' + i, anim, total);
+    css.push('.l' + i + '{' + box + (motion ? ';animation:m' + i + ' ' + total + 's linear 0s ' + iterations + ' both' : '') + '}');
+    if (motion) keyframes.push(motion);
+    if (emph) {
+      css.push('.l' + i + '>.e{animation:e' + i + ' ' + total + 's linear 0s ' + iterations + ' both}');
+      keyframes.push(emph);
+    }
+    markup.push('<div class="l l' + i + '"><div class="e"><img src="' + escapeHtml(src(a.bytes, a.ext, fileName)) + '" alt="' + escapeHtml(layer.name) + '"></div></div>');
+  });
+
+  const clickTag = JSON.stringify(String(b.clickTag || '')).replace(/</g, '\\u003c');
+  const border = b.border ? '<div id="border"></div>' : '';
+  const html = [
+    '<!DOCTYPE html>',
+    '<html lang="en">',
+    '<head>',
+    '<meta charset="utf-8">',
+    '<meta name="ad.size" content="width=' + W + ',height=' + H + '">',
+    '<title>' + escapeHtml(frame.name) + '</title>',
+    '<script>var clickTag = ' + clickTag + ';<\/script>',
+    '<style>',
+    '*{margin:0;padding:0;box-sizing:border-box}',
+    'html,body{width:' + W + 'px;height:' + H + 'px;overflow:hidden;background:transparent}',
+    '#banner{position:relative;display:block;width:' + W + 'px;height:' + H + 'px;overflow:hidden;cursor:pointer;background:' + bgCss + (assets.radius ? ';border-radius:' + assets.radius + 'px' : '') + '}',
+    '#banner .l{position:absolute;will-change:transform,opacity}',
+    '#banner .e,#banner img{display:block;width:100%;height:100%}',
+    '#border{position:absolute;left:0;top:0;width:100%;height:100%;border:1px solid ' + escapeHtml(b.borderColor || '#000') + ';pointer-events:none;z-index:2;' + (assets.radius ? 'border-radius:' + assets.radius + 'px' : '') + '}',
+    css.join('\n'),
+    keyframes.join('\n'),
+    '@media (prefers-reduced-motion:reduce){#banner *{animation-delay:0s!important;animation-duration:1ms!important;animation-iteration-count:1!important}}',
+    '</style>',
+    '</head>',
+    '<body>',
+    '<a id="banner" href="javascript:window.open(window.clickTag)" aria-label="' + escapeHtml(frame.name) + '">',
+    markup.join('\n'),
+    border,
+    '</a>',
+    '</body>',
+    '</html>'
+  ].join('\n');
+
+  files.unshift({ name: 'index.html', data: html });
+  return { html: html, files: files };
+}
+
+// ---------------------------------------------------------------------------
+// Minimal ZIP writer (STORE, no compression — images are already compressed).
+// ---------------------------------------------------------------------------
+const CRC_TABLE = (() => {
+  const t = new Uint32Array(256);
+  for (let n = 0; n < 256; n++) {
+    let c = n;
+    for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1;
+    t[n] = c >>> 0;
+  }
+  return t;
+})();
+
+function crc32(bytes) {
+  let c = 0xFFFFFFFF;
+  for (let i = 0; i < bytes.length; i++) c = CRC_TABLE[(c ^ bytes[i]) & 0xFF] ^ (c >>> 8);
+  return (c ^ 0xFFFFFFFF) >>> 0;
+}
+
+function makeZip(files) {
+  const enc = new TextEncoder();
+  const now = new Date();
+  const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
+  const date = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
+  const parts = [];
+  const central = [];
+  let offset = 0;
+
+  files.forEach((f) => {
+    const data = typeof f.data === 'string' ? enc.encode(f.data) : f.data;
+    const name = enc.encode(f.name);
+    const crc = crc32(data);
+
+    const local = new Uint8Array(30 + name.length);
+    const lv = new DataView(local.buffer);
+    lv.setUint32(0, 0x04034b50, true);
+    lv.setUint16(4, 20, true);
+    lv.setUint16(6, 0x0800, true); // UTF-8 names
+    lv.setUint16(8, 0, true);
+    lv.setUint16(10, time, true);
+    lv.setUint16(12, date, true);
+    lv.setUint32(14, crc, true);
+    lv.setUint32(18, data.length, true);
+    lv.setUint32(22, data.length, true);
+    lv.setUint16(26, name.length, true);
+    lv.setUint16(28, 0, true);
+    local.set(name, 30);
+
+    const cen = new Uint8Array(46 + name.length);
+    const cv = new DataView(cen.buffer);
+    cv.setUint32(0, 0x02014b50, true);
+    cv.setUint16(4, 20, true);
+    cv.setUint16(6, 20, true);
+    cv.setUint16(8, 0x0800, true);
+    cv.setUint16(10, 0, true);
+    cv.setUint16(12, time, true);
+    cv.setUint16(14, date, true);
+    cv.setUint32(16, crc, true);
+    cv.setUint32(20, data.length, true);
+    cv.setUint32(24, data.length, true);
+    cv.setUint16(28, name.length, true);
+    cv.setUint32(42, offset, true);
+    cen.set(name, 46);
+
+    parts.push(local, data);
+    central.push(cen);
+    offset += local.length + data.length;
+  });
+
+  const cdSize = central.reduce((s, c) => s + c.length, 0);
+  const end = new Uint8Array(22);
+  const ev = new DataView(end.buffer);
+  ev.setUint32(0, 0x06054b50, true);
+  ev.setUint16(8, files.length, true);
+  ev.setUint16(10, files.length, true);
+  ev.setUint32(12, cdSize, true);
+  ev.setUint32(16, offset, true);
+
+  const all = parts.concat(central, [end]);
+  const out = new Uint8Array(all.reduce((s, p) => s + p.length, 0));
+  let pos = 0;
+  all.forEach((p) => { out.set(p, pos); pos += p.length; });
+  return out;
+}
+// ============================ end of generator ==============================
+</script>
+
+<script>
+// ============================================================================
+// Plugin UI
+// ============================================================================
+const $ = (id) => document.getElementById(id);
+const post = (msg) => parent.postMessage({ pluginMessage: msg }, '*');
+
+const state = {
+  frames: [],
+  current: 0,
+  layerId: null,
+  assets: {},        // frameId -> exported assets
+  assetKey: {},      // frameId -> export options used ("scale|svg")
+  loading: {}
+};
+let requestSeq = 0;
+const pending = {};
+
+function frame() { return state.frames[state.current]; }
+function exportKey(f) { return f.banner.scale + '|' + (f.banner.svg ? 1 : 0); }
+
+function requestAssets(frames) {
+  return new Promise((resolve, reject) => {
+    const requestId = ++requestSeq;
+    pending[requestId] = { resolve, reject };
+    post({
+      type: 'export',
+      requestId,
+      frames: frames.map((f) => ({ id: f.id, scale: f.banner.scale, svg: f.banner.svg }))
+    });
+  });
+}
+
+async function ensureAssets(frames, force) {
+  const missing = frames.filter((f) => force || !state.assets[f.id] || state.assetKey[f.id] !== exportKey(f));
+  if (!missing.length) return;
+  missing.forEach((f) => { state.loading[f.id] = true; });
+  renderStage();
+  try {
+    const result = await requestAssets(missing);
+    result.forEach((a) => {
+      state.assets[a.id] = a;
+      const f = state.frames.find((x) => x.id === a.id);
+      if (f) state.assetKey[a.id] = exportKey(f);
+    });
+  } finally {
+    missing.forEach((f) => { delete state.loading[f.id]; });
+  }
+}
+
+// ---------------------------------------------------------------- rendering
+
+function option(value, label, selected) {
+  return '<option value="' + value + '"' + (value === selected ? ' selected' : '') + '>' + label + '</option>';
+}
+
+function selectHtml(key, map, value) {
+  return '<select data-key="' + key + '">' + Object.keys(map).map((k) => option(k, typeof map[k] === 'string' ? map[k] : map[k].label, value)).join('') + '</select>';
+}
+
+function numberHtml(key, value, step, min) {
+  return '<input type="number" data-key="' + key + '" value="' + value + '" step="' + (step || 0.1) + '" min="' + (min === undefined ? 0 : min) + '">';
+}
+
+const EASE_LABELS = {
+  'linear': 'Linear', 'ease': 'Ease', 'ease-in': 'Ease in', 'ease-out': 'Ease out', 'ease-in-out': 'Ease in-out',
+  'expo-out': 'Expo out', 'expo-in': 'Expo in', 'back-out': 'Back out (overshoot)', 'back-in': 'Back in'
+};
+
+function trackHtml(anim, total) {
+  const p = (t) => Math.max(0, Math.min(100, (t / total) * 100));
+  const hasIn = anim.in !== 'none';
+  const hasOut = anim.out !== 'none';
+  const inStart = hasIn ? num(anim.delay, 0) : 0;
+  const inEnd = hasIn ? inStart + num(anim.dur, 0.6) : 0;
+  const outStart = hasOut ? Math.max(num(anim.outAt, total), inEnd) : total;
+  const outEnd = hasOut ? outStart + num(anim.outDur, 0.4) : total;
+  const seg = (a, b, color) => b > a ? '<span style="left:' + p(a) + '%;width:' + (p(b) - p(a)) + '%;background:' + color + '"></span>' : '';
+  const holdColor = anim.emph !== 'none' ? 'var(--emph)' : 'var(--hold)';
+  return '<div class="track">' + seg(inStart, inEnd, 'var(--in)') + seg(inEnd, outStart, holdColor) + seg(outStart, outEnd, 'var(--out)') + '</div>';
+}
+
+function renderHeader() {
+  const sel = $('frameSelect');
+  if (state.frames.length > 1) {
+    sel.style.display = '';
+    sel.innerHTML = state.frames.map((f, i) => option(String(i), escapeHtml(f.name) + ' — ' + f.width + '×' + f.height, String(state.current))).join('');
+    $('frameInfo').textContent = '';
+  } else {
+    sel.style.display = 'none';
+    const f = frame();
+    $('frameInfo').textContent = f ? f.name + ' — ' + f.width + '×' + f.height : '';
+  }
+  const n = state.frames.length;
+  $('zipBtn').textContent = n > 1 ? 'Export ' + n + ' banners (ZIP)' : 'Export HTML5 ZIP';
+  ['zipBtn', 'htmlBtn', 'replayBtn', 'autoBtn', 'refreshBtn'].forEach((id) => { $(id).disabled = !n; });
+}
+
+function renderLayers() {
+  const f = frame();
+  const el = $('layers');
+  if (!f) {
+    el.innerHTML = '<div class="empty">Select one or more banner frames in Figma.<br>Each top-level layer inside the frame becomes an animatable element.</div>';
+    return;
+  }
+  if (!f.layers.length) {
+    el.innerHTML = '<div class="empty">This frame has no visible layers.</div>';
+    return;
+  }
+  const total = Math.max(0.5, num(f.banner.duration, 6));
+  el.innerHTML = f.layers.slice().reverse().map((l) =>
+    '<div class="layer' + (l.id === state.layerId ? ' selected' : '') + '" data-id="' + l.id + '">' +
+      '<div><div class="name">' + escapeHtml(l.name) + '</div><div class="type">' + l.type.toLowerCase().replace('_', ' ') + ' · ' + MOTIONS[l.anim.in] + '</div></div>' +
+      trackHtml(l.anim, total) +
+    '</div>'
+  ).join('');
+}
+
+function renderEditor() {
+  const f = frame();
+  const layer = f && f.layers.find((l) => l.id === state.layerId);
+  const el = $('editor');
+  if (!layer) {
+    el.innerHTML = f && f.layers.length ? '<div class="empty">Pick a layer to edit its animation,<br>or press ✨ Auto-animate to start quickly.</div>' : '';
+    return;
+  }
+  const a = layer.anim;
+  el.innerHTML =
+    '<fieldset><legend><i style="background:var(--in)"></i>Entrance</legend><div class="grid">' +
+      '<label class="f wide">Effect' + selectHtml('in', MOTIONS, a.in) + '</label>' +
+      '<label class="f">Start (s)' + numberHtml('delay', a.delay) + '</label>' +
+      '<label class="f">Duration (s)' + numberHtml('dur', a.dur, 0.1, 0.05) + '</label>' +
+      '<label class="f">Easing' + selectHtml('ease', EASE_LABELS, a.ease) + '</label>' +
+      '<label class="f">Distance (px)' + numberHtml('dist', a.dist, 5) + '</label>' +
+    '</div></fieldset>' +
+    '<fieldset><legend><i style="background:var(--emph)"></i>Emphasis (while visible)</legend><div class="grid">' +
+      '<label class="f">Effect' + selectHtml('emph', EMPHASIS, a.emph) + '</label>' +
+      '<label class="f">Cycle (s)' + numberHtml('emphPeriod', a.emphPeriod, 0.1, 0.2) + '</label>' +
+    '</div></fieldset>' +
+    '<fieldset><legend><i style="background:var(--out)"></i>Exit</legend><div class="grid">' +
+      '<label class="f wide">Effect' + selectHtml('out', MOTIONS, a.out) + '</label>' +
+      '<label class="f">Start (s)' + numberHtml('outAt', a.outAt) + '</label>' +
+      '<label class="f">Duration (s)' + numberHtml('outDur', a.outDur, 0.1, 0.05) + '</label>' +
+      '<label class="f wide">Easing' + selectHtml('outEase', EASE_LABELS, a.outEase) + '</label>' +
+    '</div></fieldset>' +
+    '<div style="margin-top:12px;display:flex;gap:6px"><button class="btn" id="copyAllBtn">Copy effects to all layers</button></div>';
+}
+
+function renderSettings() {
+  const f = frame();
+  const el = $('settings');
+  if (!f) { el.innerHTML = ''; return; }
+  const b = f.banner;
+  el.innerHTML =
+    '<div class="grid">' +
+      '<label class="f">Timeline (s)<input type="number" data-bkey="duration" value="' + b.duration + '" step="0.5" min="0.5"></label>' +
+      '<label class="f">Plays<select data-bkey="loops">' + option('1', '1×', String(b.loops)) + option('2', '2×', String(b.loops)) + option('3', '3×', String(b.loops)) + option('0', 'Forever', String(b.loops)) + '</select></label>' +
+      '<label class="f">Image scale<select data-bkey="scale">' + option('1', '1×', String(b.scale)) + option('2', '2× (retina)', String(b.scale)) + option('3', '3×', String(b.scale)) + '</select></label>' +
+      '<label class="f">Border color<input type="text" data-bkey="borderColor" value="' + escapeHtml(b.borderColor) + '"></label>' +
+      '<label class="f" style="grid-column:span 2">Click-through URL (clickTag)<input type="url" data-bkey="clickTag" value="' + escapeHtml(b.clickTag) + '"></label>' +
+      '<label class="check" style="align-self:end"><input type="checkbox" data-bkey="border"' + (b.border ? ' checked' : '') + '>1px border</label>' +
+      '<label class="check" style="align-self:end" title="Export vector shapes as SVG instead of PNG"><input type="checkbox" data-bkey="svg"' + (b.svg ? ' checked' : '') + '>Vectors as SVG</label>' +
+    '</div>';
+}
+
+function renderStage() {
+  const f = frame();
+  const msg = $('stageMsg');
+  const box = $('frameBox');
+  const iframe = $('preview');
+  $('warnings').textContent = '';
+  $('sizeInfo').textContent = '';
+  $('exportInfo').textContent = '';
+  if (!f) {
+    box.style.display = 'none';
+    msg.style.display = '';
+    msg.textContent = 'Select a frame (e.g. 300×250) to preview its animation.';
+    return;
+  }
+  const assets = state.assets[f.id];
+  if (state.loading[f.id] || !assets) {
+    box.style.display = 'none';
+    msg.style.display = '';
+    msg.textContent = 'Exporting layers from Figma…';
+    return;
+  }
+  msg.style.display = 'none';
+  box.style.display = '';
+
+  const stage = $('stage');
+  const scale = Math.min(1, (stage.clientWidth - 24) / f.width, (stage.clientHeight - 24) / f.height);
+  iframe.width = f.width;
+  iframe.height = f.height;
+  iframe.style.transform = 'scale(' + scale + ')';
+  box.style.width = f.width * scale + 'px';
+  box.style.height = f.height * scale + 'px';
+
+  const result = generateBanner(f, assets, true);
+  iframe.srcdoc = result.html;
+
+  const zipSize = makeZip(generateBanner(f, assets, false).files).length;
+  const kb = Math.round(zipSize / 102.4) / 10;
+  const info = $('sizeInfo');
+  info.textContent = 'ZIP ≈ ' + kb + ' KB' + (zipSize > 150 * 1024 ? ' — over the common 150 KB ad limit' : '');
+  info.className = 'size ' + (zipSize > 150 * 1024 ? 'over' : 'muted');
+  $('exportInfo').textContent = (scale < 1 ? 'Preview at ' + Math.round(scale * 100) + '% · ' : '') + assets.layers.length + ' layers';
+  $('warnings').textContent = (assets.warnings || []).join(' ');
+}
+
+function renderAll() {
+  renderHeader();
+  renderLayers();
+  renderEditor();
+  renderSettings();
+  renderStage();
+}
+
+let previewTimer = null;
+function schedulePreview() {
+  clearTimeout(previewTimer);
+  previewTimer = setTimeout(renderStage, 200);
+}
+
+// ---------------------------------------------------------------- persistence
+
+function saveAnims(f, layers) {
+  post({ type: 'save-anims', frameId: f.id, items: layers.map((l) => ({ id: l.id, anim: l.anim })) });
+}
+
+function saveBanner(f) {
+  post({ type: 'save-banner', frameId: f.id, banner: f.banner });
+}
+
+// ---------------------------------------------------------------- actions
+
+function autoAnimate() {
+  const f = frame();
+  if (!f) return;
+  let t = 0.2;
+  let lastEnd = 0;
+  f.layers.forEach((l) => {
+    const name = l.name.toLowerCase();
+    const a = Object.assign({}, l.anim, { out: 'none', emph: 'none', ease: 'expo-out', dur: 0.7, dist: 30 });
+    if (l.cover) {
+      Object.assign(a, { in: 'fade', delay: 0, dur: 0.5, ease: 'ease-out' });
+    } else if (/cta|button|btn|shop|buy|learn/.test(name)) {
+      Object.assign(a, { in: 'pop', delay: t, dur: 0.6, ease: 'back-out', emph: 'pulse', emphPeriod: 1.2 });
+      t += 0.35;
+    } else if (/logo/.test(name)) {
+      Object.assign(a, { in: 'zoom-out', delay: t });
+      t += 0.35;
+    } else if (l.type === 'TEXT') {
+      Object.assign(a, { in: 'slide-up', delay: t });
+      t += 0.35;
+    } else {
+      Object.assign(a, { in: 'fade', delay: t, dur: 0.6, ease: 'ease-out' });
+      t += 0.25;
+    }
+    lastEnd = Math.max(lastEnd, a.delay + a.dur);
+    l.anim = a;
+  });
+  f.banner.duration = Math.max(f.banner.duration, Math.ceil((lastEnd + 3) * 2) / 2);
+  saveAnims(f, f.layers);
+  saveBanner(f);
+  if (!state.layerId && f.layers.length) state.layerId = f.layers[f.layers.length - 1].id;
+  renderAll();
+  post({ type: 'notify', text: 'Animations added to ' + f.layers.length + ' layers' });
+}
+
+function copyToAll() {
+  const f = frame();
+  const src = f && f.layers.find((l) => l.id === state.layerId);
+  if (!src) return;
+  const keys = ['in', 'dur', 'ease', 'dist', 'out', 'outDur', 'outEase', 'emph', 'emphPeriod'];
+  f.layers.forEach((l) => {
+    if (l === src) return;
+    keys.forEach((k) => { l.anim[k] = src.anim[k]; });
+  });
+  saveAnims(f, f.layers);
+  renderLayers();
+  schedulePreview();
+}
+
+function download(data, name, type) {
+  const url = URL.createObjectURL(new Blob([data], { type: type }));
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function bannerFileName(f) {
+  return slug(f.name) + '_' + f.width + 'x' + f.height;
+}
+
+async function exportAll(inline) {
+  const frames = state.frames.slice();
+  if (!frames.length) return;
+  try {
+    await ensureAssets(frames, false);
+    renderStage();
+    if (frames.length === 1) {
+      const f = frames[0];
+      const out = generateBanner(f, state.assets[f.id], inline);
+      if (inline) download(out.html, bannerFileName(f) + '.html', 'text/html');
+      else download(makeZip(out.files), bannerFileName(f) + '.zip', 'application/zip');
+    } else {
+      // One archive holding an upload-ready ZIP (or single HTML file) per banner size.
+      const entries = frames.map((f) => {
+        const out = generateBanner(f, state.assets[f.id], inline);
+        return inline
+          ? { name: bannerFileName(f) + '.html', data: out.html }
+          : { name: bannerFileName(f) + '.zip', data: makeZip(out.files) };
+      });
+      download(makeZip(entries), 'banners.zip', 'application/zip');
+    }
+    post({ type: 'notify', text: 'Exported ' + frames.length + ' banner' + (frames.length > 1 ? 's' : '') });
+  } catch (e) {
+    post({ type: 'notify', text: 'Export failed: ' + e.message, error: true });
+  }
+}
+
+// ---------------------------------------------------------------- events
+
+$('layers').addEventListener('click', (e) => {
+  const row = e.target.closest('.layer');
+  if (!row) return;
+  state.layerId = row.dataset.id;
+  renderLayers();
+  renderEditor();
+});
+
+$('editor').addEventListener('input', (e) => {
+  const key = e.target.dataset.key;
+  const f = frame();
+  const layer = f && f.layers.find((l) => l.id === state.layerId);
+  if (!key || !layer) return;
+  layer.anim[key] = e.target.type === 'number' ? num(e.target.value, layer.anim[key]) : e.target.value;
+  saveAnims(f, [layer]);
+  renderLayers();
+  schedulePreview();
+});
+
+$('editor').addEventListener('click', (e) => {
+  if (e.target.id === 'copyAllBtn') copyToAll();
+});
+
+$('settings').addEventListener('input', (e) => {
+  const key = e.target.dataset.bkey;
+  const f = frame();
+  if (!key || !f) return;
+  const el = e.target;
+  let value = el.type === 'checkbox' ? el.checked : el.value;
+  if (key === 'duration') value = Math.max(0.5, num(value, f.banner.duration));
+  if (key === 'loops' || key === 'scale') value = Number(value);
+  f.banner[key] = value;
+  saveBanner(f);
+  renderLayers();
+  if (key === 'scale' || key === 'svg') ensureAssets([f], false).then(renderStage, showError);
+  else schedulePreview();
+});
+
+$('frameSelect').addEventListener('change', (e) => {
+  state.current = Number(e.target.value);
+  state.layerId = null;
+  renderAll();
+  ensureAssets([frame()], false).then(renderStage, showError);
+});
+
+$('autoBtn').onclick = autoAnimate;
+$('replayBtn').onclick = renderStage;
+$('refreshBtn').onclick = () => { if (frame()) ensureAssets([frame()], true).then(renderStage, showError); };
+$('zipBtn').onclick = () => exportAll(false);
+$('htmlBtn').onclick = () => exportAll(true);
+window.addEventListener('resize', schedulePreview);
+
+function showError(e) {
+  $('stageMsg').style.display = '';
+  $('stageMsg').textContent = 'Export failed: ' + (e && e.message || e);
+}
+
+window.onmessage = (event) => {
+  const msg = event.data.pluginMessage;
+  if (!msg) return;
+  if (msg.type === 'selection') {
+    const prevId = frame() && frame().id;
+    state.frames = msg.frames;
+    const idx = state.frames.findIndex((f) => f.id === prevId);
+    state.current = idx === -1 ? 0 : idx;
+    const f = frame();
+    if (!f || !f.layers.some((l) => l.id === state.layerId)) state.layerId = null;
+    renderAll();
+    if (f) ensureAssets([f], false).then(renderStage, showError);
+  } else if (msg.type === 'assets') {
+    const p = pending[msg.requestId];
+    if (!p) return;
+    delete pending[msg.requestId];
+    if (msg.error) p.reject(new Error(msg.error));
+    else p.resolve(msg.frames);
+  }
+};
+
+renderAll();
+post({ type: 'ready' });
+</script>
+</body>
+</html>
