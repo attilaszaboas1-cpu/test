@@ -1,0 +1,12 @@
+{
+  "name": "workfront-board",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A simple Monday-style board that reads from and writes back to Adobe Workfront",
+  "engines": { "node": ">=18" },
+  "scripts": {
+    "start": "node server.js",
+    "demo": "WF_MODE=mock node server.js",
+    "test": "node --test test/*.test.js"
+  }
+}

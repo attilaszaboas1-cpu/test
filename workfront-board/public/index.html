@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Workfront Board</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <div class="brand"><span class="logo">▦</span> Workfront Board</div>
+    <button class="nav-item" data-board="mine" id="nav-mine">★ My work</button>
+    <div class="nav-label">Projects</div>
+    <input class="nav-search" id="project-filter" type="search" placeholder="Filter projects">
+    <nav id="project-list"></nav>
+    <div class="mode" id="mode"></div>
+  </aside>
+
+  <main>
+    <header class="topbar">
+      <button class="icon-btn menu" id="menu" aria-label="Projects">☰</button>
+      <div class="title-wrap">
+        <h1 id="board-title">Loading…</h1>
+        <div class="subtitle" id="board-sub"></div>
+      </div>
+      <div class="sync" id="sync" title="Sync status"></div>
+    </header>
+
+    <div class="toolbar">
+      <div class="tabs" role="tablist">
+        <button role="tab" data-view="table" class="active">Table</button>
+        <button role="tab" data-view="kanban">Kanban</button>
+        <button role="tab" data-view="timeline">Timeline</button>
+      </div>
+      <input type="search" id="search" placeholder="Search tasks">
+      <select id="person-filter" aria-label="Filter by person"><option value="">Everyone</option></select>
+      <label class="check"><input type="checkbox" id="hide-done"> Hide done</label>
+      <button class="primary" id="new-task">+ New task</button>
+      <button class="icon-btn" id="refresh" title="Refresh from Workfront">⟳</button>
+    </div>
+
+    <section id="view" class="view"></section>
+  </main>
+
+  <aside class="drawer" id="drawer" aria-hidden="true"></aside>
+  <div class="popover" id="popover" hidden></div>
+  <div class="toasts" id="toasts"></div>
+
+  <script src="app.js"></script>
+</body>
+</html>

@@ -86,3 +86,9 @@ npm test        # generator unit tests
 ```
 
 Sessions are stored as plugin data on each banner frame, and package settings are stored on the document.
+
+---
+
+## Also in this repo: Workfront Board
+
+[`workfront-board/`](workfront-board/) is a simple, Monday-style project board that reads from and writes back to Adobe Workfront. See its [README](workfront-board/README.md).
