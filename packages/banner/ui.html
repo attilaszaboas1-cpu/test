@@ -3,411 +3,546 @@
 <head>
 <meta charset="utf-8">
 <style>
-/* Shared plugin UI: tokens, controls, layer tree, status bar, sheets and menus. */
+/* Shared plugin UI in Figma's UI3 style.
+ * Colours come from Figma's theme variables (manifest themeColors / showUI themeColors:true),
+ * with UI3 light/dark values as fallbacks so the UI also renders outside Figma. */
 :root {
-  --app: #e4e5ea;
-  --panel: #eeeff2;
-  --card: #ffffff;
-  --card-2: #f6f6f9;
-  --border: #dcdde3;
-  --border-strong: #c8c9d2;
-  --text: #1c1d26;
-  --muted: #6c6f7c;
-  --brand: #2a2d86;
-  --brand-2: #3c40b8;
-  --brand-soft: #e7e8f8;
-  --green: #2f8a55;
-  --green-soft: #ecf6ef;
-  --green-line: #3d9d64;
-  --danger: #d2422d;
-  --warn: #b26a00;
-  --in: #3d9d64;
-  --out: #d2422d;
-  --loop: #7b5cff;
-  --shadow: 0 1px 2px rgba(20, 22, 40, .06), 0 2px 8px rgba(20, 22, 40, .05);
-  --radius: 10px;
+  --fb-bg: #ffffff; --fb-bg-secondary: #f5f5f5; --fb-bg-tertiary: #e6e6e6; --fb-bg-hover: #f5f5f5;
+  --fb-bg-pressed: #e6e6e6; --fb-bg-selected: #e5f4ff; --fb-bg-selected-strong: #bde3ff; --fb-bg-brand: #0d99ff; --fb-bg-brand-hover: #007be5;
+  --fb-bg-danger: #f24822; --fb-bg-danger-tertiary: #ffe2e0; --fb-bg-warning-tertiary: #fff1c2; --fb-bg-success-tertiary: #cff7d3;
+  --fb-text: rgba(0,0,0,.9); --fb-text-secondary: rgba(0,0,0,.5); --fb-text-tertiary: rgba(0,0,0,.3);
+  --fb-text-brand: #007be5; --fb-text-onbrand: #ffffff; --fb-text-danger: #dc3412; --fb-text-warning: #b86200; --fb-text-success: #009951;
+  --fb-border: #e6e6e6; --fb-border-strong: #2c2c2c; --fb-border-selected: #0d99ff;
+  --fb-icon: rgba(0,0,0,.9); --fb-icon-secondary: rgba(0,0,0,.5); --fb-canvas: #f5f5f5; --fb-tooltip: #1e1e1e;
 }
-.figma-dark {
-  --app: #1b1c21;
-  --panel: #23242b;
-  --card: #2c2d35;
-  --card-2: #33343d;
-  --border: #3c3d47;
-  --border-strong: #4a4b57;
-  --text: #ecedf2;
-  --muted: #9a9caa;
-  --brand: #8c90ff;
-  --brand-2: #a3a6ff;
-  --brand-soft: #34355a;
-  --green: #6bcf93;
-  --green-soft: #243a2d;
-  --green-line: #4caf74;
-  --shadow: none;
+html.figma-dark, html.theme-dark {
+  --fb-bg: #2c2c2c; --fb-bg-secondary: #383838; --fb-bg-tertiary: #444444; --fb-bg-hover: #383838;
+  --fb-bg-pressed: #444444; --fb-bg-selected: #4a5878; --fb-bg-selected-strong: #5e6c8f; --fb-bg-brand: #0c8ce9; --fb-bg-brand-hover: #0a6dc2;
+  --fb-bg-danger: #e03e1a; --fb-bg-danger-tertiary: #4d2620; --fb-bg-warning-tertiary: #4d3d12; --fb-bg-success-tertiary: #1f3d29;
+  --fb-text: #ffffff; --fb-text-secondary: rgba(255,255,255,.7); --fb-text-tertiary: rgba(255,255,255,.4);
+  --fb-text-brand: #7cc4f8; --fb-text-onbrand: #ffffff; --fb-text-danger: #fca397; --fb-text-warning: #f7d15f; --fb-text-success: #79d297;
+  --fb-border: #444444; --fb-border-strong: #ffffff; --fb-border-selected: #0c8ce9;
+  --fb-icon: #ffffff; --fb-icon-secondary: rgba(255,255,255,.7); --fb-canvas: #1e1e1e; --fb-tooltip: #0d0d0d;
+}
+:root {
+  --bg: var(--figma-color-bg, var(--fb-bg));
+  --bg-secondary: var(--figma-color-bg-secondary, var(--fb-bg-secondary));
+  --bg-tertiary: var(--figma-color-bg-tertiary, var(--fb-bg-tertiary));
+  --bg-hover: var(--figma-color-bg-hover, var(--fb-bg-hover));
+  --bg-pressed: var(--figma-color-bg-pressed, var(--fb-bg-pressed));
+  --bg-selected: var(--figma-color-bg-selected, var(--fb-bg-selected));
+  --bg-selected-strong: var(--figma-color-bg-selected-strong, var(--fb-bg-selected-strong));
+  --bg-brand: var(--figma-color-bg-brand, var(--fb-bg-brand));
+  --bg-brand-hover: var(--figma-color-bg-brand-hover, var(--fb-bg-brand-hover));
+  --bg-danger: var(--figma-color-bg-danger, var(--fb-bg-danger));
+  --bg-danger-tertiary: var(--figma-color-bg-danger-tertiary, var(--fb-bg-danger-tertiary));
+  --bg-warning-tertiary: var(--figma-color-bg-warning-tertiary, var(--fb-bg-warning-tertiary));
+  --bg-success-tertiary: var(--figma-color-bg-success-tertiary, var(--fb-bg-success-tertiary));
+  --text: var(--figma-color-text, var(--fb-text));
+  --text-secondary: var(--figma-color-text-secondary, var(--fb-text-secondary));
+  --text-tertiary: var(--figma-color-text-tertiary, var(--fb-text-tertiary));
+  --text-brand: var(--figma-color-text-brand, var(--fb-text-brand));
+  --text-onbrand: var(--figma-color-text-onbrand, var(--fb-text-onbrand));
+  --text-danger: var(--figma-color-text-danger, var(--fb-text-danger));
+  --text-warning: var(--figma-color-text-warning, var(--fb-text-warning));
+  --text-success: var(--figma-color-text-success, var(--fb-text-success));
+  --border: var(--figma-color-border, var(--fb-border));
+  --border-strong: var(--figma-color-border-strong, var(--fb-border-strong));
+  --border-selected: var(--figma-color-border-selected, var(--fb-border-selected));
+  --icon: var(--figma-color-icon, var(--fb-icon));
+  --icon-secondary: var(--figma-color-icon-secondary, var(--fb-icon-secondary));
+  --canvas: var(--fb-canvas);
+  /* UI3 metrics */
+  --font: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  --fs: 11px; --lh: 16px; --fs-lg: 13px; --lh-lg: 22px;
+  --w-regular: 450; --w-strong: 550;
+  --ctl: 24px; --row: 32px; --radius: 5px; --radius-lg: 13px;
+  --s1: 4px; --s2: 8px; --s3: 12px; --s4: 16px;
+  --shadow-menu: 0 2px 5px rgba(0,0,0,.15), 0 10px 16px rgba(0,0,0,.12), 0 0 .5px rgba(0,0,0,.15);
 }
 
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; }
 body {
-  font: 12px/1.4 Inter, -apple-system, "Segoe UI", Roboto, sans-serif;
+  font: var(--w-regular) var(--fs)/var(--lh) var(--font);
+  letter-spacing: .005em;
   color: var(--text);
-  background: var(--app);
+  background: var(--bg);
   overflow: hidden;
+  -webkit-font-smoothing: antialiased;
 }
-button, input, select { font: inherit; color: inherit; }
+button, input, select { font: inherit; color: inherit; letter-spacing: inherit; }
 [hidden] { display: none !important; }
+:focus-visible { outline: 2px solid var(--border-selected); outline-offset: -2px; }
 .grow { flex: 1; }
-.muted { color: var(--muted); }
-.mono { font-variant-numeric: tabular-nums; }
-svg.ic { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.muted { color: var(--text-secondary); }
+.mono, .num { font-variant-numeric: tabular-nums; }
+.strong { font-weight: var(--w-strong); }
+svg.ic { width: 16px; height: 16px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; }
 
-#app { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; height: 100%; padding: 10px; }
-.panel { background: var(--panel); border-radius: 14px; display: flex; flex-direction: column; min-height: 0; overflow: hidden; }
+/* ---------- buttons ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: var(--s1);
+  height: var(--ctl); padding: 0 var(--s2); border-radius: var(--radius);
+  border: 1px solid var(--border); background: var(--bg); cursor: pointer; white-space: nowrap; font-weight: var(--w-strong);
+}
+.btn:hover { background: var(--bg-hover); }
+.btn:active { background: var(--bg-pressed); }
+.btn.primary { background: var(--bg-brand); border-color: transparent; color: var(--text-onbrand); }
+.btn.primary:hover { background: var(--bg-brand-hover); }
+.btn.danger { color: var(--text-danger); }
+.btn.ghost { border-color: transparent; background: transparent; }
+.btn.ghost:hover { background: var(--bg-hover); }
+.btn.lg { height: 32px; padding: 0 var(--s3); }
+.btn:disabled { opacity: .4; cursor: default; background: var(--bg); }
+.btn.primary:disabled { background: var(--bg-brand); }
+.icon-btn {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: var(--ctl); height: var(--ctl); padding: 0; border: 0; border-radius: var(--radius);
+  background: transparent; color: var(--icon); cursor: pointer;
+}
+.icon-btn:hover { background: var(--bg-hover); }
+.icon-btn:active { background: var(--bg-pressed); }
+.icon-btn.on { background: var(--bg-selected); color: var(--text-brand); }
+.icon-btn.secondary { color: var(--icon-secondary); }
+.icon-btn.secondary:hover { color: var(--icon); }
+.icon-btn:disabled { opacity: .35; cursor: default; background: transparent; }
+.link { border: 0; background: none; padding: 0; color: var(--text-brand); cursor: pointer; font-weight: var(--w-strong); }
+.link:hover { text-decoration: underline; }
 
-/* ---------- buttons & fields ---------- */
-.btn, .text-btn, .icon-btn, .mini-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  border: 1px solid var(--border); background: var(--card); border-radius: 8px;
-  padding: 6px 12px; cursor: pointer; white-space: nowrap; font-weight: 500;
+/* ---------- inputs ---------- */
+input[type=text], input[type=number], input[type=url], input[type=search], select {
+  height: var(--ctl); min-width: 0; padding: 0 var(--s2); border-radius: var(--radius);
+  border: 1px solid transparent; background: var(--bg-secondary); outline: none;
 }
-.btn:hover, .icon-btn:hover, .mini-btn:hover { border-color: var(--border-strong); }
-.btn.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-.btn.primary:hover { background: var(--brand-2); }
-.btn:disabled, .btn.primary:disabled { opacity: .45; cursor: default; }
-.text-btn { border-color: transparent; background: transparent; color: var(--muted); padding: 6px 8px; }
-.text-btn:hover { color: var(--text); }
-.icon-btn { width: 34px; height: 34px; padding: 0; }
-.icon-btn.ghost { border-color: transparent; background: transparent; }
-.icon-btn.ghost:hover { background: var(--card); }
-.icon-btn.on { background: var(--brand); border-color: var(--brand); color: #fff; }
-.icon-btn.sm { width: 28px; height: 28px; border-radius: 7px; }
-.icon-btn.danger:hover { color: var(--danger); }
-.mini-btn { padding: 2px 8px; min-width: 26px; height: 26px; border-radius: 6px; }
-.mini-btn.strong { font-weight: 600; }
-select, input[type=text], input[type=number], input[type=url] {
-  border: 1px solid var(--border); background: var(--card); border-radius: 8px; padding: 6px 8px; min-width: 0; outline: none;
-}
-select:focus, input:focus { border-color: var(--brand-2); box-shadow: 0 0 0 2px var(--brand-soft); }
+input:hover, select:hover { border-color: var(--border); }
+input:focus, select:focus { border-color: var(--border-selected); background: var(--bg); }
+select { padding-right: 20px; appearance: none; cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' stroke='%23888' stroke-width='1.5'%3E%3Cpath d='M5 7l3 3 3-3'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 4px center; }
+input[type=number] { -moz-appearance: textfield; }
+input[type=number]::-webkit-inner-spin-button { display: none; }
+input::placeholder { color: var(--text-tertiary); }
+input[type=checkbox] { width: 12px; height: 12px; margin: 0; accent-color: var(--bg-brand); flex: none; }
 .unit { position: relative; display: block; }
-.unit input { width: 100%; padding-right: 22px; }
-.unit::after { content: attr(data-unit); position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 11px; pointer-events: none; }
-
-/* ---------- left panel ---------- */
-.pane-card.toolbar { display: flex; align-items: center; gap: 8px; margin: 10px 10px 0; padding: 8px; background: var(--card-2); border-radius: 12px; }
-.search-row { display: flex; gap: 8px; padding: 10px; }
-.search { flex: 1; display: flex; align-items: center; gap: 6px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 0 10px; color: var(--muted); }
-.search input { border: 0; background: transparent; flex: 1; padding: 7px 0; box-shadow: none !important; color: var(--text); }
-.filters { margin: 0 10px 8px; padding: 10px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; }
-.chip { border: 1px solid var(--border); background: var(--card); border-radius: 999px; padding: 3px 10px; cursor: pointer; }
-.chip.on { background: var(--brand); color: #fff; border-color: var(--brand); }
-.bulk { margin: 0 10px 8px; padding: 8px 10px; background: var(--brand-soft); border-radius: 10px; display: flex; gap: 8px; align-items: center; }
-.tree { flex: 1; overflow-y: auto; padding: 0 10px 10px; }
-.node {
-  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 8px;
-  box-shadow: var(--shadow); border-left-width: 1px;
-}
-.node.in-html { background: var(--green-soft); border-left: 3px solid var(--green-line); }
-.node.canvas-sel { border-color: var(--brand); box-shadow: 0 0 0 1.5px var(--brand); }
-.node .row { display: flex; align-items: center; gap: 8px; padding: 10px 10px 6px; }
-.node .row2 { display: flex; align-items: center; gap: 6px; padding: 0 10px 10px 10px; }
-.node .row2 select { padding: 5px 6px; }
-.node .info { flex: 1; min-width: 0; }
-.node .name { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.node .meta { color: var(--muted); font-size: 11px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.node .meta .ok { color: var(--green); font-weight: 600; }
-.node .meta .hid { color: var(--warn); }
-.caret { width: 20px; height: 20px; border: 0; background: transparent; cursor: pointer; color: var(--muted); display: inline-flex; align-items: center; justify-content: center; padding: 0; }
-.caret.closed svg { transform: rotate(-90deg); }
-.caret-space { width: 20px; flex: none; }
-.cb { width: 16px; height: 16px; accent-color: var(--brand); flex: none; }
-.type-ic { width: 26px; height: 26px; border-radius: 6px; background: var(--card-2); display: inline-flex; align-items: center; justify-content: center; color: var(--muted); flex: none; }
-.add-btn { min-width: 86px; }
-.add-btn.remove { background: var(--card); }
-.clip-btn.on { color: var(--green); border-color: var(--green-line); background: var(--green-soft); }
-.empty { text-align: center; color: var(--muted); padding: 30px 16px; }
-
-.status-bar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; border-top: 1px solid var(--border); background: var(--card-2); min-height: 46px; }
-.status { display: flex; align-items: center; gap: 6px; color: var(--muted); min-width: 0; flex: 1; }
-.status span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-
-
-/* ---------- sheets & menus ---------- */
-.sheet-wrap { position: fixed; inset: 0; background: rgba(20, 22, 40, .35); display: flex; align-items: flex-end; justify-content: flex-start; padding: 10px; z-index: 10; }
-.sheet { width: calc(50% - 5px); max-height: 82%; background: var(--card); border-radius: 14px; display: flex; flex-direction: column; box-shadow: 0 10px 40px rgba(0,0,0,.25); }
-.sheet.wide { width: 100%; height: 100%; max-height: 100%; }
-.sheet-head { display: flex; align-items: center; gap: 12px; padding: 16px 18px; border-bottom: 1px solid var(--border); }
-.sheet-head h2 { margin: 0; font-size: 16px; flex: 1; }
-.sheet-icon { width: 34px; height: 34px; border-radius: 9px; background: var(--brand-soft); color: var(--brand); display: inline-flex; align-items: center; justify-content: center; }
-.sheet-body { overflow-y: auto; padding: 4px 18px 12px; flex: 1; }
-.sheet-foot { display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-top: 1px solid var(--border); justify-content: flex-end; }
-.sec { padding: 14px 0; border-bottom: 1px solid var(--border); }
-.sec:last-child { border-bottom: 0; }
-.sec-title { display: flex; align-items: center; gap: 8px; font-weight: 600; margin-bottom: 10px; }
-.sec-title .grow { flex: 1; }
-.color-field { display: flex; gap: 6px; align-items: center; }
-.color-field input[type=color] { width: 34px; height: 32px; padding: 0; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
-.color-field input[type=text] { flex: 1; }
-.check { display: flex; align-items: center; gap: 8px; padding-top: 6px; }
-.dropdown { position: relative; }
-.menu { position: absolute; bottom: calc(100% + 6px); left: 0; min-width: 280px; background: var(--card); border: 1px solid var(--border); border-radius: 10px; box-shadow: 0 8px 30px rgba(0,0,0,.18); padding: 6px; z-index: 5; }
-.menu button { display: block; width: 100%; text-align: left; border: 0; background: transparent; padding: 9px 10px; border-radius: 7px; cursor: pointer; }
-.menu button:hover, .menu button.on { background: var(--card-2); }
-.menu small { display: block; color: var(--muted); }
-.files-count { display: inline-flex; align-items: center; gap: 4px; }
-
-/* Banner Automation: layout, timeline, preview, element cards and package sheet. */
-/* ---------- right panel ---------- */
-.right-scroll { flex: 1; min-height: 0; display: flex; flex-direction: column; padding: 10px 10px 0; }
-.right-scroll > * { flex: none; }
-.top-row { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
-.size-select { font-weight: 600; padding: 7px 10px; max-width: 260px; }
-.frames-row { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.frames-row .label { font-weight: 700; color: var(--muted); letter-spacing: .04em; font-size: 11px; }
-.frames-row .count { font-weight: 700; min-width: 16px; text-align: center; }
-.inline-field { display: flex; align-items: center; gap: 6px; color: var(--muted); }
-.inline-field select { padding: 4px 6px; }
-.inline-check { display: flex; align-items: center; gap: 5px; color: var(--muted); }
-.scene-durations { display: flex; gap: 6px; margin-top: 8px; }
-.scene-dur { position: relative; min-width: 56px; }
-.scene-dur input { width: 100%; text-align: center; font-weight: 600; background: var(--card-2); border-color: transparent; padding-right: 18px; }
-.scene-dur.cur input { border-color: var(--brand-2); background: var(--card); }
-.scene-dur::after { content: 's'; position: absolute; right: 8px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 11px; }
-.scene-dur .tag { position: absolute; left: 7px; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 10px; font-weight: 600; }
-#scrubber { width: 100%; margin: 10px 0 4px; accent-color: #b9a225; }
-.transport { display: flex; align-items: center; gap: 4px; }
-.scene-label { font-weight: 700; min-width: 26px; text-align: center; }
-
-.stage {
-  position: relative; height: 300px; margin-top: 8px; padding-bottom: 40px; border-radius: 12px; overflow: hidden;
-  display: flex; align-items: center; justify-content: center;
-  background-color: var(--card);
-  background-image: linear-gradient(45deg, var(--card-2) 25%, transparent 25%), linear-gradient(-45deg, var(--card-2) 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, var(--card-2) 75%), linear-gradient(-45deg, transparent 75%, var(--card-2) 75%);
-  background-size: 16px 16px; background-position: 0 0, 0 8px, 8px -8px, -8px 0;
-}
-.frame-box { position: relative; flex: none; box-shadow: 0 0 0 1px var(--border-strong); }
-#preview { border: 0; display: block; transform-origin: 0 0; background: transparent; }
-.stage-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; text-align: center; color: var(--muted); padding: 24px; }
-.zoom { position: absolute; right: 10px; bottom: 10px; display: flex; align-items: center; gap: 4px; background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 3px; }
-.zoom span { min-width: 42px; text-align: center; color: var(--muted); }
-.warnings { color: var(--warn); font-size: 11px; margin-top: 6px; }
-.warnings:empty { display: none; }
-
-.elements { flex: 1 1 auto !important; min-height: 120px; overflow-y: auto; margin: 10px -10px 0; padding: 0 10px 10px; }
-.el {
-  background: var(--card); border: 1px solid var(--border); border-radius: 12px; margin-bottom: 8px; box-shadow: var(--shadow);
-}
-.el.open { border-color: var(--brand-2); box-shadow: 0 0 0 1px var(--brand-2); }
-.el.off-scene .el-head .name { color: var(--muted); }
-.el-head { display: flex; align-items: center; gap: 8px; padding: 10px; cursor: pointer; }
-.el-head .name { flex: 1; font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.order { display: flex; flex-direction: column; }
-.order button { border: 0; background: transparent; cursor: pointer; padding: 0 2px; height: 13px; color: var(--muted); display: flex; align-items: center; }
-.order button:hover { color: var(--text); }
-.order svg { width: 14px; height: 14px; }
-.link-btn.on { color: var(--brand-2); background: var(--brand-soft); border-color: var(--brand-soft); }
-.el-body { padding: 0 14px 14px; }
-.scene-bars { display: flex; gap: 8px; margin-bottom: 12px; }
-.scene-bar {
-  flex: 1; height: 26px; border-radius: 8px; border: 1px solid var(--border); background: var(--card-2); cursor: pointer;
-  display: flex; align-items: center; justify-content: center; font-size: 10px; font-weight: 700; color: var(--muted);
-}
-.scene-bar.on { background: var(--brand); border-color: var(--brand); color: #fff; }
-.scene-bar.cur { outline: 2px solid var(--brand-2); outline-offset: 2px; }
-.io { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-.io h4 { margin: 0 0 6px; display: flex; align-items: center; gap: 6px; font-size: 12px; }
-.io h4 .dot { width: 8px; height: 8px; border-radius: 2px; }
-.fields { display: grid; grid-template-columns: 74px 1fr 74px; gap: 6px; }
-.fields.two { grid-template-columns: 1fr 1fr; }
-.fields.four { grid-template-columns: repeat(4, 1fr); }
-.field { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
-.field > span { color: var(--muted); font-size: 11px; }
+.unit input { width: 100%; padding-right: 18px; }
+.unit::after { content: attr(data-unit); position: absolute; right: 6px; top: 50%; transform: translateY(-50%); color: var(--text-tertiary); pointer-events: none; }
+.check { display: inline-flex; align-items: center; gap: var(--s2); cursor: pointer; min-height: var(--ctl); }
+.field { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.field > span { color: var(--text-secondary); }
 .field select, .field input { width: 100%; }
-.field input[type=checkbox], .check input[type=checkbox] { width: 16px; }
-.adv-only { display: none !important; }
-body.adv .adv-only { display: grid !important; }
-.tabs { display: flex; gap: 8px; margin: 14px 0 12px; }
-.tab { flex: 1; display: inline-flex; align-items: center; justify-content: center; gap: 6px; padding: 8px; border-radius: 9px; border: 1px solid transparent; background: transparent; cursor: pointer; color: var(--text); }
-.tab:hover { background: var(--card-2); }
-.tab.on { border-color: var(--brand-2); background: var(--brand-soft); color: var(--brand); font-weight: 600; }
-.tab .badge { width: 6px; height: 6px; border-radius: 50%; background: var(--brand-2); }
-.summary { color: var(--muted); margin-top: 8px; font-size: 11px; }
-.not-in-scene { background: var(--card-2); border-radius: 10px; padding: 14px; text-align: center; color: var(--muted); }
-.not-in-scene .btn { margin-top: 8px; }
+.search { display: flex; align-items: center; gap: var(--s1); flex: 1; height: var(--ctl); padding: 0 var(--s1); border-radius: var(--radius); background: var(--bg-secondary); color: var(--icon-secondary); border: 1px solid transparent; }
+.search:focus-within { border-color: var(--border-selected); background: var(--bg); }
+.search input { flex: 1; border: 0 !important; background: transparent !important; padding: 0; }
 
-.right-foot .seg { display: inline-flex; background: var(--card); border: 1px solid var(--border); border-radius: 9px; padding: 3px; }
-.seg button { border: 0; background: transparent; padding: 5px 12px; border-radius: 6px; cursor: pointer; font-weight: 700; color: var(--muted); }
-.seg button.on { background: var(--card-2); color: var(--text); box-shadow: var(--shadow); }
+/* segmented control */
+.seg { display: inline-flex; padding: 2px; gap: 2px; border-radius: var(--radius); background: var(--bg-secondary); }
+.seg button { height: 20px; padding: 0 var(--s2); border: 0; border-radius: 4px; background: transparent; cursor: pointer; color: var(--text-secondary); font-weight: var(--w-strong); }
+.seg button.on { background: var(--bg); color: var(--text); box-shadow: 0 0 0 1px var(--border); }
 
+/* ---------- panels & sections ---------- */
+.section { padding: var(--s2) var(--s4) var(--s3); border-bottom: 1px solid var(--border); }
+.section:last-child { border-bottom: 0; }
+.section-head { display: flex; align-items: center; gap: var(--s1); min-height: var(--row); margin-top: -4px; }
+.section-head h3 { margin: 0; font-size: var(--fs); font-weight: var(--w-strong); flex: 1; }
+.row-grid { display: grid; gap: var(--s2); }
 
-/* ---------- package sheet ---------- */
-#previewSheet { z-index: 11; }
-.pkg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.exit { background: var(--brand-soft); border-radius: 10px; padding: 10px 12px; margin-bottom: 8px; }
-.exit-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
-.exit-head input { flex: 1; font-weight: 600; background: transparent; border-color: transparent; padding: 3px 4px; }
-.exit-head .primary { color: var(--brand-2); font-weight: 600; }
-.exit input[type=url] { width: 100%; }
-.size-list { display: flex; flex-direction: column; gap: 6px; }
-.size-list label { display: flex; align-items: center; gap: 8px; }
-.zip-size { margin-left: auto; font-variant-numeric: tabular-nums; white-space: nowrap; font-size: 11px; }
-.zip-size.ok { color: var(--green); font-weight: 600; }
-.zip-size.over { color: var(--danger); font-weight: 600; }
-.previews { display: flex; flex-wrap: wrap; gap: 18px; align-items: flex-start; padding-top: 16px; background: var(--card-2); }
+/* ---------- layer rows (shared tree component) ---------- */
+.layer {
+  display: flex; align-items: center; gap: 2px; height: var(--row); padding-right: var(--s2);
+  border-radius: var(--radius); cursor: default; position: relative;
+}
+.layer:hover { background: var(--bg-hover); }
+.layer.selected { background: var(--bg-selected); }
+.layer.canvas-sel:not(.selected) { box-shadow: inset 0 0 0 1px var(--border-selected); }
+.layer.unsupported .name { color: var(--text-tertiary); }
+.layer .caret { width: 16px; height: 16px; border: 0; padding: 0; background: none; color: var(--icon-secondary); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.layer .caret svg { width: 12px; height: 12px; transition: transform .1s; }
+.layer .caret.closed svg { transform: rotate(-90deg); }
+.layer .caret-space { width: 16px; flex: none; }
+.layer .type { color: var(--icon-secondary); display: inline-flex; flex: none; margin-right: 4px; }
+.layer.added .type { color: var(--text-brand); }
+.layer .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.layer.added .name { font-weight: var(--w-strong); }
+.layer.hidden-layer .name { color: var(--text-tertiary); }
+.layer .meta { color: var(--text-tertiary); white-space: nowrap; margin-left: var(--s2); }
+.layer .acts { display: flex; align-items: center; gap: 0; margin-left: var(--s1); }
+.layer .on-hover { visibility: hidden; }
+.layer:hover .on-hover, .layer.selected .on-hover, .layer .on-hover:focus-visible { visibility: visible; }
+.layer .tag { display: inline-flex; align-items: center; gap: 2px; height: 16px; padding: 0 4px; border-radius: 3px; color: var(--text-brand); background: var(--bg-selected); font-weight: var(--w-strong); font-size: 10px; margin-left: var(--s1); }
+.layer .mask-ic { color: var(--icon-secondary); display: inline-flex; margin-left: 2px; }
+.layer .mask-ic.on { color: var(--text-brand); }
+
+/* ---------- states ---------- */
+.empty { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--s2); text-align: center; color: var(--text-secondary); padding: 32px var(--s4); }
+.empty h4 { margin: 0; color: var(--text); font-size: var(--fs); font-weight: var(--w-strong); }
+.empty p { margin: 0; max-width: 260px; }
+.empty .ic-lg { width: 32px; height: 32px; color: var(--icon-secondary); stroke-width: 1.25; }
+.skeleton { height: 8px; border-radius: 4px; background: var(--bg-tertiary); animation: pulse 1.2s ease-in-out infinite; }
+@keyframes pulse { 50% { opacity: .45; } }
+.spinner { width: 16px; height: 16px; border-radius: 50%; border: 2px solid var(--bg-tertiary); border-top-color: var(--bg-brand); animation: spin .8s linear infinite; flex: none; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.callout { display: flex; gap: var(--s2); align-items: flex-start; padding: var(--s2); border-radius: var(--radius); background: var(--bg-secondary); }
+.callout.danger { background: var(--bg-danger-tertiary); }
+.callout.warning { background: var(--bg-warning-tertiary); }
+.callout.success { background: var(--bg-success-tertiary); }
+.callout .ic { margin-top: 0; }
+.callout.danger .ic { color: var(--text-danger); }
+.callout.warning .ic { color: var(--text-warning); }
+.callout.success .ic { color: var(--text-success); }
+.text-danger { color: var(--text-danger); }
+.text-warning { color: var(--text-warning); }
+.text-success { color: var(--text-success); }
+.badge { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; font-size: 10px; font-weight: var(--w-strong); background: var(--bg-tertiary); color: var(--text-secondary); }
+.badge.danger { background: var(--bg-danger); color: #fff; }
+kbd { display: inline-flex; align-items: center; justify-content: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 3px; background: var(--bg-tertiary); color: var(--text-secondary); font: inherit; font-size: 10px; font-weight: var(--w-strong); }
+
+/* ---------- menus, dialogs, tooltip, toast ---------- */
+.menu { position: absolute; z-index: 30; min-width: 200px; padding: var(--s2) 0; border-radius: var(--radius-lg); background: var(--fb-tooltip); color: #fff; box-shadow: var(--shadow-menu); }
+.menu button { display: flex; align-items: center; gap: var(--s2); width: 100%; height: 24px; padding: 0 var(--s4); border: 0; background: transparent; color: inherit; cursor: pointer; text-align: left; }
+.menu button:hover, .menu button.on { background: #0c8ce9; }
+.menu button small { margin-left: auto; opacity: .6; }
+.menu hr { border: 0; border-top: 1px solid rgba(255,255,255,.12); margin: var(--s2) 0; }
+.dialog-wrap { position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,.3); display: flex; align-items: center; justify-content: center; padding: var(--s4); }
+.dialog { width: 420px; max-width: 100%; max-height: 100%; display: flex; flex-direction: column; border-radius: var(--radius-lg); background: var(--bg); box-shadow: var(--shadow-menu); }
+.dialog.wide { width: 100%; height: 100%; }
+.dialog-head { display: flex; align-items: center; gap: var(--s2); height: 40px; padding: 0 var(--s2) 0 var(--s4); border-bottom: 1px solid var(--border); }
+.dialog-head h2 { margin: 0; flex: 1; font-size: var(--fs); font-weight: var(--w-strong); }
+.dialog-body { overflow-y: auto; padding: var(--s3) var(--s4); flex: 1; }
+.dialog-foot { display: flex; align-items: center; justify-content: flex-end; gap: var(--s2); padding: var(--s3) var(--s4); border-top: 1px solid var(--border); }
+#tooltip { position: fixed; z-index: 50; pointer-events: none; max-width: 240px; padding: 4px 8px; border-radius: var(--radius); background: var(--fb-tooltip); color: #fff; box-shadow: var(--shadow-menu); white-space: nowrap; }
+#tooltip kbd { background: rgba(255,255,255,.16); color: rgba(255,255,255,.8); margin-left: 6px; }
+#toast { position: fixed; z-index: 40; left: 50%; bottom: 52px; transform: translateX(-50%); display: flex; align-items: center; gap: var(--s2); max-width: 70%; padding: 8px 12px; border-radius: var(--radius-lg); background: var(--fb-tooltip); color: #fff; box-shadow: var(--shadow-menu); }
+#toast.danger { background: #b1290f; }
+#toast .link { color: #7cc4f8; }
+
+/* Banner Automation: header + stepper, step panels, element editor, preview stage. */
+#app { display: flex; flex-direction: column; height: 100%; }
+
+/* ---------- header ---------- */
+.topbar { display: flex; align-items: center; gap: var(--s2); height: 41px; padding: 0 var(--s2); border-bottom: 1px solid var(--border); flex: none; }
+.pop-anchor { position: relative; flex: none; }
+.pop-anchor .menu { top: calc(100% + 4px); left: 0; }
+.pop-anchor.right .menu { left: auto; right: 0; }
+.frame-btn { display: inline-flex; align-items: center; gap: var(--s1); height: 28px; max-width: 280px; padding: 0 var(--s1) 0 var(--s2); border: 0; border-radius: var(--radius); background: transparent; cursor: pointer; font-weight: var(--w-strong); }
+.frame-btn:hover, .frame-btn.open { background: var(--bg-hover); }
+.frame-btn span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.frame-btn .ic { color: var(--icon-secondary); }
+.menu .menu-label { padding: 4px var(--s4) 2px; opacity: .55; font-size: 10px; }
+.menu .check-mark { width: 16px; display: inline-flex; }
+.menu .size { font-variant-numeric: tabular-nums; min-width: 64px; }
+.menu .menu-empty { padding: 4px var(--s4); opacity: .7; max-width: 260px; white-space: normal; }
+
+.stepper { flex: 1; display: flex; align-items: center; justify-content: center; gap: 2px; }
+.step-tab { display: inline-flex; align-items: center; gap: 6px; height: 28px; padding: 0 var(--s2) 0 6px; border: 0; border-radius: var(--radius); background: transparent; cursor: pointer; color: var(--text-secondary); font-weight: var(--w-strong); }
+.step-tab:hover { background: var(--bg-hover); color: var(--text); }
+.step-tab.current { background: var(--bg-selected); color: var(--text); }
+.step-tab .num { display: inline-flex; align-items: center; justify-content: center; width: 16px; height: 16px; border-radius: 50%; border: 1px solid var(--text-tertiary); font-size: 10px; }
+.step-tab.current .num { border-color: var(--bg-brand); background: var(--bg-brand); color: var(--text-onbrand); }
+.step-tab.done .num { border-color: transparent; background: var(--text-success); color: var(--bg); }
+.step-tab.done .num svg { width: 12px; height: 12px; stroke-width: 2.5; }
+.step-tab .badge { margin-left: 2px; }
+.step-tab .badge.warning { background: var(--bg-warning-tertiary); color: var(--text-warning); }
+.step-tab .badge.danger { background: var(--bg-danger-tertiary); color: var(--text-danger); }
+.step-sep { width: 16px; height: 1px; background: var(--border); }
+
+/* ---------- workspace ---------- */
+.workspace { flex: 1; min-height: 0; display: grid; grid-template-columns: 340px 1fr; }
+.side { border-right: 1px solid var(--border); min-height: 0; display: flex; flex-direction: column; }
+.step { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; }
+.side-foot { flex: none; display: flex; align-items: center; gap: var(--s2); min-height: 48px; padding: var(--s2) var(--s4); border-top: 1px solid var(--border); }
+.side-foot .muted { flex: 1; }
+
+/* layers step */
+.toolbar { display: flex; align-items: center; gap: 2px; padding: var(--s2) var(--s2) var(--s2) var(--s4); flex: none; }
+.toolbar .search { margin-right: var(--s1); }
+.filters { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; padding: 0 var(--s4) var(--s2); border-bottom: 1px solid var(--border); flex: none; }
+.filters .seg { margin-bottom: 4px; }
+.tree { padding: 0 var(--s2) var(--s2); }
+.tree .empty { padding-top: 48px; }
+.frame-choices { display: flex; flex-direction: column; gap: 2px; width: 100%; margin-top: var(--s2); }
+.frame-choice { display: flex; align-items: center; gap: var(--s2); height: var(--row); padding: 0 var(--s2); border: 0; border-radius: var(--radius); background: var(--bg-secondary); cursor: pointer; text-align: left; }
+.frame-choice:hover { background: var(--bg-selected); }
+.frame-choice .size { font-weight: var(--w-strong); font-variant-numeric: tabular-nums; min-width: 64px; }
+.frame-choice .name { flex: 1; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skeleton-rows { display: flex; flex-direction: column; gap: 14px; padding: 12px var(--s3); }
+.inspector { flex: none; border-top: 1px solid var(--border); }
+.inspector:empty { display: none; }
+.inspector .section { border-bottom: 0; }
+.insp-title { display: flex; align-items: center; gap: var(--s2); min-height: var(--row); }
+.insp-title .name { flex: 1; font-weight: var(--w-strong); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s2); }
+.grid2 { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s2); }
+.stack { display: flex; flex-direction: column; gap: var(--s2); }
+
+/* animate step: timeline */
+.frames { display: flex; flex-direction: column; gap: 2px; }
+.frame-row { display: flex; align-items: center; gap: var(--s2); height: var(--row); padding: 0 var(--s1) 0 var(--s2); border-radius: var(--radius); cursor: pointer; }
+.frame-row:hover { background: var(--bg-hover); }
+.frame-row.cur { background: var(--bg-selected); }
+.frame-row .fname { font-weight: var(--w-strong); width: 24px; }
+.frame-row .bar { flex: 1; height: 6px; border-radius: 3px; background: var(--bg-tertiary); overflow: hidden; }
+.frame-row .bar i { display: block; height: 100%; background: var(--text-tertiary); border-radius: 3px; }
+.frame-row.cur .bar i { background: var(--bg-brand); }
+.frame-row .unit { width: 64px; }
+.timeline-opts { display: flex; align-items: center; gap: var(--s3); margin-top: var(--s2); }
+.timeline-opts label { display: inline-flex; align-items: center; gap: var(--s1); }
+
+/* animate step: layer list */
+.els-section { padding-left: var(--s2); padding-right: var(--s2); }
+.els-section > .section-head { padding: 0 var(--s2); }
+.bulk { display: flex; align-items: center; gap: var(--s2); padding: var(--s1) var(--s2); margin-bottom: var(--s1); border-radius: var(--radius); background: var(--bg-selected); }
+.el { border-radius: var(--radius); }
+.el + .el { margin-top: 1px; }
+.el-head { display: flex; align-items: center; gap: 2px; height: var(--row); padding: 0 var(--s1) 0 2px; border-radius: var(--radius); cursor: default; }
+.el-head:hover { background: var(--bg-hover); }
+.el.selected > .el-head { background: var(--bg-selected); }
+.el.open { box-shadow: inset 0 0 0 1px var(--border); }
+.el.open > .el-head { border-radius: var(--radius) var(--radius) 0 0; }
+.el .order { display: flex; flex-direction: column; visibility: hidden; }
+.el-head:hover .order, .el.selected .order { visibility: visible; }
+.el .order button { width: 14px; height: 12px; border: 0; padding: 0; background: none; color: var(--icon-secondary); cursor: pointer; display: flex; align-items: center; justify-content: center; }
+.el .order button:hover { color: var(--icon); }
+.el .order svg { width: 12px; height: 12px; }
+.el-head .type { display: inline-flex; color: var(--icon-secondary); margin: 0 4px 0 2px; }
+.el-head .name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.el-head .name small { color: var(--text-tertiary); margin-left: 6px; font-size: inherit; }
+.el.off-scene .el-head .name { color: var(--text-tertiary); }
+.el.missing .el-head .name { color: var(--text-danger); }
+.dots { display: inline-flex; gap: 3px; margin: 0 var(--s1); }
+.dots i { width: 6px; height: 6px; border-radius: 50%; border: 1px solid var(--text-tertiary); }
+.dots i.on { background: var(--text-secondary); border-color: var(--text-secondary); }
+.dots i.cur { box-shadow: 0 0 0 2px var(--bg-selected-strong); }
+.el-head .on-hover { visibility: hidden; }
+.el-head:hover .on-hover, .el.selected .el-head .on-hover { visibility: visible; }
+.el-body { padding: var(--s2) var(--s2) var(--s3); display: flex; flex-direction: column; gap: var(--s3); }
+.sub { display: flex; flex-direction: column; gap: var(--s1); }
+.sub-head { display: flex; align-items: center; gap: var(--s1); color: var(--text-secondary); }
+.sub-head .ic { width: 14px; height: 14px; }
+.sub-head b { color: var(--text); font-weight: var(--w-strong); }
+.frame-toggles { display: flex; gap: 4px; flex-wrap: wrap; }
+.frame-toggle { height: 24px; min-width: 36px; padding: 0 var(--s2); border-radius: var(--radius); border: 1px solid var(--border); background: var(--bg); cursor: pointer; font-weight: var(--w-strong); color: var(--text-secondary); }
+.frame-toggle.on { background: var(--bg-brand); border-color: transparent; color: var(--text-onbrand); }
+.frame-toggle.cur { box-shadow: 0 0 0 2px var(--bg-selected-strong); }
+.io-row { display: grid; grid-template-columns: 1.6fr 1fr 1fr; gap: var(--s1); }
+.disclosure { display: inline-flex; align-items: center; gap: 2px; border: 0; background: none; padding: 0; cursor: pointer; color: var(--text-secondary); font-weight: var(--w-strong); align-self: flex-start; }
+.disclosure:hover { color: var(--text); }
+.disclosure svg { width: 14px; height: 14px; transition: transform .1s; }
+.disclosure.closed svg { transform: rotate(-90deg); }
+.summary { color: var(--text-secondary); }
+.callout .grow { min-width: 0; }
+
+/* export step */
+.checklist { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; list-style: none; }
+.checklist li { display: flex; align-items: flex-start; gap: var(--s2); }
+.checklist li .ic { margin-top: 0; }
+.checklist .error .ic { color: var(--text-danger); }
+.checklist .warning .ic { color: var(--text-warning); }
+.checklist li span { flex: 1; }
+.exit-row { display: grid; grid-template-columns: 1fr 24px; gap: var(--s1); align-items: center; }
+.exit-row + .exit-row { margin-top: var(--s2); }
+.exit-row .stack { gap: 4px; }
+.exit-row .name-input { font-weight: var(--w-strong); }
+input.invalid { border-color: var(--text-danger) !important; }
+.sizes { display: flex; flex-direction: column; }
+.size-row { display: flex; align-items: center; gap: var(--s2); min-height: var(--row); }
+.size-row .dim { font-weight: var(--w-strong); font-variant-numeric: tabular-nums; min-width: 60px; }
+.size-row .name { flex: 1; min-width: 0; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.zip-size { font-variant-numeric: tabular-nums; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.zip-size.ok { color: var(--text-success); }
+.zip-size.over { color: var(--text-danger); font-weight: var(--w-strong); }
+.zip-size .spinner { width: 12px; height: 12px; border-width: 1.5px; }
+.color-input { display: flex; align-items: center; gap: var(--s1); }
+.color-input input[type=color] { width: 24px; height: 24px; padding: 0; border: 1px solid var(--border); border-radius: var(--radius); background: none; cursor: pointer; }
+.color-input input[type=text] { width: 90px; }
+.channel-desc { color: var(--text-secondary); margin-top: 4px; }
+
+/* ---------- preview stage ---------- */
+.stage-col { min-width: 0; min-height: 0; display: flex; flex-direction: column; background: var(--canvas); }
+.stage { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.frame-box { position: relative; flex: none; box-shadow: 0 0 0 1px var(--border), 0 1px 3px rgba(0,0,0,.08); background: #fff; }
+#preview { border: 0; display: block; transform-origin: 0 0; background: transparent; }
+.stage-msg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; padding: var(--s4); }
+.stage-msg:empty { display: none; }
+.stage-msg .empty { max-width: 320px; }
+.stage-msg .card { background: var(--bg); border-radius: var(--radius-lg); box-shadow: var(--shadow-menu); padding: var(--s4); }
+.zoom { position: absolute; right: var(--s2); bottom: var(--s2); display: flex; align-items: center; gap: 0; padding: 2px; border-radius: var(--radius); background: var(--bg); box-shadow: 0 0 0 1px var(--border); }
+.zoom-label { min-width: 44px; height: 24px; border: 0; border-radius: var(--radius); background: transparent; cursor: pointer; font-variant-numeric: tabular-nums; }
+.zoom-label:hover { background: var(--bg-hover); }
+.transport { flex: none; display: flex; align-items: center; gap: 2px; height: 40px; padding: 0 var(--s2); border-top: 1px solid var(--border); background: var(--bg); }
+.scrub-wrap { position: relative; flex: 1; height: 24px; margin: 0 var(--s2); display: flex; align-items: center; }
+.scene-marks { position: absolute; left: 0; right: 0; top: 50%; height: 4px; margin-top: -2px; display: flex; gap: 2px; pointer-events: none; }
+.scene-marks i { height: 100%; border-radius: 2px; background: var(--bg-tertiary); }
+.scene-marks i.cur { background: var(--bg-selected-strong); }
+#scrubber { position: relative; width: 100%; margin: 0; background: transparent; appearance: none; -webkit-appearance: none; height: 24px; cursor: pointer; }
+#scrubber::-webkit-slider-runnable-track { height: 4px; background: transparent; }
+#scrubber::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; margin-top: -4px; border-radius: 50%; background: var(--bg); border: 2px solid var(--bg-brand); box-shadow: 0 1px 2px rgba(0,0,0,.2); }
+.time { min-width: 76px; text-align: right; margin-right: var(--s1); }
+.frame-nav { display: flex; align-items: center; }
+.scene-label { min-width: 22px; text-align: center; font-weight: var(--w-strong); }
+
+/* previews dialog */
+.previews { display: flex; flex-wrap: wrap; gap: var(--s4); align-items: flex-start; background: var(--canvas); }
 .previews figure { margin: 0; }
-.previews figcaption { color: var(--muted); margin-top: 6px; font-size: 11px; }
+.previews figcaption { color: var(--text-secondary); margin-top: 6px; }
 .previews iframe { border: 0; display: block; transform-origin: 0 0; }
+#previewSheet { z-index: 21; }
+.keys { display: grid; grid-template-columns: 1fr auto; gap: 8px 16px; align-items: center; }
+.keys kbd + kbd { margin-left: 4px; }
+.size-list { display: flex; flex-direction: column; gap: 2px; }
+.size-list .check { min-height: var(--row); }
+#scrubber:disabled { cursor: default; opacity: .4; }
+.transport .icon-btn:disabled { opacity: .3; }
 
 </style>
 </head>
 <body>
 <div id="app">
-  <!-- ============================== LEFT: layer tree ============================== -->
-  <aside class="panel left">
-    <div class="pane-card toolbar">
-      <button class="icon-btn" data-act="select-parent" title="Select parent layer in Figma"><i data-icon="arrow-up"></i></button>
-      <button class="icon-btn" data-act="add-selection" title="Add the layers selected in Figma to the HTML"><i data-icon="arrow-right"></i></button>
-      <button class="icon-btn" id="followBtn" data-act="toggle-follow" title="Follow Figma selection"><i data-icon="select"></i></button>
-      <span class="grow"></span>
-      <button class="text-btn" data-act="restore-session" title="Restore the last saved session"><i data-icon="history"></i>Restore session</button>
-      <button class="icon-btn ghost" data-act="save-session" title="Save session snapshot"><i data-icon="save"></i></button>
+  <!-- ============================== Header: frame, steps, menu ============================== -->
+  <header class="topbar">
+    <div class="pop-anchor">
+      <button class="frame-btn" id="frameBtn" data-act="toggle-frames" data-tip="Choose the banner frame to edit">
+        <i data-icon="frame"></i><span id="frameLabel">No frame</span><i data-icon="chevron-down-sm"></i>
+      </button>
+      <div class="menu" id="frameMenu" hidden></div>
     </div>
-
-    <div class="search-row">
-      <label class="search"><i data-icon="search"></i><input id="search" type="text" placeholder="Search node"></label>
-      <button class="btn" id="filtersBtn" data-act="toggle-filters"><i data-icon="filter"></i>Filters</button>
+    <nav class="stepper" id="stepper" role="tablist" aria-label="Steps"></nav>
+    <div class="pop-anchor right">
+      <button class="icon-btn" data-act="toggle-more" data-tip="More actions"><i data-icon="more"></i></button>
+      <div class="menu" id="moreMenu" hidden></div>
     </div>
-    <div id="filters" class="filters" hidden></div>
-    <div id="bulkNodes" class="bulk" hidden></div>
-    <div id="tree" class="tree"></div>
+  </header>
 
-    <footer class="status-bar">
-      <span id="status" class="status"><i data-icon="info"></i><span>Select a banner frame in Figma.</span></span>
-      <button class="text-btn" data-act="open-package"><i data-icon="package"></i>Package</button>
-    </footer>
-  </aside>
+  <main class="workspace">
+    <!-- ============================== Left: the current step ============================== -->
+    <aside class="side">
+      <!-- 1 · Layers -->
+      <section class="step" id="step-layers" role="tabpanel" aria-label="Layers">
+        <div class="toolbar">
+          <label class="search"><i data-icon="search"></i><input id="search" type="search" placeholder="Search layers" aria-label="Search layers"></label>
+          <button class="icon-btn" id="filtersBtn" data-act="toggle-filters" data-tip="Filter layers"><i data-icon="filter"></i></button>
+          <button class="icon-btn" data-act="select-parent" data-tip="Select parent on canvas"><i data-icon="arrow-up"></i></button>
+          <button class="icon-btn" data-act="add-selection" data-tip="Add canvas selection to banner" data-key="A"><i data-icon="plus"></i></button>
+        </div>
+        <div id="filters" class="filters" hidden></div>
+        <div id="tree" class="tree scroll" role="tree" aria-label="Layers"></div>
+        <div id="inspector" class="inspector"></div>
+        <footer class="side-foot">
+          <span id="layersCount" class="muted"></span>
+          <button class="btn primary" data-act="go-animate">Next: Animate</button>
+        </footer>
+      </section>
 
-  <!-- ============================== RIGHT: timeline & preview ============================== -->
-  <section class="panel right">
-    <div class="right-scroll">
-      <div class="top-row">
-        <button class="icon-btn" data-act="open-sync" title="Copy this animation to other sizes"><i data-icon="layout"></i></button>
-        <select id="bannerSelect" class="size-select" title="Banner"></select>
-        <button class="icon-btn" data-act="refresh" title="Re-export layers from Figma"><i data-icon="refresh"></i></button>
-      </div>
+      <!-- 2 · Animate -->
+      <section class="step" id="step-animate" role="tabpanel" aria-label="Animate" hidden>
+        <div class="scroll">
+          <div class="section" id="timelineSection"></div>
+          <div class="section els-section">
+            <div class="section-head"><h3>Layers</h3><span id="elsHint" class="muted"></span></div>
+            <div id="bulkEls" class="bulk" hidden></div>
+            <div id="elements" class="elements"></div>
+          </div>
+        </div>
+        <footer class="side-foot">
+          <button class="btn ghost" data-act="go-layers">Back</button>
+          <span class="grow"></span>
+          <button class="btn primary" data-act="go-export">Next: Export</button>
+        </footer>
+      </section>
 
-      <div class="frames-row">
-        <span class="label">FRAMES</span>
-        <button class="mini-btn" data-act="scene-remove" title="Remove last frame">−</button>
-        <span id="sceneCount" class="count">1</span>
-        <button class="mini-btn" data-act="scene-add" title="Add frame">+</button>
-        <span class="grow"></span>
-        <label class="inline-field" title="How many times the banner plays">Plays
-          <select id="playsSelect"><option value="1">1×</option><option value="2">2×</option><option value="3">3×</option><option value="0">∞</option></select>
-        </label>
-        <label class="inline-check" title="On the final play, the last frame skips its exits and stays on screen"><input type="checkbox" id="endOnLast">End on last frame</label>
-        <span id="totalTime" class="muted"></span>
-      </div>
-      <div id="sceneDurations" class="scene-durations"></div>
-      <input id="scrubber" type="range" min="0" max="10" step="0.01" value="0">
-      <div class="transport">
-        <button class="icon-btn ghost" id="playBtn" data-act="play" title="Play / pause"><i data-icon="play"></i></button>
-        <button class="icon-btn ghost" data-act="restart" title="Restart"><i data-icon="restart"></i></button>
-        <span id="timeLabel" class="muted mono">0.00s</span>
-        <span class="grow"></span>
-        <button class="icon-btn ghost" data-act="scene-prev" title="Previous frame"><i data-icon="chevron-left"></i></button>
-        <span id="sceneLabel" class="scene-label">F1</span>
-        <button class="icon-btn ghost" data-act="scene-next" title="Next frame"><i data-icon="chevron-right"></i></button>
-        <button class="icon-btn ghost" id="outlineBtn" data-act="toggle-outline" title="Show element outlines"><i data-icon="eye"></i></button>
-      </div>
+      <!-- 3 · Export -->
+      <section class="step" id="step-export" role="tabpanel" aria-label="Export" hidden>
+        <div class="scroll" id="exportBody"></div>
+        <footer class="side-foot">
+          <button class="btn" data-act="package-preview" data-tip="Play every size side by side">Preview all</button>
+          <span class="grow"></span>
+          <button class="btn primary" id="downloadAllBtn" data-act="download-all"><i data-icon="download"></i><span id="downloadLabel">Download</span></button>
+        </footer>
+      </section>
+    </aside>
 
+    <!-- ============================== Right: preview ============================== -->
+    <section class="stage-col">
       <div id="stage" class="stage">
-        <div id="frameBox" class="frame-box"><iframe id="preview" title="Banner preview" sandbox="allow-scripts"></iframe></div>
-        <div id="stageMsg" class="stage-msg">Select a banner frame in Figma.</div>
-        <div class="zoom">
-          <button class="mini-btn" data-act="zoom-out">−</button>
-          <span id="zoomLabel">100%</span>
-          <button class="mini-btn" data-act="zoom-in">+</button>
-          <button class="mini-btn strong" data-act="zoom-fit">Fit</button>
+        <div id="frameBox" class="frame-box" hidden><iframe id="preview" title="Banner preview" sandbox="allow-scripts"></iframe></div>
+        <div id="stageMsg" class="stage-msg"></div>
+        <div class="zoom" id="zoomBar">
+          <button class="icon-btn" data-act="zoom-out" data-tip="Zoom out" data-key="−"><i data-icon="minus"></i></button>
+          <button class="zoom-label" data-act="zoom-fit" data-tip="Zoom to fit" id="zoomLabel">100%</button>
+          <button class="icon-btn" data-act="zoom-in" data-tip="Zoom in" data-key="+"><i data-icon="plus"></i></button>
         </div>
       </div>
-      <div id="warnings" class="warnings"></div>
-
-      <div id="bulkEls" class="bulk" hidden></div>
-      <div id="elements" class="elements"></div>
-    </div>
-
-    <footer class="status-bar right-foot">
-      <span id="sizeInfo" class="muted"></span>
-      <span class="grow"></span>
-      <div class="seg" id="modeSeg">
-        <button data-act="mode" data-mode="fast" class="on">FAST</button>
-        <button data-act="mode" data-mode="adv">ADV</button>
+      <div class="transport">
+        <button class="icon-btn" id="playBtn" data-act="play" data-tip="Play" data-key="Space"><i data-icon="play"></i></button>
+        <button class="icon-btn" data-act="restart" data-tip="Play from start"><i data-icon="restart"></i></button>
+        <div class="scrub-wrap">
+          <div id="sceneMarks" class="scene-marks"></div>
+          <input id="scrubber" type="range" min="0" max="10" step="0.01" value="0" aria-label="Timeline position">
+        </div>
+        <span id="timeLabel" class="num muted time">0.0 / 0.0 s</span>
+        <div class="frame-nav">
+          <button class="icon-btn" data-act="scene-prev" data-tip="Previous frame" data-key="←"><i data-icon="chevron-left"></i></button>
+          <span id="sceneLabel" class="scene-label num">F1</span>
+          <button class="icon-btn" data-act="scene-next" data-tip="Next frame" data-key="→"><i data-icon="chevron-right"></i></button>
+        </div>
+        <button class="icon-btn" id="outlineBtn" data-act="toggle-outline" data-tip="Show layer outlines" data-key="O"><i data-icon="eye"></i></button>
       </div>
-    </footer>
-  </section>
+    </section>
+  </main>
 </div>
 
-<!-- ============================== Package sheet ============================== -->
-<div id="packageSheet" class="sheet-wrap" hidden>
-  <div class="sheet">
-    <div class="sheet-head">
-      <span class="sheet-icon"><i data-icon="package"></i></span>
-      <h2>Banner Package</h2>
-      <button class="icon-btn ghost" data-act="close-package"><i data-icon="close"></i></button>
+<!-- ============================== Dialogs ============================== -->
+<div id="previewSheet" class="dialog-wrap" hidden>
+  <div class="dialog wide" role="dialog" aria-label="Preview all sizes">
+    <div class="dialog-head">
+      <h2>Preview all sizes</h2>
+      <button class="btn" data-act="replay-all"><i data-icon="restart"></i>Replay</button>
+      <button class="icon-btn" data-act="close-preview" data-tip="Close" data-key="Esc"><i data-icon="close"></i></button>
     </div>
-    <div class="sheet-body" id="packageBody"></div>
-    <div class="sheet-foot">
-      <div class="dropdown" id="channelDrop">
-        <button class="btn" data-act="toggle-channel"><span id="channelLabel">Channel</span><i data-icon="chevron-down"></i></button>
-        <div class="menu" id="channelMenu" hidden></div>
-      </div>
-      <button class="btn" data-act="package-preview"><i data-icon="external"></i>Preview</button>
-      <button class="btn primary" id="downloadAllBtn" data-act="download-all"><i data-icon="download"></i>Download all</button>
-      <span class="muted files-count"><i data-icon="files"></i><span id="filesCount">0 files</span></span>
-    </div>
+    <div class="dialog-body previews" id="previewBody"></div>
   </div>
 </div>
 
-<!-- ============================== Preview all sizes ============================== -->
-<div id="previewSheet" class="sheet-wrap" hidden>
-  <div class="sheet wide">
-    <div class="sheet-head">
-      <span class="sheet-icon"><i data-icon="external"></i></span>
-      <h2>Package preview</h2>
-      <button class="btn" data-act="replay-all"><i data-icon="restart"></i>Replay all</button>
-      <button class="icon-btn ghost" data-act="close-preview"><i data-icon="close"></i></button>
-    </div>
-    <div class="sheet-body previews" id="previewBody"></div>
-  </div>
-</div>
-
-<!-- ============================== Sync sizes ============================== -->
-<div id="syncSheet" class="sheet-wrap" hidden>
-  <div class="sheet">
-    <div class="sheet-head">
-      <span class="sheet-icon"><i data-icon="layout"></i></span>
+<div id="syncSheet" class="dialog-wrap" hidden>
+  <div class="dialog" role="dialog" aria-label="Copy animation to other sizes">
+    <div class="dialog-head">
       <h2>Copy animation to other sizes</h2>
-      <button class="icon-btn ghost" data-act="close-sync"><i data-icon="close"></i></button>
+      <button class="icon-btn" data-act="close-sync" data-tip="Close" data-key="Esc"><i data-icon="close"></i></button>
     </div>
-    <div class="sheet-body" id="syncBody"></div>
-    <div class="sheet-foot">
-      <span class="muted">Layers are matched by name. Existing animations on the target sizes are replaced.</span>
-      <span class="grow"></span>
+    <div class="dialog-body" id="syncBody"></div>
+    <div class="dialog-foot">
+      <span class="muted grow">Layers are matched by name. Animation already on those sizes is replaced.</span>
       <button class="btn primary" data-act="apply-sync">Copy animation</button>
     </div>
   </div>
 </div>
+
+<div id="keysSheet" class="dialog-wrap" hidden>
+  <div class="dialog" role="dialog" aria-label="Keyboard shortcuts">
+    <div class="dialog-head">
+      <h2>Keyboard shortcuts</h2>
+      <button class="icon-btn" data-act="close-keys" data-tip="Close" data-key="Esc"><i data-icon="close"></i></button>
+    </div>
+    <div class="dialog-body" id="keysBody"></div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite" hidden></div>
 
 <script>
 (function () {
 var __defs = {}, __cache = {};
 function __require(id) { var c = __cache[id]; if (c) return c.exports; c = __cache[id] = { exports: {} }; __defs[id].call(c.exports, c, c.exports, __require); return c.exports; }
 __defs["packages/banner/src/app.js"] = function (module, exports, require) {
-/* Banner Automation — plugin UI. Shared pieces (RPC, icons, layer tree, images, zip) come from core. */
+/* Banner Automation — plugin UI.
+ * Three steps: 1 Layers (pick what goes in the banner) → 2 Animate → 3 Export.
+ * Shared pieces (RPC, icons, layer tree, images, zip, tooltips, shortcuts) come from core. */
 (function () {
   'use strict';
 
   const G = require("packages/banner/src/generator.js");
+  const Steps = require("packages/banner/src/steps.js");
   const Zip = require("packages/core/zip.js");
   const { escapeHtml: esc } = require("packages/core/text.js");
   const { createRpc } = require("packages/core/ui/rpc.js");
@@ -416,6 +551,8 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
   const Layers = require("packages/core/ui/layers.js");
   const Images = require("packages/core/ui/images.js");
   const { $, download } = require("packages/core/ui/dom.js");
+  const { attachTooltips } = require("packages/core/ui/tooltip.js");
+  const { bindShortcuts } = require("packages/core/ui/keys.js");
   const { typeIcon, options } = Layers;
 
   const rpc = createRpc(parent);
@@ -456,18 +593,26 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
   const S = {
     banners: [],
     ctx: null,
+    loading: false,        // reading the layer tree
+    treeError: null,
+    previewError: null,
+    exporting: false,      // exporting layer images for the preview
     pkg: defaultPackage(),
     zipSizes: {},
+    step: 'layers',
     scene: 0,
-    open: null,
-    tab: 'loop',
+    open: null,            // element whose editor is expanded
+    selEls: new Set(),     // selected elements (Animate)
+    selNodes: new Set(),   // selected layers (Layers)
+    anchor: null,
+    extraTab: 'loop',
+    adv: false,
     follow: true,
     outline: false,
     expanded: {},
     search: '',
+    showFilters: false,
     filter: { kind: 'all', inHtml: false, hidden: true },
-    checkedNodes: new Set(),
-    checkedEls: new Set(),
     canvasSel: [],
     zoom: 'fit',
     playing: true,
@@ -515,13 +660,14 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
   const elById = (id) => sess() && sess().elements.find((e) => e.id === id);
   const isAdded = (id) => !!sess() && sess().elements.some((e) => e.id === id);
   const expOf = (ctx, id) => Images.exportOptions(ctx.session.exportOpts[id]);
+  const plural = (n, word) => n + ' ' + word + (n === 1 ? '' : 's');
 
   function addedDescendants(ctx, id) {
     return Layers.descendantsIn(ctx.index, id, new Set(ctx.session.elements.map((e) => e.id)));
   }
 
   // -------------------------------------------------------------------------
-  // Persistence
+  // Persistence & messages
   // -------------------------------------------------------------------------
   let saveTimer = null;
   function persist() {
@@ -531,79 +677,217 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     if (b) b.elements = ctx.session.elements.length;
     clearTimeout(saveTimer);
     saveTimer = setTimeout(() => call('saveSession', { id: ctx.id, session: ctx.session }).catch(showError), 300);
+    renderStepper();
   }
 
   let pkgTimer = null;
   function persistPkg() {
     clearTimeout(pkgTimer);
     pkgTimer = setTimeout(() => call('savePackage', { pkg: S.pkg }).catch(showError), 300);
+    renderStepper();
   }
 
-  function setStatus(text, warn) {
-    const el = $('status');
-    el.innerHTML = icon('info') + '<span>' + esc(text) + '</span>';
-    el.style.color = warn ? 'var(--warn)' : '';
+  let toastTimer = null;
+  // A short message at the bottom. kind: '' | 'danger'. action: { label, act }.
+  function toast(text, kind, action) {
+    const t = $('toast');
+    clearTimeout(toastTimer);
+    t.className = kind || '';
+    t.innerHTML = (kind === 'danger' ? icon('error') : '') + '<span>' + esc(text) + '</span>' +
+      (action ? '<button class="link" data-act="' + action.act + '">' + esc(action.label) + '</button>' : '') +
+      (kind === 'danger' ? '<button class="icon-btn" data-act="close-toast" data-tip="Dismiss" style="color:#fff">' + icon('close') + '</button>' : '');
+    t.hidden = false;
+    if (kind !== 'danger') toastTimer = setTimeout(() => { t.hidden = true; }, 3500);
   }
+  const setStatus = (text, warn) => toast(text, warn ? 'danger' : '');
 
   function showError(e) {
-    setStatus('Error: ' + (e && e.message || e), true);
+    toast(String(e && e.message || e), 'danger');
   }
 
   // -------------------------------------------------------------------------
-  // Left panel — layer tree
+  // Header: frame picker, stepper, more menu
   // -------------------------------------------------------------------------
-  function renderTree() {
-    const ctx = S.ctx;
-    const box = $('tree');
-    if (!ctx) {
-      box.innerHTML = '<div class="empty">Select a banner frame in Figma (e.g. 300×250).<br>Its layers appear here — add the ones you want to animate.</div>';
-      return;
-    }
-    const rows = Layers.visibleRows(ctx.tree, ctx.order, S, isAdded);
-    box.innerHTML = rows.length ? rows.map(nodeCard).join('') : '<div class="empty">No layers match.</div>';
-    renderBulkNodes();
-  }
-
-  function nodeCard(row) {
-    const n = row.n;
-    const added = isAdded(n.id);
-    const el = added ? elById(n.id) : null;
-    return Layers.layerRow(row, {
-      added: added,
-      addedLabel: 'In HTML',
-      checked: S.checkedNodes.has(n.id),
-      expanded: !!S.expanded[n.id],
-      canvasSel: S.canvasSel.indexOf(n.id) !== -1,
-      exp: S.ctx.session.exportOpts[n.id],
-      clip: el && n.maskId ? { on: el.clip, maskName: n.maskName } : null
+  function status() {
+    return Steps.stepStatus({
+      ctx: S.ctx,
+      pkg: S.pkg,
+      included: includedBanners(),
+      zipSizes: S.zipSizes,
+      sizeLimit: G.sizeLimit
     });
   }
 
-  function renderBulkNodes() {
-    const bar = $('bulkNodes');
-    const n = S.checkedNodes.size;
-    bar.hidden = !n;
-    if (!n) return;
-    bar.innerHTML = '<b>' + n + ' selected</b><span class="grow"></span>' +
-      '<button class="btn" data-act="bulk-add">+ Add</button><button class="btn" data-act="bulk-remove">Remove</button>' +
-      '<button class="text-btn" data-act="bulk-clear-nodes">Clear</button>';
+  function renderStepper() {
+    const st = status();
+    $('stepper').innerHTML = st.map((s, i) => {
+      // Animate counts as done once it has been looked at (new layers get a default fade).
+      if (s.id === 'animate' && !S.seenAnimate) s = Object.assign({}, s, { done: false });
+      const errors = s.issues.filter((x) => x.level === 'error').length;
+      const cls = 'step-tab' + (S.step === s.id ? ' current' : '') + (s.done ? ' done' : '');
+      const tip = s.issues.length ? s.issues.map((x) => x.text).join(' · ') : s.done ? s.label + ' is complete' : '';
+      const badge = s.issues.length ? '<span class="badge ' + (errors ? 'danger' : 'warning') + '">' + s.issues.length + '</span>' : '';
+      return (i ? '<span class="step-sep"></span>' : '') +
+        '<button class="' + cls + '" role="tab" aria-selected="' + (S.step === s.id) + '" data-act="go-' + s.id + '" data-key="' + s.n + '"' + (tip ? ' data-tip="' + esc(tip) + '"' : '') + '>' +
+        '<span class="num">' + (s.done && S.step !== s.id ? icon('check') : s.n) + '</span>' + s.label + badge + '</button>';
+    }).join('');
+  }
+
+  function renderFrameButton() {
+    const ctx = S.ctx;
+    $('frameLabel').textContent = ctx ? ctx.info.width + '×' + ctx.info.height + ' · ' + ctx.info.name : S.banners.length ? 'Choose a frame' : 'No frames on this page';
+  }
+
+  function renderFrameMenu() {
+    const cur = S.ctx && S.ctx.id;
+    $('frameMenu').innerHTML = S.banners.length
+      ? '<div class="menu-label">Frames on this page</div>' + S.banners.map((b) =>
+        '<button data-act="pick-frame" data-id="' + esc(b.id) + '"><span class="check-mark">' + (b.id === cur ? icon('check') : '') + '</span>' +
+        '<span class="size">' + b.width + '×' + b.height + '</span>' + esc(b.name) + (b.elements ? '<small>' + plural(b.elements, 'layer') + '</small>' : '') + '</button>').join('')
+      : '<div class="menu-empty">This page has no frames. Draw a frame at a banner size (for example 300×250) and select it.</div>';
+  }
+
+  function renderMoreMenu() {
+    $('moreMenu').innerHTML =
+      '<button data-act="open-sync"' + (S.ctx ? '' : ' disabled') + '>Copy animation to other sizes…</button>' +
+      '<button data-act="refresh"' + (S.ctx ? '' : ' disabled') + '>Re-export layers from Figma</button>' +
+      '<hr>' +
+      '<button data-act="save-session"' + (S.ctx ? '' : ' disabled') + '>Save snapshot</button>' +
+      '<button data-act="restore-session"' + (S.ctx ? '' : ' disabled') + '>Restore last snapshot</button>' +
+      '<hr>' +
+      '<button data-act="toggle-follow"><span class="check-mark">' + (S.follow ? icon('check') : '') + '</span>Follow canvas selection</button>' +
+      '<button data-act="open-keys">Keyboard shortcuts<small>?</small></button>';
+  }
+
+  function closeMenus(except) {
+    ['frameMenu', 'moreMenu'].forEach((id) => { if (id !== except) $(id).hidden = true; });
+    $('frameBtn').classList.toggle('open', except === 'frameMenu' && !$('frameMenu').hidden);
+  }
+
+  function goStep(id) {
+    S.step = id;
+    if (id !== 'layers' && S.ctx) S.seenAnimate = true;
+    ['layers', 'animate', 'export'].forEach((k) => { $('step-' + k).hidden = k !== id; });
+    renderStepper();
+    if (id === 'layers') { renderTree(); renderInspector(); }
+    if (id === 'animate') { renderTimeline(); renderElements(); }
+    if (id === 'export') { renderExport(); scheduleMeasure(0); }
+  }
+
+  // -------------------------------------------------------------------------
+  // Step 1 · Layers
+  // -------------------------------------------------------------------------
+  function frameChoices() {
+    return '<div class="frame-choices">' + S.banners.map((b) =>
+      '<button class="frame-choice" data-act="pick-frame" data-id="' + esc(b.id) + '"><span class="size">' + b.width + '×' + b.height + '</span><span class="name">' + esc(b.name) + '</span>' +
+      (b.elements ? '<span class="muted">' + plural(b.elements, 'layer') + '</span>' : '') + '</button>').join('') + '</div>';
+  }
+
+  function emptyState(ic, title, text, extra) {
+    return '<div class="empty">' + icon(ic).replace('class="ic"', 'class="ic ic-lg"') + '<h4>' + esc(title) + '</h4>' + (text ? '<p>' + text + '</p>' : '') + (extra || '') + '</div>';
+  }
+
+  function renderTree() {
+    const box = $('tree');
+    const ctx = S.ctx;
+    $('layersCount').textContent = ctx ? plural(ctx.session.elements.length, 'layer') + ' in banner' : '';
+    const next = document.querySelector('#step-layers [data-act="go-animate"]');
+    next.disabled = !ctx || !ctx.session.elements.length;
+    if (next.disabled) next.dataset.tip = ctx ? 'Add at least one layer first' : 'Choose a banner frame first'; else delete next.dataset.tip;
+    if (S.loading) {
+      box.innerHTML = '<div class="skeleton-rows">' + [70, 55, 80, 45, 65, 50].map((w) => '<div class="skeleton" style="width:' + w + '%"></div>').join('') + '</div>';
+      return;
+    }
+    if (S.treeError) {
+      box.innerHTML = emptyState('error', 'Couldn’t read the layers', esc(S.treeError), '<button class="btn" data-act="refresh">Try again</button>');
+      return;
+    }
+    if (!ctx) {
+      box.innerHTML = S.banners.length
+        ? emptyState('cursor', 'Choose a banner frame', 'Select a frame on the canvas, or pick one here.', frameChoices())
+        : emptyState('frame', 'No frames on this page', 'Draw a frame at a banner size, for example 300×250, then select it.');
+      return;
+    }
+    if (!ctx.tree.length) {
+      box.innerHTML = emptyState('frame', 'This frame is empty', 'Add artwork to “' + esc(ctx.info.name) + '” in Figma, then re-export the layers.', '<button class="btn" data-act="refresh">Re-export layers</button>');
+      return;
+    }
+    const rows = Layers.visibleRows(ctx.tree, ctx.order, S, isAdded);
+    if (!rows.length) {
+      box.innerHTML = emptyState('search', 'No layers match', S.search ? 'Nothing is called “' + esc(S.search) + '”.' : 'No layers match these filters.', '<button class="btn" data-act="clear-filters">Clear search and filters</button>');
+      return;
+    }
+    box.innerHTML = rows.map((row) => {
+      const n = row.n;
+      const el = elById(n.id);
+      return Layers.layerRow(row, {
+        added: !!el,
+        addedLabel: 'In banner',
+        selected: S.selNodes.has(n.id),
+        expanded: !!S.expanded[n.id],
+        canvasSel: S.canvasSel.indexOf(n.id) !== -1,
+        clip: el && n.maskId ? { on: el.clip, maskName: n.maskName } : null
+      });
+    }).join('');
   }
 
   function renderFilters() {
     const f = $('filters');
     f.hidden = !S.showFilters;
-    $('filtersBtn').classList.toggle('on', S.filter.kind !== 'all' || S.filter.inHtml || !S.filter.hidden);
-    if (!S.showFilters) return;
-    f.innerHTML = Layers.filterControls(S.filter);
+    $('filtersBtn').classList.toggle('on', S.showFilters || S.filter.kind !== 'all' || S.filter.inHtml || !S.filter.hidden);
+    if (S.showFilters) f.innerHTML = Layers.filterControls(S.filter, 'banner');
+  }
+
+  function exportFields(id) {
+    const x = expOf(S.ctx, id);
+    return '<div class="grid3">' +
+      field('Crop', '<select data-xf="mode" data-tip="Framed crops to the banner. Full keeps the whole layer, for layers that move in from outside.">' + options({ framed: 'Framed', full: 'Full' }, x.mode) + '</select>') +
+      field('Scale', '<select data-xf="scale">' + options({ 1: '1x', 2: '2x', 3: '3x' }, x.scale) + '</select>') +
+      field('Format', '<select data-xf="format">' + options({ png: 'PNG', jpg: 'JPG', svg: 'SVG' }, x.format) + '</select>') +
+    '</div>';
+  }
+
+  // Details of the selected layer(s) under the tree.
+  function renderInspector() {
+    const box = $('inspector');
+    const ctx = S.ctx;
+    const ids = ctx ? Array.from(S.selNodes).filter((id) => ctx.index[id]) : [];
+    if (!ids.length) { box.innerHTML = ''; return; }
+    if (ids.length > 1) {
+      const addable = ids.filter((id) => !isAdded(id) && !Layers.unsupportedReason(ctx.index[id]));
+      const removable = ids.filter(isAdded);
+      box.innerHTML = '<div class="section"><div class="insp-title"><span class="name">' + plural(ids.length, 'layer') + ' selected</span></div><div class="grid2">' +
+        '<button class="btn primary" data-act="bulk-add"' + (addable.length ? '' : ' disabled') + '>Add ' + addable.length + ' to banner</button>' +
+        '<button class="btn" data-act="bulk-remove"' + (removable.length ? '' : ' disabled') + '>Remove ' + removable.length + '</button></div></div>';
+      return;
+    }
+    const n = ctx.index[ids[0]];
+    const el = elById(n.id);
+    const reason = Layers.unsupportedReason(n);
+    let body;
+    if (reason) {
+      body = '<div class="callout">' + icon('info') + '<span>' + esc(reason) + '. It can’t be added to the banner.</span></div>';
+    } else if (!el) {
+      body = '<button class="btn primary lg" data-act="add-node" style="width:100%">' + icon('plus') + 'Add to banner</button>' +
+        (!n.visible ? '<div class="muted">Hidden in Figma — it will be shown in the banner.</div>' : '');
+    } else {
+      body = exportFields(n.id) +
+        (n.maskId ? '<label class="check"><input type="checkbox" data-ef="clip"' + (el.clip ? ' checked' : '') + '>Clip to mask “' + esc(n.maskName || '') + '”</label>' : '') +
+        '<div class="grid2"><button class="btn" data-act="animate-this">Animate</button><button class="btn" data-act="remove-node">Remove from banner</button></div>';
+    }
+    box.innerHTML = '<div class="section" data-node="' + esc(n.id) + '"><div class="insp-title"><span class="type">' + icon(typeIcon(n)) + '</span><span class="name">' + esc(n.name) + '</span>' +
+      '<span class="muted num">' + n.w + '×' + n.h + '</span></div><div class="stack">' + body + '</div></div>';
   }
 
   function addElements(ids) {
     const ctx = S.ctx;
     if (!ctx) return;
     const added = [];
+    const skipped = [];
     ids.forEach((id) => {
       const n = ctx.index[id];
       if (!n || isAdded(id)) return;
+      if (Layers.unsupportedReason(n)) { skipped.push(n.name); return; }
       const el = {
         id: id, name: n.name, type: n.type, exit: -1,
         clip: !!n.maskId, maskId: n.maskId, maskName: n.maskName,
@@ -616,13 +900,14 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       list.splice(pos, 0, el);
       added.push(el);
     });
+    if (skipped.length && !added.length) { toast('“' + skipped[0] + '” can’t be added: ' + Layers.unsupportedReason(ctx.index[ids[0]] || {}).toLowerCase() + '.', 'danger'); return; }
     if (!added.length) return;
     S.open = added[added.length - 1].id;
     persist();
     renderTree();
-    renderElements();
+    renderInspector();
     schedulePreview();
-    setStatus(added.length === 1 ? '“' + added[0].name + '” added as ' + added[0].type + '.' : added.length + ' elements added.');
+    toast(added.length === 1 ? '“' + added[0].name + '” added to the banner.' : added.length + ' layers added to the banner.', '', { label: 'Animate', act: 'go-animate' });
   }
 
   function removeElements(ids) {
@@ -630,59 +915,87 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     if (!s) return;
     const before = s.elements.length;
     s.elements = s.elements.filter((e) => ids.indexOf(e.id) === -1);
-    ids.forEach((id) => S.checkedEls.delete(id));
+    ids.forEach((id) => S.selEls.delete(id));
     if (ids.indexOf(S.open) !== -1) S.open = null;
     if (s.elements.length === before) return;
     persist();
     renderTree();
+    renderInspector();
     renderElements();
     schedulePreview();
-    setStatus((before - s.elements.length) + ' element' + (before - s.elements.length > 1 ? 's' : '') + ' removed.');
+    toast(plural(before - s.elements.length, 'layer') + ' removed from the banner.');
+  }
+
+  // Click on a tree row: select it here and on the canvas (Shift = range, Cmd/Ctrl = toggle).
+  function selectNode(id, e) {
+    const ctx = S.ctx;
+    if (!ctx) return;
+    if (e && e.shiftKey && S.anchor) {
+      const rows = Layers.visibleRows(ctx.tree, ctx.order, S, isAdded).map((r) => r.n.id);
+      const a = rows.indexOf(S.anchor), b = rows.indexOf(id);
+      if (a !== -1 && b !== -1) S.selNodes = new Set(rows.slice(Math.min(a, b), Math.max(a, b) + 1));
+    } else if (e && (e.metaKey || e.ctrlKey)) {
+      if (S.selNodes.has(id)) S.selNodes.delete(id); else S.selNodes.add(id);
+      S.anchor = id;
+    } else {
+      S.selNodes = new Set([id]);
+      S.anchor = id;
+    }
+    S.ignoreCanvasUntil = Date.now() + 400;
+    call('select', { ids: Array.from(S.selNodes) }).catch(() => {});
+    renderTree();
+    renderInspector();
   }
 
   // -------------------------------------------------------------------------
-  // Right panel — banner select, frames, transport
+  // Step 2 · Animate
   // -------------------------------------------------------------------------
-  function renderTop() {
-    const sel = $('bannerSelect');
-    const cur = S.ctx && S.ctx.id;
-    sel.innerHTML = S.banners.length
-      ? S.banners.map((b) => '<option value="' + b.id + '"' + (b.id === cur ? ' selected' : '') + '>' + b.width + '×' + b.height + ' · ' + esc(b.name) + (b.elements ? ' ●' : '') + '</option>').join('')
-      : '<option>No frames on this page</option>';
-    if (!cur && S.banners.length) sel.insertAdjacentHTML('afterbegin', '<option value="" selected>Choose banner…</option>');
+  function round1(n) {
+    return Math.round(n * 10) / 10;
   }
 
   function renderTimeline() {
     const s = sess();
-    const scenes = s ? s.scenes : [];
-    $('sceneCount').textContent = scenes.length;
-    $('sceneDurations').innerHTML = scenes.map((sc, i) =>
-      '<label class="scene-dur' + (i === S.scene ? ' cur' : '') + '" style="flex:' + Math.max(0.5, sc.dur) + '"><span class="tag">F' + (i + 1) + '</span>' +
-      '<input type="number" min="0.5" step="0.5" data-scene-dur="' + i + '" value="' + sc.dur + '"></label>').join('');
-    if (s) {
-      $('playsSelect').value = String(s.plays);
-      $('endOnLast').checked = s.endOnLast !== false;
-      $('endOnLast').disabled = s.plays === 0;
-      const len = G.timeline(s).playLen;
-      S.playLen = len;
-      $('scrubber').max = String(len);
-      $('totalTime').textContent = round1(len) + 's' + (s.plays > 1 ? ' × ' + s.plays : s.plays === 0 ? ' · loops' : '');
-    }
+    const box = $('timelineSection');
+    if (!s) { box.innerHTML = ''; return; }
+    const max = Math.max.apply(null, s.scenes.map((sc) => sc.dur));
+    const len = G.timeline(s).playLen;
+    box.innerHTML =
+      '<div class="section-head"><h3>Frames</h3><span class="muted num">' + round1(len) + ' s' + (s.plays > 1 ? ' × ' + s.plays : s.plays === 0 ? ', loops' : '') + '</span>' +
+        '<button class="icon-btn" data-act="scene-add" data-tip="Add frame">' + icon('plus') + '</button></div>' +
+      '<div class="frames">' + s.scenes.map((sc, i) =>
+        '<div class="frame-row' + (i === S.scene ? ' cur' : '') + '" data-act="pick-scene" data-i="' + i + '">' +
+          '<span class="fname">F' + (i + 1) + '</span><span class="bar"><i style="width:' + Math.round(sc.dur / max * 100) + '%"></i></span>' +
+          '<span class="unit" data-unit="s"><input type="number" min="0.5" step="0.5" data-scene-dur="' + i + '" value="' + sc.dur + '" aria-label="Duration of F' + (i + 1) + ' in seconds"></span>' +
+          '<button class="icon-btn secondary" data-act="scene-remove" data-i="' + i + '" data-tip="Remove F' + (i + 1) + '"' + (s.scenes.length < 2 ? ' disabled' : '') + '>' + icon('minus') + '</button>' +
+        '</div>').join('') + '</div>' +
+      '<div class="timeline-opts">' +
+        '<label data-tip="How many times the banner plays">Plays <select id="playsSelect">' + options({ 1: '1×', 2: '2×', 3: '3×', 0: 'Loop' }, s.plays) + '</select></label>' +
+        '<label class="check" data-tip="On the last play, the last frame stays on screen instead of playing its exits"><input type="checkbox" id="endOnLast"' + (s.endOnLast !== false ? ' checked' : '') + (s.plays === 0 ? ' disabled' : '') + '>End on last frame</label>' +
+      '</div>';
+    S.playLen = len;
+    renderScenes();
+  }
+
+  // Scene markers on the scrubber and the frame label in the transport bar.
+  function renderScenes() {
+    const s = sess();
     $('sceneLabel').textContent = 'F' + (S.scene + 1);
+    $('sceneMarks').innerHTML = s ? s.scenes.map((sc, i) => '<i class="' + (i === S.scene ? 'cur' : '') + '" style="flex:' + sc.dur + '"></i>').join('') : '';
+    $('scrubber').max = String(S.playLen || 0);
     updateTransport();
   }
 
-  function round1(n) {
-    return Math.round(n * 100) / 100;
-  }
-
   function updateTransport() {
+    const live = !!S.ctx && !$('frameBox').hidden;
+    document.querySelectorAll('.transport button, #scrubber').forEach((b) => { b.disabled = !live; });
     $('playBtn').innerHTML = icon(S.playing ? 'pause' : 'play');
+    $('playBtn').dataset.tip = S.playing ? 'Pause' : 'Play';
     const t = S.playLen ? Math.min(S.time % (S.playLen + 1e-9), S.playLen) : 0;
     if (!S.scrubbing) $('scrubber').value = String(t);
-    $('timeLabel').textContent = t.toFixed(2) + 's';
+    $('timeLabel').textContent = t.toFixed(1) + ' / ' + round1(S.playLen || 0).toFixed(1) + ' s';
     $('outlineBtn').classList.toggle('on', S.outline);
-    $('followBtn').classList.toggle('on', S.follow);
+    $('outlineBtn').dataset.tip = S.outline ? 'Hide layer outlines' : 'Show layer outlines';
   }
 
   function sceneStart(i) {
@@ -698,19 +1011,21 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       S.playing = false;
       sendPreview({ bannerCmd: 'seek', t: S.time });
     }
-    renderTimeline();
-    renderElements();
+    if (S.step === 'animate') { renderTimeline(); renderElements(); } else renderScenes();
   }
 
-  // -------------------------------------------------------------------------
-  // Right panel — element cards
-  // -------------------------------------------------------------------------
+  function exitLabel(i) {
+    const x = S.pkg.exits[i];
+    return x ? (x.name || 'Exit ' + (i + 1)) : 'Main exit';
+  }
+
   function renderElements() {
     const box = $('elements');
     const s = sess();
-    if (!s) { box.innerHTML = ''; renderBulkEls(); return; }
+    $('elsHint').textContent = s && s.elements.length ? 'Front to back' : '';
+    if (!s) { box.innerHTML = emptyState('cursor', 'Choose a banner frame', 'Pick a frame in the header to animate it.'); renderBulkEls(); return; }
     if (!s.elements.length) {
-      box.innerHTML = '<div class="empty">No elements in the HTML yet.<br>Click <b>+ Add</b> on the layers you want to animate.</div>';
+      box.innerHTML = emptyState('image', 'No layers in the banner yet', 'Add the layers you want to animate in step 1.', '<button class="btn" data-act="go-layers">Go to Layers</button>');
       renderBulkEls();
       return;
     }
@@ -718,128 +1033,137 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     renderBulkEls();
   }
 
-  function exitLabel(i) {
-    const x = S.pkg.exits[i];
-    return x ? (x.name || 'Exit ' + (i + 1)) : 'Banner click (main exit)';
-  }
-
   function elementCard(el) {
     const sc = el.scenes[S.scene];
     const n = S.ctx.index[el.id];
     const open = S.open === el.id;
-    return '<div class="el' + (open ? ' open' : '') + (sc.on ? '' : ' off-scene') + '" data-id="' + el.id + '">' +
-      '<div class="el-head" data-act="toggle-el">' +
-        '<div class="order"><button data-act="el-up" title="Bring forward">' + icon('chevron-up') + '</button><button data-act="el-down" title="Send backward">' + icon('chevron-down') + '</button></div>' +
-        '<input type="checkbox" class="cb" data-act="check-el"' + (S.checkedEls.has(el.id) ? ' checked' : '') + '>' +
-        '<span class="type-ic">' + icon(typeIcon(n || el)) + '</span>' +
-        '<span class="name">' + esc(el.name) + (!n ? ' <span class="muted">(layer missing)</span>' : '') + '</span>' +
-        '<button class="icon-btn sm ghost link-btn' + (el.exit >= 0 ? ' on' : '') + '" data-act="cycle-exit" title="Click target: ' + esc(el.exit >= 0 ? exitLabel(el.exit) : 'banner click (main exit)') + '">' + icon('link') + '</button>' +
-        (el.maskId ? '<button class="icon-btn sm ghost clip-btn' + (el.clip ? ' on' : '') + '" data-act="toggle-clip" title="Clip to mask “' + esc(el.maskName || '') + '”">' + icon('mask') + '</button>' : '') +
-        '<button class="icon-btn sm ghost danger" data-act="remove-el" title="Remove from HTML">' + icon('trash') + '</button>' +
+    const cls = 'el' + (open ? ' open' : '') + (S.selEls.has(el.id) ? ' selected' : '') + (sc.on ? '' : ' off-scene') + (n ? '' : ' missing');
+    return '<div class="' + cls + '" data-id="' + esc(el.id) + '">' +
+      '<div class="el-head" data-act="select-el">' +
+        '<div class="order"><button data-act="el-up" data-tip="Bring forward">' + icon('chevron-up') + '</button><button data-act="el-down" data-tip="Send backward">' + icon('chevron-down') + '</button></div>' +
+        '<span class="type">' + icon(n ? typeIcon(n) : 'warning') + '</span>' +
+        '<span class="name">' + esc(el.name) + (n ? '' : '<small>deleted in Figma</small>') + (sc.on && !open ? '<small>' + esc(shortSummary(el)) + '</small>' : '') + '</span>' +
+        '<span class="dots" data-tip="Frames it appears in">' + el.scenes.map((x, i) => '<i class="' + (x.on ? 'on' : '') + (i === S.scene ? ' cur' : '') + '"></i>').join('') + '</span>' +
+        (el.exit >= 0 ? '<span class="type" data-tip="Clicks open “' + esc(exitLabel(el.exit)) + '”">' + icon('link') + '</span>' : '') +
+        '<button class="icon-btn secondary on-hover" data-act="remove-el" data-tip="Remove from banner">' + icon('trash') + '</button>' +
+        '<button class="icon-btn secondary" data-act="toggle-el" data-tip="' + (open ? 'Collapse' : 'Edit animation') + '">' + icon(open ? 'chevron-up' : 'chevron-down') + '</button>' +
       '</div>' +
       (open ? '<div class="el-body">' + elementBody(el) + '</div>' : '') +
     '</div>';
   }
 
-  function unitInput(field, value, step, unit, min) {
-    return '<span class="unit" data-unit="' + unit + '"><input type="number" step="' + step + '"' + (min !== undefined ? ' min="' + min + '"' : '') + ' data-f="' + field + '" value="' + value + '"></span>';
+  function unitInput(fieldName, value, step, unit, min, label) {
+    return '<span class="unit" data-unit="' + unit + '"><input type="number" step="' + step + '"' + (min !== undefined ? ' min="' + min + '"' : '') + ' data-f="' + fieldName + '" value="' + value + '" aria-label="' + esc(label || fieldName) + '"></span>';
   }
 
-  function field(label, control, cls) {
-    return '<label class="field' + (cls ? ' ' + cls : '') + '"><span>' + label + '</span>' + control + '</label>';
+  function field(label, control) {
+    return '<label class="field"><span>' + label + '</span>' + control + '</label>';
+  }
+
+  function ioRow(kind, sc) {
+    const p = sc[kind];
+    const presets = kind === 'in' ? G.IN_PRESETS : G.OUT_PRESETS;
+    return '<div class="sub"><div class="sub-head">' + icon(kind) + '<b>' + (kind === 'in' ? 'Entrance' : 'Exit') + '</b>' +
+      (kind === 'out' ? '<span class="grow"></span><span data-tip="A negative delay starts the exit before the frame ends. −0.5 s with a 0.5 s duration ends exactly at the frame’s end.">' + icon('info') + '</span>' : '') + '</div>' +
+      '<div class="io-row">' +
+        field('Effect', '<select data-f="' + kind + '.p">' + options(presets, p.p) + '</select>') +
+        field('Delay', unitInput(kind + '.d', p.d, 0.1, 's', kind === 'in' ? 0 : undefined, (kind === 'in' ? 'Entrance' : 'Exit') + ' delay')) +
+        field('Duration', unitInput(kind + '.t', p.t, 0.1, 's', 0.05, (kind === 'in' ? 'Entrance' : 'Exit') + ' duration')) +
+      '</div>' +
+      (S.adv ? '<div class="grid2">' +
+        field('Easing', '<select data-f="' + kind + '.e">' + options(G.EASE_LABELS, p.e) + '</select>') +
+        field('Distance', unitInput(kind + '.dist', p.dist, 5, 'px', undefined, 'Distance')) + '</div>' : '') +
+    '</div>';
   }
 
   function elementBody(el) {
     const s = sess();
     const sc = el.scenes[S.scene];
-    const bars = '<div class="scene-bars">' + s.scenes.map((_, i) =>
-      '<div class="scene-bar' + (el.scenes[i].on ? ' on' : '') + (i === S.scene ? ' cur' : '') + '" data-act="toggle-scene" data-i="' + i + '" title="' +
-      (el.scenes[i].on ? 'Visible' : 'Hidden') + ' in F' + (i + 1) + ' — click to toggle">F' + (i + 1) + '</div>').join('') + '</div>';
+    const frames = '<div class="sub"><div class="sub-head"><b>Shown in</b></div><div class="frame-toggles">' + s.scenes.map((_, i) =>
+      '<button class="frame-toggle' + (el.scenes[i].on ? ' on' : '') + (i === S.scene ? ' cur' : '') + '" data-act="toggle-scene" data-i="' + i + '" aria-pressed="' + el.scenes[i].on + '" data-tip="' +
+      (el.scenes[i].on ? 'Shown' : 'Hidden') + ' in F' + (i + 1) + '. Click to ' + (el.scenes[i].on ? 'hide' : 'show') + '.">F' + (i + 1) + '</button>').join('') + '</div></div>';
     if (!sc.on) {
-      return bars + '<div class="not-in-scene">Not visible in F' + (S.scene + 1) + '.<br><button class="btn" data-act="toggle-scene" data-i="' + S.scene + '">Show in F' + (S.scene + 1) + '</button></div>';
+      return frames + '<div class="callout">' + icon('info') + '<span class="grow">Not shown in F' + (S.scene + 1) + ', the frame you’re editing.</span><button class="btn" data-act="toggle-scene" data-i="' + S.scene + '">Show in F' + (S.scene + 1) + '</button></div>';
     }
-    const io = '<div class="io">' +
-      '<div><h4>' + icon('in') + 'In</h4><div class="fields">' +
-        field('Delay', unitInput('in.d', sc.in.d, 0.1, 's', 0)) +
-        field('Preset', '<select data-f="in.p">' + options(G.IN_PRESETS, sc.in.p) + '</select>') +
-        field('Duration', unitInput('in.t', sc.in.t, 0.1, 's', 0.05)) +
-      '</div><div class="fields two adv-only" style="margin-top:6px">' +
-        field('Easing', '<select data-f="in.e">' + options(G.EASE_LABELS, sc.in.e) + '</select>') +
-        field('Distance', unitInput('in.dist', sc.in.dist, 5, 'px')) +
-      '</div></div>' +
-      '<div><h4>' + icon('out') + 'Out</h4><div class="fields">' +
-        field('Delay', unitInput('out.d', sc.out.d, 0.1, 's')) +
-        field('Preset', '<select data-f="out.p">' + options(G.OUT_PRESETS, sc.out.p) + '</select>') +
-        field('Duration', unitInput('out.t', sc.out.t, 0.1, 's', 0.05)) +
-      '</div><div class="fields two adv-only" style="margin-top:6px">' +
-        field('Easing', '<select data-f="out.e">' + options(G.EASE_LABELS, sc.out.e) + '</select>') +
-        field('Distance', unitInput('out.dist', sc.out.dist, 5, 'px')) +
-      '</div></div>' +
-    '</div>';
-
-    const badge = '<span class="badge"></span>';
-    const tabs = '<div class="tabs">' +
-      '<button class="tab' + (S.tab === 'settings' ? ' on' : '') + '" data-act="tab" data-tab="settings">' + icon('settings') + 'Settings' + (el.exit >= 0 ? badge : '') + '</button>' +
-      '<button class="tab' + (S.tab === 'loop' ? ' on' : '') + '" data-act="tab" data-tab="loop">' + icon('loop') + 'Loop' + (sc.loop.p !== 'none' ? badge : '') + '</button>' +
-      '<button class="tab' + (S.tab === 'motion' ? ' on' : '') + '" data-act="tab" data-tab="motion">' + icon('motion') + 'Motion' + (sc.motion.p !== 'none' ? badge : '') + '</button>' +
-    '</div>';
-
-    let pane = '';
-    if (S.tab === 'settings') {
-      const x = expOf(S.ctx, el.id);
-      const exits = { '-1': 'Banner click (main exit)' };
-      S.pkg.exits.forEach((e, i) => { exits[i] = e.name || 'Exit ' + (i + 1); });
-      pane = '<div class="fields four">' +
-        field('Click target', '<select data-ef="exit">' + options(exits, el.exit) + '</select>', '') +
-        field('Crop', '<select data-xf="mode">' + options({ framed: 'Framed', full: 'Full' }, x.mode) + '</select>') +
-        field('Scale', '<select data-xf="scale">' + options({ 1: '1x', 2: '2x', 3: '3x' }, x.scale) + '</select>') +
-        field('Format', '<select data-xf="format">' + options({ png: 'PNG', jpg: 'JPG', svg: 'SVG' }, x.format) + '</select>') +
-      '</div>' +
-      (el.maskId ? '<label class="check"><input type="checkbox" class="cb" data-ef="clip"' + (el.clip ? ' checked' : '') + '>Clip to mask “' + esc(el.maskName || '') + '”</label>' : '');
-    } else if (S.tab === 'loop') {
-      pane = '<div class="fields four">' +
+    let extra = '';
+    if (S.extraTab === 'loop') {
+      const on = sc.loop.p !== 'none';
+      extra = '<div class="grid2">' +
         field('Effect', '<select data-f="loop.p">' + options(G.LOOP_EFFECTS, sc.loop.p) + '</select>') +
-        field('Duration', unitInput('loop.t', sc.loop.t, 0.1, 's', 0.1)) +
-        field('Delay', unitInput('loop.d', sc.loop.d, 0.1, 's', 0)) +
-        field('Repeat', '<select data-f="loop.r">' + options({ 1: '1×', 2: '2×', 3: '3×', 4: '4×', 5: '5×', inf: 'Until exit' }, sc.loop.r) + '</select>') +
-      '</div>';
-    } else {
-      pane = '<div class="fields four">' +
+        (on ? field('Repeat', '<select data-f="loop.r">' + options({ 1: '1×', 2: '2×', 3: '3×', 4: '4×', 5: '5×', inf: 'Until exit' }, sc.loop.r) + '</select>') +
+          field('Duration', unitInput('loop.t', sc.loop.t, 0.1, 's', 0.1, 'Loop duration')) +
+          field('Delay', unitInput('loop.d', sc.loop.d, 0.1, 's', 0, 'Loop delay')) : '') + '</div>' +
+        (on ? '' : '<div class="muted">Repeats an effect such as a pulse while the layer is on screen.</div>');
+    } else if (S.extraTab === 'motion') {
+      const on = sc.motion.p !== 'none';
+      extra = '<div class="grid2">' +
         field('Motion', '<select data-f="motion.p">' + options(G.MOTION_PRESETS, sc.motion.p) + '</select>') +
-        field('Delay', unitInput('motion.d', sc.motion.d, 0.1, 's', 0)) +
-        field('Easing', '<select data-f="motion.e">' + options(G.EASE_LABELS, sc.motion.e) + '</select>') +
-        '<span></span>' +
-      '</div>' +
-      (sc.motion.p === 'custom' ? '<div class="fields four" style="margin-top:6px">' +
-        field('Move X', unitInput('motion.x', sc.motion.x, 1, 'px')) +
-        field('Move Y', unitInput('motion.y', sc.motion.y, 1, 'px')) +
-        field('Scale', unitInput('motion.s', sc.motion.s, 0.05, '×')) +
-        field('Rotate', unitInput('motion.r', sc.motion.r, 1, '°')) +
-      '</div>' : '') +
-      '<div class="summary">Motion runs from the moment the element appears until it has left.</div>';
+        (on ? field('Delay', unitInput('motion.d', sc.motion.d, 0.1, 's', 0, 'Motion delay')) : '') +
+        (on && S.adv ? field('Easing', '<select data-f="motion.e">' + options(G.EASE_LABELS, sc.motion.e) + '</select>') : '') + '</div>' +
+        (sc.motion.p === 'custom' ? '<div class="grid2">' +
+          field('Move X', unitInput('motion.x', sc.motion.x, 1, 'px', undefined, 'Move X')) +
+          field('Move Y', unitInput('motion.y', sc.motion.y, 1, 'px', undefined, 'Move Y')) +
+          field('Scale', unitInput('motion.s', sc.motion.s, 0.05, '×', undefined, 'Scale')) +
+          field('Rotate', unitInput('motion.r', sc.motion.r, 1, '°', undefined, 'Rotate')) + '</div>' : '') +
+        '<div class="muted">Runs while the layer is on screen, from entrance to exit.</div>';
+    } else {
+      const exits = { '-1': 'Main exit (whole banner)' };
+      S.pkg.exits.forEach((e, i) => { if (i > 0) exits[i] = e.name || 'Exit ' + (i + 1); });
+      extra = field('Click opens', '<select data-ef="exit">' + options(exits, el.exit <= 0 ? -1 : el.exit) + '</select>') +
+        '<div class="muted">Add more exits in step 3.</div>' + exportFields(el.id) +
+        (el.maskId ? '<label class="check"><input type="checkbox" data-ef="clip"' + (el.clip ? ' checked' : '') + '>Clip to mask “' + esc(el.maskName || '') + '”</label>' : '');
     }
-    return bars + io + tabs + pane + '<div class="summary" data-summary>' + esc(summary(el)) + '</div>';
+    const dot = (on) => on ? ' •' : '';
+    return frames + ioRow('in', sc) + ioRow('out', sc) +
+      '<div class="sub"><div class="seg" role="tablist">' +
+        '<button class="' + (S.extraTab === 'loop' ? 'on' : '') + '" data-act="tab" data-tab="loop">Loop' + dot(sc.loop.p !== 'none') + '</button>' +
+        '<button class="' + (S.extraTab === 'motion' ? 'on' : '') + '" data-act="tab" data-tab="motion">Motion' + dot(sc.motion.p !== 'none') + '</button>' +
+        '<button class="' + (S.extraTab === 'click' ? 'on' : '') + '" data-act="tab" data-tab="click">Click & export' + dot(el.exit > 0) + '</button>' +
+      '</div>' + extra + '</div>' +
+      '<button class="disclosure' + (S.adv ? '' : ' closed') + '" data-act="toggle-adv" aria-expanded="' + S.adv + '">' + icon('chevron-down') + 'Advanced: easing and distance</button>' +
+      '<div class="summary" data-summary>' + esc(summary(el)) + '</div>';
+  }
+
+  function shortSummary(el) {
+    const sc = el.scenes[S.scene];
+    const parts = [];
+    if (sc.in.p !== 'none') parts.push(G.IN_PRESETS[sc.in.p]);
+    if (sc.loop.p !== 'none') parts.push(G.LOOP_EFFECTS[sc.loop.p].label);
+    return parts.join(', ');
   }
 
   function summary(el) {
     const sc = el.scenes[S.scene];
     if (!sc.on) return '';
-    const parts = [G.IN_PRESETS[sc.in.p] + (sc.in.p !== 'none' ? ' ' + sc.in.t + 's' : ''), G.OUT_PRESETS[sc.out.p] + (sc.out.p !== 'none' ? ' ' + sc.out.t + 's' : '')];
-    if (sc.loop.p !== 'none') parts.push(G.LOOP_EFFECTS[sc.loop.p].label + ' · ' + (sc.loop.r === 'inf' ? 'until exit' : sc.loop.r + '×'));
+    const parts = ['F' + (S.scene + 1) + ': ' + G.IN_PRESETS[sc.in.p] + (sc.in.p !== 'none' ? ' ' + sc.in.t + ' s' : ''), G.OUT_PRESETS[sc.out.p] + (sc.out.p !== 'none' ? ' ' + sc.out.t + ' s' : '')];
+    if (sc.loop.p !== 'none') parts.push(G.LOOP_EFFECTS[sc.loop.p].label + ' ' + (sc.loop.r === 'inf' ? 'until exit' : sc.loop.r + '×'));
     if (sc.motion.p !== 'none') parts.push(G.MOTION_PRESETS[sc.motion.p].label);
-    if (el.exit >= 0) parts.push('→ ' + exitLabel(el.exit));
+    if (el.exit > 0) parts.push('opens ' + exitLabel(el.exit));
     return parts.join(' · ');
   }
 
   function renderBulkEls() {
     const bar = $('bulkEls');
-    const n = S.checkedEls.size;
-    bar.hidden = !n;
-    if (!n) return;
+    const n = S.selEls.size;
+    bar.hidden = n < 2;
+    if (n < 2) return;
     const src = S.open && elById(S.open);
     bar.innerHTML = '<b>' + n + ' selected</b><span class="grow"></span>' +
-      (src ? '<button class="btn" data-act="bulk-copy" title="Copy every frame’s In/Out/Loop/Motion">Copy animation from “' + esc(src.name) + '”</button>' : '<span class="muted">Open an element to copy its animation</span>') +
-      '<button class="btn" data-act="bulk-delete">Remove</button><button class="text-btn" data-act="bulk-clear-els">Clear</button>';
+      (src ? '<button class="btn" data-act="bulk-copy" data-tip="Copy entrance, exit, loop and motion of every frame">Copy animation of “' + esc(src.name) + '”</button>' : '') +
+      '<button class="btn" data-act="bulk-delete">Remove</button>';
+  }
+
+  // Click on an element row: open it (Shift/Cmd/Ctrl adds to the selection instead).
+  function selectElement(id, e) {
+    if (e && (e.shiftKey || e.metaKey || e.ctrlKey)) {
+      if (S.selEls.has(id)) S.selEls.delete(id); else S.selEls.add(id);
+    } else {
+      S.selEls = new Set([id]);
+      S.open = S.open === id ? null : id;
+      const n = S.ctx.index[id];
+      if (n) { S.ignoreCanvasUntil = Date.now() + 400; call('select', { ids: [id] }).catch(() => {}); }
+    }
+    renderElements();
   }
 
   // -------------------------------------------------------------------------
@@ -874,7 +1198,7 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     });
     const needBg = !c.bg;
     if (!items.length && !masks.length && !needBg) return;
-    if (ctx === S.ctx) $('sizeInfo').textContent = 'Exporting ' + (items.length || 'background') + (items.length ? ' layer' + (items.length > 1 ? 's' : '') : '') + '…';
+    if (ctx === S.ctx) { S.exporting = true; renderStage(); }
     c.pending = call('exportAssets', { id: ctx.id, items: items, masks: masks, background: needBg }).then((res) => {
       items.forEach((it) => { c.items[it.key] = res.items[it.key] || null; });
       masks.forEach((m) => { c.masks[m.key] = res.masks[m.key] || null; });
@@ -885,6 +1209,7 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       await c.pending;
     } finally {
       c.pending = null;
+      if (ctx === S.ctx) S.exporting = false;
     }
   }
 
@@ -924,10 +1249,25 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     previewTimer = setTimeout(updatePreview, delay === undefined ? 160 : delay);
   }
 
-  function stageMessage(text) {
-    $('stageMsg').hidden = !text;
-    $('stageMsg').textContent = text || '';
-    $('frameBox').hidden = !!text;
+  // The message over the preview area for every non-playing state.
+  function renderStage() {
+    const ctx = S.ctx;
+    let msg = '';
+    if (!ctx && !S.loading) {
+      msg = S.banners.length
+        ? emptyState('cursor', 'Select a banner frame', 'Select a frame on the canvas or choose one in the header.')
+        : emptyState('frame', 'No frames on this page', 'Banners are frames at an ad size, for example 300×250.');
+    } else if (S.previewError) {
+      msg = '<div class="card">' + emptyState('error', 'Couldn’t export the layers', esc(S.previewError), '<button class="btn" data-act="retry-preview">Try again</button>') + '</div>';
+    } else if (S.loading || (S.exporting && $('frameBox').hidden)) {
+      msg = '<div class="empty"><div class="spinner"></div><p>' + (S.loading ? 'Reading layers…' : 'Exporting layers from Figma…') + '</p></div>';
+    } else if (ctx && !ctx.session.elements.length) {
+      msg = emptyState('image', 'Nothing to preview yet', 'Add layers to the banner in step 1. They appear here as you add them.');
+    }
+    $('stageMsg').innerHTML = msg;
+    if (msg) $('frameBox').hidden = true;
+    $('zoomBar').hidden = !!msg;
+    updateTransport();
   }
 
   function layoutStage() {
@@ -935,7 +1275,7 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     if (!ctx) return;
     const stage = $('stage');
     const w = ctx.info.width, h = ctx.info.height;
-    const fit = Math.min(2, (stage.clientWidth - 40) / w, (stage.clientHeight - 64) / h);
+    const fit = Math.min(2, (stage.clientWidth - 48) / w, (stage.clientHeight - 64) / h);
     const scale = S.zoom === 'fit' ? fit : S.zoom;
     const iframe = $('preview');
     iframe.width = w;
@@ -955,29 +1295,29 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
   async function updatePreview() {
     const ctx = S.ctx;
     const token = ++previewToken;
-    if (!ctx) { stageMessage('Select a banner frame in Figma.'); return; }
+    if (!ctx) { renderStage(); return; }
     try {
-      if (!ctx.cache.bg) stageMessage('Exporting layers from Figma…');
+      S.previewError = null;
+      if (!ctx.session.elements.length) { renderStage(); return; }
+      renderStage();
       await ensureAssets(ctx);
       if (token !== previewToken || ctx !== S.ctx) return;
       const assets = await assembleAssets(ctx, false);
       if (token !== previewToken || ctx !== S.ctx) return;
       const opts = { name: ctx.info.name, width: ctx.info.width, height: ctx.info.height, session: ctx.session, assets: assets, pkg: S.pkg };
       const out = G.buildBanner(Object.assign({ inline: true, preview: true, outline: S.outline }, opts));
-      stageMessage('');
+      $('frameBox').hidden = false;
+      renderStage();
       layoutStage();
       S.resume = { t: S.time, playing: S.playing };
       S.ignoreTicksUntil = Date.now() + 1e9;
       $('preview').srcdoc = out.html;
-
-      const files = G.buildBanner(Object.assign({ inline: false, channel: S.pkg.channel || 'html5' }, opts)).files;
-      const enc = new TextEncoder();
-      const bytes = files.reduce((sum, f) => sum + (typeof f.data === 'string' ? enc.encode(f.data).length : f.data.length), 0);
-      const kb = Math.round(bytes / 102.4) / 10;
-      $('sizeInfo').textContent = ctx.session.elements.length + ' elements · ' + files.length + ' files · ≈ ' + kb + ' KB' + (S.pkg.compress ? ' before compression' : '');
-      $('warnings').textContent = (assets.warnings || []).join(' ');
+      if (assets.warnings && assets.warnings.length) toast(assets.warnings.join(' '), 'danger');
     } catch (e) {
-      if (token === previewToken) stageMessage('Export failed: ' + e.message);
+      if (token !== previewToken) return;
+      S.exporting = false;
+      S.previewError = String(e && e.message || e);
+      renderStage();
     }
   }
 
@@ -998,31 +1338,55 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     updateTransport();
   }
 
+  function togglePlay() {
+    if (!S.ctx) return;
+    if (S.playing) {
+      S.playing = false;
+      sendPreview({ bannerCmd: 'pause' });
+    } else {
+      const atEnd = S.time >= G.timeline(sess() || newSession()).total - 0.05;
+      S.playing = true;
+      sendPreview({ bannerCmd: 'play', t: atEnd ? 0 : S.time });
+    }
+    updateTransport();
+  }
+
   // -------------------------------------------------------------------------
   // Banner switching
   // -------------------------------------------------------------------------
   async function openBanner(id, fresh) {
     if (!id) return;
+    const switched = !S.ctx || S.ctx.id !== id;
+    if (switched) {
+      S.loading = true;
+      S.treeError = null;
+      renderTree();
+      renderStage();
+    }
     try {
       const ctx = await loadCtx(id, fresh !== false);
-      const switched = !S.ctx || S.ctx.id !== id;
       S.ctx = ctx;
+      S.loading = false;
+      S.treeError = null;
       if (switched) {
         S.scene = 0;
         S.open = null;
-        S.checkedNodes.clear();
-        S.checkedEls.clear();
+        S.selNodes.clear();
+        S.selEls.clear();
         S.time = 0;
         S.playing = true;
         S.zoom = 'fit';
         S.expanded = {};
+        $('frameBox').hidden = true;
       }
       S.scene = Math.min(S.scene, ctx.session.scenes.length - 1);
+      if (switched) S.seenAnimate = ctx.session.elements.length > 0;
       renderAll();
       schedulePreview(0);
-      setStatus('Editing ' + ctx.info.width + '×' + ctx.info.height + ' “' + ctx.info.name + '”.');
     } catch (e) {
-      showError(e);
+      S.loading = false;
+      S.treeError = String(e && e.message || e);
+      renderAll();
     }
   }
 
@@ -1032,31 +1396,36 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     if (!n) return;
     for (let p = n.parent; p; p = p.parent) S.expanded[p.id] = true;
     renderTree();
-    const card = document.querySelector('.node[data-node="' + CSS.escape(id) + '"]');
-    if (card) card.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+    const row = document.querySelector('.layer[data-node="' + CSS.escape(id) + '"]');
+    if (row) row.scrollIntoView({ block: 'nearest' });
   }
 
   function onCanvasSelection(m) {
     S.canvasSel = m.ids || [];
+    if (Date.now() < (S.ignoreCanvasUntil || 0)) { renderTree(); return; }
     if (S.follow && m.bannerId && (!S.ctx || S.ctx.id !== m.bannerId)) {
       openBanner(m.bannerId);
       return;
     }
-    if (S.follow && S.ctx && S.canvasSel.length && S.ctx.index[S.canvasSel[0]]) revealNode(S.canvasSel[0]);
-    else renderTree();
+    if (S.follow && S.ctx && S.canvasSel.length && S.ctx.index[S.canvasSel[0]]) {
+      S.selNodes = new Set(S.canvasSel.filter((id) => S.ctx.index[id]));
+      S.anchor = S.canvasSel[0];
+      revealNode(S.canvasSel[0]);
+      renderInspector();
+    } else renderTree();
   }
 
   function renderAll() {
-    renderTop();
+    renderFrameButton();
+    renderStepper();
     renderFilters();
-    renderTree();
-    renderTimeline();
-    renderElements();
-    if (!S.ctx) stageMessage('Select a banner frame in Figma.');
+    renderStage();
+    goStep(S.step);
+    renderScenes();
   }
 
   // -------------------------------------------------------------------------
-  // Package
+  // Step 3 · Export
   // -------------------------------------------------------------------------
   function packageBanners() {
     return S.banners.filter((b) => b.elements > 0);
@@ -1066,34 +1435,6 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     return packageBanners().filter((b) => !S.pkg.exclude[b.id]);
   }
 
-  function renderPackage() {
-    const p = S.pkg;
-    const sizes = packageBanners();
-    $('packageBody').innerHTML =
-      '<div class="sec"><div class="sec-title">' + icon('settings') + 'Package settings</div><div class="pkg-grid">' +
-        '<div class="field"><span>Border color</span><div class="color-field"><input type="color" data-pf="borderColor" value="' + esc(p.borderColor) + '"><input type="text" data-pf="borderColor" value="' + esc(p.borderColor) + '"></div></div>' +
-        '<div class="field"><span>Optimization</span>' +
-          '<label class="check"><input type="checkbox" class="cb" data-pf="compress"' + (p.compress ? ' checked' : '') + '>Compress images</label>' +
-          '<label class="check"><input type="checkbox" class="cb" data-pf="border"' + (p.border ? ' checked' : '') + '>Show border</label>' +
-        '</div>' +
-      '</div></div>' +
-      '<div class="sec"><div class="sec-title">' + icon('link') + 'Exits<span class="grow"></span><span class="muted">' + p.exits.length + ' exit' + (p.exits.length > 1 ? 's' : '') + '</span></div>' +
-        p.exits.map((x, i) =>
-          '<div class="exit" data-exit="' + i + '"><div class="exit-head">' + icon('star') +
-            '<input type="text" data-exf="name" value="' + esc(x.name) + '" placeholder="Exit name">' +
-            (i === 0 ? '<span class="primary">Primary</span>' : '<button class="icon-btn sm ghost danger" data-act="remove-exit" title="Remove exit">' + icon('trash') + '</button>') +
-          '</div><input type="url" data-exf="url" value="' + esc(x.url) + '" placeholder="https://..."></div>').join('') +
-        '<button class="btn" data-act="add-exit">+ Add exit</button>' +
-      '</div>' +
-      '<div class="sec"><div class="sec-title">' + icon('files') + 'Sizes</div><div class="size-list">' +
-        (sizes.length
-          ? sizes.map((b) => '<label><input type="checkbox" class="cb" data-size="' + b.id + '"' + (p.exclude[b.id] ? '' : ' checked') + '>' + b.width + '×' + b.height + ' <span class="muted">' + esc(b.name) + ' · ' + b.elements + ' elements</span>' + zipSizeHtml(b) + '</label>').join('')
-          : '<span class="muted">No banner on this page has elements yet.</span>') +
-      '</div></div>';
-    renderPackageFoot();
-  }
-
-  // ---- Zip weight per banner (what the ad server sees) ----
   function kb(bytes) {
     return (Math.round(bytes / 100) / 10).toFixed(1) + ' KB'; // 1 KB = 1000 bytes
   }
@@ -1101,14 +1442,88 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
   function zipSizeHtml(b) {
     const z = S.zipSizes[b.id];
     const limit = G.sizeLimit(b.width, b.height);
-    let text = 'Measuring…', cls = 'muted', title = '';
-    if (z && z.error) { text = 'Size unknown'; cls = 'over'; title = z.error; }
-    else if (z && z.bytes) {
-      text = kb(z.bytes) + ' / ' + kb(limit).replace('.0 KB', ' KB');
-      cls = z.bytes > limit ? 'over' : 'ok';
-      title = 'Zipped size' + (S.pkg.channel ? ' for ' + G.CHANNELS[S.pkg.channel].label : ' (HTML5 build)') + (S.pkg.compress ? ', images compressed' : ', images not compressed');
+    const lim = kb(limit).replace('.0 KB', ' KB');
+    if (S.pkg.exclude[b.id]) return '<span class="zip-size muted" data-zipsize="' + esc(b.id) + '">Not included</span>';
+    if (z && z.error) return '<span class="zip-size over" data-zipsize="' + esc(b.id) + '" data-tip="' + esc(z.error) + '">' + icon('error') + 'Export failed</span>';
+    if (z && z.bytes) {
+      const over = z.bytes > limit;
+      return '<span class="zip-size ' + (over ? 'over' : 'ok') + '" data-zipsize="' + esc(b.id) + '" data-tip="Zipped size' + (S.pkg.compress ? ', images compressed' : '') + '. Limit ' + lim + '.">' +
+        (over ? icon('warning') : '') + kb(z.bytes) + ' / ' + lim + '</span>';
     }
-    return '<span class="zip-size ' + cls + '" data-zipsize="' + b.id + '" title="' + esc(title) + '">' + text + '</span>';
+    return '<span class="zip-size muted" data-zipsize="' + esc(b.id) + '"><span class="spinner"></span>Measuring…</span>';
+  }
+
+  // What still needs attention before downloading, with a Fix link for each item.
+  function checklistHtml() {
+    const issues = Steps.allIssues(status());
+    const errors = issues.filter((i) => i.level === 'error');
+    const n = includedBanners().length;
+    const ch = G.CHANNELS[S.pkg.channel];
+    return issues.length
+      ? '<div class="callout ' + (errors.length ? 'danger' : 'warning') + '">' + icon(errors.length ? 'error' : 'warning') + '<div class="grow"><div class="strong" style="margin-bottom:4px">' +
+        (errors.length ? 'Before you can download' : 'Check before you download') + '</div><ul class="checklist">' +
+        issues.map((i) => '<li class="' + i.level + '">' + icon(i.level === 'error' ? 'error' : 'warning') + '<span>' + esc(i.text) + '</span>' +
+          (i.fix ? '<button class="link" data-act="' + esc(i.fix) + '">Fix</button>' : '') + '</li>').join('') + '</ul></div></div>'
+      : '<div class="callout success">' + icon('check-circle') + '<span>Ready: ' + plural(n, 'banner') + ' for ' + esc(ch ? ch.label : '') + '.</span></div>';
+  }
+
+  function renderExport() {
+    const p = S.pkg;
+    const sizes = packageBanners();
+    const ch = G.CHANNELS[p.channel];
+    const visibleChannels = {};
+    Object.keys(G.CHANNELS).forEach((k) => { if (!G.CHANNELS[k].hidden || k === p.channel) visibleChannels[k] = G.CHANNELS[k]; });
+
+    $('exportBody').innerHTML =
+      '<div class="section" id="checkSection">' + checklistHtml() + '</div>' +
+      '<div class="section" id="channelSection"><div class="section-head"><h3>Channel</h3></div>' +
+        '<select id="channelSelect" style="width:100%" aria-label="Channel"><option value=""' + (p.channel ? '' : ' selected') + ' disabled>Choose where the banners will run…</option>' +
+        Object.keys(visibleChannels).map((k) => '<option value="' + k + '"' + (p.channel === k ? ' selected' : '') + '>' + esc(G.CHANNELS[k].label) + '</option>').join('') + '</select>' +
+        (ch ? '<div class="channel-desc">' + esc(ch.desc) + '</div>' : '') + '</div>' +
+      '<div class="section" id="exitsSection"><div class="section-head"><h3>Click-through</h3><button class="icon-btn" data-act="add-exit" data-tip="Add an exit for a single layer">' + icon('plus') + '</button></div>' +
+        p.exits.map((x, i) => {
+          const bad = x.url && !Steps.validUrl(x.url);
+          return '<div class="exit-row" data-exit="' + i + '"><div class="stack">' +
+            (i === 0 ? '<span class="muted">Whole banner (main exit)</span>' : '<input type="text" class="name-input" data-exf="name" value="' + esc(x.name) + '" placeholder="Exit name" aria-label="Exit name">') +
+            '<input type="url" data-exf="url" value="' + esc(x.url) + '" placeholder="https://www.example.com/landing-page" aria-label="' + (i === 0 ? 'Main click-through URL' : 'URL for ' + esc(x.name)) + '"' + (bad ? ' class="invalid"' : '') + '></div>' +
+            (i === 0 ? '<span></span>' : '<button class="icon-btn secondary" data-act="remove-exit" data-tip="Remove exit">' + icon('minus') + '</button>') + '</div>';
+        }).join('') +
+        (p.exits.length > 1 ? '<div class="muted" style="margin-top:8px">Link a layer to an exit in Animate › Click & export.</div>' : '') + '</div>' +
+      '<div class="section" id="sizesSection"><div class="section-head"><h3>Sizes</h3><span class="muted">Zipped size / limit</span></div><div class="sizes">' +
+        (sizes.length
+          ? sizes.map((b) => '<label class="size-row"><input type="checkbox" data-size="' + esc(b.id) + '"' + (p.exclude[b.id] ? '' : ' checked') + '>' +
+              '<span class="dim">' + b.width + '×' + b.height + '</span><span class="name">' + esc(b.name) + '</span>' + zipSizeHtml(b) + '</label>').join('')
+          : '<div class="muted">No frame on this page has layers in a banner yet.</div>') +
+        '</div>' + (sizes.length < S.banners.length && S.ctx && S.ctx.session.elements.length ? '<button class="link" data-act="open-sync" style="margin-top:8px">Copy this animation to other sizes…</button>' : '') + '</div>' +
+      '<div class="section"><div class="section-head"><h3>Options</h3></div><div class="stack">' +
+        '<label class="check" data-tip="Re-encodes opaque images as JPG when that makes them smaller"><input type="checkbox" data-pf="compress"' + (p.compress ? ' checked' : '') + '>Compress images</label>' +
+        '<div class="color-input"><label class="check"><input type="checkbox" data-pf="border"' + (p.border ? ' checked' : '') + '>1 px border</label><span class="grow"></span>' +
+          '<input type="color" data-pf="borderColor" value="' + esc(p.borderColor) + '" aria-label="Border colour"' + (p.border ? '' : ' disabled') + '><input type="text" data-pf="borderColor" value="' + esc(p.borderColor) + '" aria-label="Border colour hex"' + (p.border ? '' : ' disabled') + '></div>' +
+      '</div></div>';
+    renderExportFoot();
+  }
+
+  function renderExportFoot() {
+    const st = status();
+    const errors = Steps.blockers(st);
+    const n = includedBanners().length;
+    const btn = $('downloadAllBtn');
+    btn.disabled = !!errors.length || S.downloading;
+    $('downloadLabel').textContent = S.downloading ? 'Packaging…' : n > 1 ? 'Download ' + n + ' banners' : 'Download banner';
+    if (errors.length) btn.dataset.tip = errors[0].text; else delete btn.dataset.tip;
+  }
+
+  // Re-renders the export step without losing focus in a text field.
+  function refreshExport() {
+    renderStepper();
+    if (S.step !== 'export') return;
+    const active = document.activeElement;
+    if (active && active.closest && active.closest('#exportBody') && active.tagName === 'INPUT' && active.type !== 'checkbox') {
+      $('checkSection').innerHTML = checklistHtml();
+      renderExportFoot();
+      return;
+    }
+    renderExport();
   }
 
   function updateZipSizes() {
@@ -1116,6 +1531,7 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       const span = document.querySelector('[data-zipsize="' + CSS.escape(b.id) + '"]');
       if (span) span.outerHTML = zipSizeHtml(b);
     });
+    refreshExport();
   }
 
   let measureTimer = null;
@@ -1123,7 +1539,7 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
 
   function scheduleMeasure(delay) {
     clearTimeout(measureTimer);
-    if ($('packageSheet').hidden) return;
+    if (S.step !== 'export') return;
     measureTimer = setTimeout(measurePackage, delay === undefined ? 400 : delay);
   }
 
@@ -1131,7 +1547,7 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     const token = ++measureToken;
     S.zipSizes = {};
     updateZipSizes();
-    for (const b of packageBanners()) {
+    for (const b of includedBanners()) {
       try {
         const r = await buildPackageBanner(b.id, false);
         const zip = await Zip.makeZip(r.out.files);
@@ -1143,19 +1559,6 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       }
       updateZipSizes();
     }
-  }
-
-  function renderPackageFoot() {
-    const p = S.pkg;
-    const ch = G.CHANNELS[p.channel];
-    $('channelLabel').textContent = ch ? ch.label : 'Channel';
-    $('channelMenu').innerHTML = Object.keys(G.CHANNELS).filter((k) => !G.CHANNELS[k].hidden || p.channel === k).map((k) =>
-      '<button class="' + (p.channel === k ? 'on' : '') + '" data-act="set-channel" data-channel="' + k + '"><b>' + esc(G.CHANNELS[k].label) + '</b><small>' + esc(G.CHANNELS[k].desc) + '</small></button>').join('');
-    const n = includedBanners().length;
-    $('filesCount').textContent = n + ' file' + (n === 1 ? '' : 's');
-    const btn = $('downloadAllBtn');
-    btn.disabled = !p.channel || !n;
-    btn.title = !p.channel ? 'Choose a channel first' : !n ? 'No sizes to export' : '';
   }
 
   async function buildPackageBanner(id, preview) {
@@ -1172,31 +1575,30 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
   async function downloadAll() {
     const list = includedBanners();
     const channel = S.pkg.channel;
-    if (!list.length || !channel) return;
-    const btn = $('downloadAllBtn');
-    btn.disabled = true;
+    if (!list.length || !channel || S.downloading) return;
+    S.downloading = true;
+    renderExportFoot();
     try {
-      if (!S.pkg.exits[0].url) setStatus('Main exit URL is empty — the click-through will open a blank page.', true);
       const zips = [];
       const over = [];
       for (const b of list) {
-        $('filesCount').textContent = 'Packaging ' + b.width + '×' + b.height + '…';
+        $('downloadLabel').textContent = 'Packaging ' + b.width + '×' + b.height + '…';
         const r = await buildPackageBanner(b.id, false);
         const data = await Zip.makeZip(r.out.files);
         S.zipSizes[b.id] = { bytes: data.length };
         if (data.length > G.sizeLimit(b.width, b.height)) over.push(b.width + '×' + b.height + ' (' + kb(data.length) + ')');
         zips.push({ name: G.slug(r.ctx.info.name) + '_' + r.ctx.info.width + 'x' + r.ctx.info.height + '_' + channel + '.zip', data: data });
       }
-      updateZipSizes();
       if (zips.length === 1) download(zips[0].data, zips[0].name);
       else download(await Zip.makeZip(zips, { store: true }), 'banners_' + channel + '.zip');
-      call('notify', { text: 'Packaged ' + zips.length + ' banner' + (zips.length > 1 ? 's' : '') + ' for ' + G.CHANNELS[channel].label });
-      if (over.length) setStatus('Over the size limit: ' + over.join(', ') + '.', true);
-      else if (S.pkg.exits[0].url) setStatus('Downloaded ' + zips.length + ' banner' + (zips.length > 1 ? 's' : '') + '.');
+      call('notify', { text: 'Packaged ' + plural(zips.length, 'banner') + ' for ' + G.CHANNELS[channel].label });
+      if (over.length) toast('Downloaded, but over the size limit: ' + over.join(', ') + '.', 'danger');
+      else toast('Downloaded ' + plural(zips.length, 'banner') + '.');
     } catch (e) {
-      showError(e);
+      toast('Export failed: ' + (e && e.message || e), 'danger', { label: 'Try again', act: 'download-all' });
     } finally {
-      renderPackageFoot();
+      S.downloading = false;
+      updateZipSizes();
     }
   }
 
@@ -1205,10 +1607,10 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     $('previewSheet').hidden = false;
     const body = $('previewBody');
     if (!list.length) {
-      body.innerHTML = '<div class="empty">Nothing to preview yet.</div>';
+      body.innerHTML = emptyState('image', 'Nothing to preview', 'Include at least one size in the export.');
       return;
     }
-    body.innerHTML = '<div class="empty">Building previews…</div>';
+    body.innerHTML = '<div class="empty"><div class="spinner"></div><p>Building previews…</p></div>';
     const maxW = body.clientWidth - 40;
     const figures = [];
     for (const b of list) {
@@ -1218,12 +1620,12 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
         const scale = Math.min(1, maxW / w);
         figures.push({ html: r.out.html, w: w, h: h, scale: scale, label: w + '×' + h + ' · ' + r.ctx.info.name });
       } catch (e) {
-        figures.push({ error: e.message, label: b.name });
+        figures.push({ error: e.message, label: b.width + '×' + b.height });
       }
     }
     body.innerHTML = figures.map((f, i) => f.error
-      ? '<figure><div class="muted">' + esc(f.label) + ': ' + esc(f.error) + '</div></figure>'
-      : '<figure><div style="width:' + f.w * f.scale + 'px;height:' + f.h * f.scale + 'px;box-shadow:0 0 0 1px var(--border-strong)"><iframe data-pv="' + i + '" width="' + f.w + '" height="' + f.h + '" sandbox="allow-scripts" style="transform:scale(' + f.scale + ')"></iframe></div><figcaption>' + esc(f.label) + '</figcaption></figure>').join('');
+      ? '<figure><div class="callout danger">' + icon('error') + '<span>' + esc(f.label) + ': ' + esc(f.error) + '</span></div></figure>'
+      : '<figure><div style="width:' + f.w * f.scale + 'px;height:' + f.h * f.scale + 'px;box-shadow:0 0 0 1px var(--border)"><iframe data-pv="' + i + '" width="' + f.w + '" height="' + f.h + '" sandbox="allow-scripts" style="transform:scale(' + f.scale + ')"></iframe></div><figcaption>' + esc(f.label) + '</figcaption></figure>').join('');
     S.previewDocs = figures;
     body.querySelectorAll('iframe[data-pv]').forEach((fr) => { fr.srcdoc = figures[Number(fr.dataset.pv)].html; });
   }
@@ -1234,8 +1636,8 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
   function renderSync() {
     const others = S.banners.filter((b) => !S.ctx || b.id !== S.ctx.id);
     $('syncBody').innerHTML = others.length
-      ? '<div class="sec"><div class="size-list">' + others.map((b) => '<label><input type="checkbox" class="cb" data-sync="' + b.id + '" checked>' + b.width + '×' + b.height + ' <span class="muted">' + esc(b.name) + (b.elements ? ' · has ' + b.elements + ' elements' : '') + '</span></label>').join('') + '</div></div>'
-      : '<div class="empty">There are no other frames on this page.</div>';
+      ? '<div class="size-list">' + others.map((b) => '<label class="check"><input type="checkbox" data-sync="' + esc(b.id) + '" checked><span class="strong num">' + b.width + '×' + b.height + '</span><span class="muted">' + esc(b.name) + (b.elements ? ' · has ' + plural(b.elements, 'layer') : '') + '</span></label>').join('') + '</div>'
+      : emptyState('frame', 'No other sizes', 'Duplicate this frame and resize it to make another size.');
   }
 
   async function applySync() {
@@ -1264,16 +1666,64 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
         await call('saveSession', { id: id, session: target.session });
         const b = S.banners.find((x) => x.id === id);
         if (b) b.elements = elements.length;
-        report.push(target.info.width + '×' + target.info.height + ': ' + elements.length + '/' + src.session.elements.length);
+        report.push(target.info.width + '×' + target.info.height + ' ' + elements.length + '/' + src.session.elements.length);
         done++;
       } catch (e) {
         report.push(id + ': ' + e.message);
       }
     }
     $('syncSheet').hidden = true;
-    renderTop();
-    setStatus('Copied to ' + done + ' size' + (done === 1 ? '' : 's') + ' (matched layers ' + report.join(', ') + ').');
+    renderFrameMenu();
+    refreshExport();
+    scheduleMeasure(0);
+    toast('Copied to ' + plural(done, 'size') + ' (layers matched: ' + report.join(', ') + ').');
   }
+
+  // -------------------------------------------------------------------------
+  // Shortcuts
+  // -------------------------------------------------------------------------
+  const SHORTCUTS = [
+    ['Space', 'Play / pause'],
+    ['←  →', 'Previous / next frame'],
+    ['A', 'Add the layers selected on the canvas'],
+    ['1  2  3', 'Go to Layers, Animate, Export'],
+    ['O', 'Show / hide layer outlines'],
+    ['+  −  0', 'Zoom in, out, to fit'],
+    ['Esc', 'Close menus and dialogs'],
+    ['?', 'Show this list']
+  ];
+
+  function renderKeys() {
+    $('keysBody').innerHTML = '<div class="keys">' + SHORTCUTS.map((k) => '<span>' + esc(k[1]) + '</span><span>' + k[0].split(/\s{2,}/).map((x) => '<kbd>' + esc(x) + '</kbd>').join('') + '</span>').join('') + '</div>';
+  }
+
+  function closeTopLayer() {
+    if (!$('frameMenu').hidden || !$('moreMenu').hidden) { closeMenus(); return true; }
+    for (const id of ['keysSheet', 'syncSheet', 'previewSheet']) {
+      if (!$(id).hidden) { ACTIONS[{ keysSheet: 'close-keys', syncSheet: 'close-sync', previewSheet: 'close-preview' }[id]](); return true; }
+    }
+    if (!$('toast').hidden) { $('toast').hidden = true; return true; }
+    return false;
+  }
+
+  const dialogOpen = () => !$('keysSheet').hidden || !$('syncSheet').hidden || !$('previewSheet').hidden;
+
+  bindShortcuts(document, {
+    'Space': () => { if (dialogOpen()) return false; togglePlay(); },
+    'ArrowLeft': () => { if (dialogOpen() || !sess()) return false; selectScene(S.scene - 1, true); },
+    'ArrowRight': () => { if (dialogOpen() || !sess()) return false; selectScene(S.scene + 1, true); },
+    'A': () => { if (dialogOpen()) return false; ACTIONS['add-selection'](); },
+    '1': () => { if (dialogOpen()) return false; goStep('layers'); },
+    '2': () => { if (dialogOpen()) return false; goStep('animate'); },
+    '3': () => { if (dialogOpen()) return false; goStep('export'); },
+    'O': () => { if (dialogOpen()) return false; ACTIONS['toggle-outline'](); },
+    '+': () => ACTIONS['zoom-in'](),
+    '=': () => ACTIONS['zoom-in'](),
+    '-': () => ACTIONS['zoom-out'](),
+    '0': () => ACTIONS['zoom-fit'](),
+    '?': () => ACTIONS['open-keys'](),
+    'Escape': () => closeTopLayer() ? undefined : false
+  });
 
   // -------------------------------------------------------------------------
   // Actions
@@ -1283,44 +1733,60 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     return host && (host.dataset.node || host.dataset.id);
   }
 
+  function focusIn(sectionId, selector) {
+    goStep('export');
+    const sec = $(sectionId);
+    if (!sec) return;
+    sec.scrollIntoView({ block: 'nearest' });
+    const el = sec.querySelector(selector);
+    if (el) el.focus();
+  }
+
   const ACTIONS = {
+    // header
+    'toggle-frames': () => { renderFrameMenu(); $('frameMenu').hidden = !$('frameMenu').hidden; closeMenus('frameMenu'); },
+    'toggle-more': () => { renderMoreMenu(); $('moreMenu').hidden = !$('moreMenu').hidden; closeMenus('moreMenu'); },
+    'pick-frame': (t) => { closeMenus(); openBanner(t.dataset.id); call('locate', { id: t.dataset.id }).catch(() => {}); },
+    'choose-frame': () => { goStep('layers'); ACTIONS['toggle-frames'](); },
+    'go-layers': () => goStep('layers'),
+    'go-animate': () => goStep('animate'),
+    'go-export': () => goStep('export'),
+    'focus-channel': () => focusIn('channelSection', 'select'),
+    'focus-exit': () => focusIn('exitsSection', 'input.invalid, input[type=url]'),
+    'focus-sizes': () => focusIn('sizesSection', 'input'),
+    'close-toast': () => { $('toast').hidden = true; },
+
+    // layers
+    'select-node': (t, e) => { if (!e.target.closest('button')) selectNode(nodeIdOf(t), e); },
     'toggle-node': (t) => { const id = nodeIdOf(t); S.expanded[id] = !S.expanded[id]; renderTree(); },
-    'check-node': (t) => { const id = nodeIdOf(t); if (t.checked) S.checkedNodes.add(id); else S.checkedNodes.delete(id); renderBulkNodes(); },
     'add-node': (t) => addElements([nodeIdOf(t)]),
     'remove-node': (t) => removeElements([nodeIdOf(t)]),
     'locate': (t) => call('locate', { id: nodeIdOf(t) }).catch(showError),
-    'bulk-add': () => { addElements(Array.from(S.checkedNodes)); S.checkedNodes.clear(); renderTree(); },
-    'bulk-remove': () => { removeElements(Array.from(S.checkedNodes)); S.checkedNodes.clear(); renderTree(); },
-    'bulk-clear-nodes': () => { S.checkedNodes.clear(); renderTree(); },
-    'toggle-clip': (t) => {
-      const el = elById(nodeIdOf(t));
-      if (!el) return;
-      el.clip = !el.clip;
-      persist();
-      renderTree();
-      renderElements();
-      schedulePreview();
-      setStatus('“' + el.name + '” ' + (el.clip ? 'clipped to' : 'no longer clipped to') + ' mask “' + (el.maskName || '') + '”.');
-    },
+    'bulk-add': () => addElements(Array.from(S.selNodes)),
+    'bulk-remove': () => removeElements(Array.from(S.selNodes)),
+    'animate-this': (t) => { const id = nodeIdOf(t); S.open = id; S.selEls = new Set([id]); goStep('animate'); },
     'toggle-filters': () => { S.showFilters = !S.showFilters; renderFilters(); },
     'filter-kind': (t) => { S.filter.kind = t.dataset.kind; renderFilters(); renderTree(); },
-
-    'select-parent': () => call('selectParent').then((id) => { if (!id) setStatus('Nothing to go up to.'); }, showError),
+    'clear-filters': () => { S.search = ''; $('search').value = ''; S.filter = { kind: 'all', inHtml: false, hidden: true }; renderFilters(); renderTree(); },
+    'select-parent': () => call('selectParent').then((id) => { if (!id) toast('Nothing above this layer — it’s the frame itself.'); }, showError),
     'add-selection': () => {
-      const ids = S.canvasSel.filter((id) => S.ctx && S.ctx.index[id]);
-      if (!ids.length) setStatus('Select layers of this banner in Figma first.', true);
+      if (!S.ctx) { toast('Choose a banner frame first.', 'danger'); return; }
+      const ids = S.canvasSel.filter((id) => S.ctx.index[id]);
+      if (!ids.length) toast('Select layers of this banner on the canvas first, then press A.');
       else addElements(ids);
     },
-    'toggle-follow': () => { S.follow = !S.follow; updateTransport(); setStatus(S.follow ? 'Following the Figma selection.' : 'No longer following the Figma selection.'); },
+    'toggle-follow': () => { S.follow = !S.follow; closeMenus(); toast(S.follow ? 'Following the canvas selection.' : 'No longer following the canvas selection.'); },
     'save-session': () => {
+      closeMenus();
       if (!S.ctx) return;
-      call('saveSnapshot', { id: S.ctx.id, session: S.ctx.session }).then(() => setStatus('Session saved. Use “Restore session” to come back to this point.'), showError);
+      call('saveSnapshot', { id: S.ctx.id, session: S.ctx.session }).then(() => toast('Snapshot saved. Restore it from this menu.'), showError);
     },
     'restore-session': async () => {
+      closeMenus();
       if (!S.ctx) return;
       try {
         const snap = await call('loadSnapshot', { id: S.ctx.id });
-        if (!snap) { setStatus('No saved session for this banner yet — use the save button first.', true); return; }
+        if (!snap) { toast('No snapshot for this frame yet. Use “Save snapshot” first.'); return; }
         S.ctx.session = normalizeSession(snap.session);
         S.ctx.session.elements.forEach((el) => {
           const n = S.ctx.index[el.id];
@@ -1331,21 +1797,29 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
         persist();
         renderAll();
         schedulePreview();
-        setStatus('Session restored from ' + new Date(snap.at).toLocaleString() + '.');
+        toast('Restored the snapshot from ' + new Date(snap.at).toLocaleString() + '.');
       } catch (e) {
         showError(e);
       }
     },
     'refresh': async () => {
-      if (!S.ctx) return;
+      closeMenus();
+      const id = (S.ctx && S.ctx.id) || null;
+      if (!id) return;
       S.ctx.cache = { items: {}, masks: {}, bg: null, processed: {}, warnings: [], pending: null };
-      await openBanner(S.ctx.id, true);
-      setStatus('Layers re-exported from Figma.');
+      S.previewError = null;
+      await openBanner(id, true);
+      toast('Layers re-exported from Figma.');
     },
-    'open-sync': () => { if (S.ctx) { renderSync(); $('syncSheet').hidden = false; } },
+    'retry-preview': () => ACTIONS.refresh(),
+    'open-sync': () => { closeMenus(); if (S.ctx) { renderSync(); $('syncSheet').hidden = false; } },
     'close-sync': () => { $('syncSheet').hidden = true; },
     'apply-sync': () => applySync(),
+    'open-keys': () => { closeMenus(); renderKeys(); $('keysSheet').hidden = false; },
+    'close-keys': () => { $('keysSheet').hidden = true; },
 
+    // timeline & transport
+    'pick-scene': (t, e) => { if (e.target.closest('input, button')) return; selectScene(Number(t.dataset.i), true); },
     'scene-add': () => {
       const s = sess();
       if (!s) return;
@@ -1354,54 +1828,33 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       persist();
       selectScene(s.scenes.length - 1, true);
       schedulePreview();
-      setStatus('Frame F' + s.scenes.length + ' added. Turn elements on for it with the frame bars.');
+      toast('F' + s.scenes.length + ' added. Choose which layers it shows under “Shown in”.');
     },
-    'scene-remove': () => {
+    'scene-remove': (t) => {
       const s = sess();
       if (!s || s.scenes.length < 2) return;
-      s.scenes.pop();
-      s.elements.forEach((el) => el.scenes.pop());
+      const i = Number(t.dataset.i);
+      s.scenes.splice(i, 1);
+      s.elements.forEach((el) => el.scenes.splice(i, 1));
       persist();
       selectScene(Math.min(S.scene, s.scenes.length - 1), false);
       schedulePreview();
     },
     'scene-prev': () => selectScene(S.scene - 1, true),
     'scene-next': () => selectScene(S.scene + 1, true),
-    'play': () => {
-      if (S.playing) {
-        S.playing = false;
-        sendPreview({ bannerCmd: 'pause' });
-      } else {
-        const atEnd = S.time >= G.timeline(sess() || newSession()).total - 0.05;
-        S.playing = true;
-        sendPreview({ bannerCmd: 'play', t: atEnd ? 0 : S.time });
-      }
-      updateTransport();
-    },
-    'restart': () => { S.playing = true; S.time = 0; sendPreview({ bannerCmd: 'play', t: 0 }); updateTransport(); },
+    'play': () => togglePlay(),
+    'restart': () => { if (!S.ctx) return; S.playing = true; S.time = 0; sendPreview({ bannerCmd: 'play', t: 0 }); updateTransport(); },
     'toggle-outline': () => { S.outline = !S.outline; sendPreview({ bannerCmd: 'outline', on: S.outline }); updateTransport(); },
     'zoom-in': () => { S.zoom = Math.min(4, (S.currentScale || 1) * 1.25); layoutStage(); },
     'zoom-out': () => { S.zoom = Math.max(0.1, (S.currentScale || 1) / 1.25); layoutStage(); },
     'zoom-fit': () => { S.zoom = 'fit'; layoutStage(); },
-    'mode': (t) => {
-      document.querySelectorAll('#modeSeg button').forEach((b) => b.classList.toggle('on', b === t));
-      document.body.classList.toggle('adv', t.dataset.mode === 'adv');
-    },
 
-    'toggle-el': (t) => { const id = nodeIdOf(t); S.open = S.open === id ? null : id; renderElements(); },
-    'check-el': (t) => { const id = nodeIdOf(t); if (t.checked) S.checkedEls.add(id); else S.checkedEls.delete(id); renderBulkEls(); },
+    // elements
+    'select-el': (t, e) => { if (e.target.closest('button')) return; selectElement(nodeIdOf(t), e); },
+    'toggle-el': (t) => { const id = nodeIdOf(t); S.open = S.open === id ? null : id; S.selEls = new Set([id]); renderElements(); },
     'el-up': (t) => moveElement(nodeIdOf(t), -1),
     'el-down': (t) => moveElement(nodeIdOf(t), 1),
     'remove-el': (t) => removeElements([nodeIdOf(t)]),
-    'cycle-exit': (t) => {
-      const el = elById(nodeIdOf(t));
-      if (!el) return;
-      el.exit = el.exit + 1 >= S.pkg.exits.length ? -1 : el.exit + 1;
-      persist();
-      renderElements();
-      schedulePreview();
-      setStatus('“' + el.name + '” click target: ' + (el.exit >= 0 ? exitLabel(el.exit) : 'banner click (main exit)') + '.');
-    },
     'toggle-scene': (t) => {
       const el = elById(nodeIdOf(t));
       const i = Number(t.dataset.i);
@@ -1410,27 +1863,23 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       persist();
       renderElements();
       schedulePreview();
-      setStatus('“' + el.name + '” ' + (el.scenes[i].on ? 'shown' : 'hidden') + ' in F' + (i + 1) + '.');
     },
-    'tab': (t) => { S.tab = t.dataset.tab; renderElements(); },
+    'tab': (t) => { S.extraTab = t.dataset.tab; renderElements(); },
+    'toggle-adv': () => { S.adv = !S.adv; try { localStorage.setItem('ba.adv', S.adv ? '1' : ''); } catch (e) { /* storage unavailable */ } renderElements(); },
     'bulk-copy': () => {
       const src = S.open && elById(S.open);
       if (!src) return;
       let n = 0;
-      sess().elements.forEach((el) => { if (el !== src && S.checkedEls.has(el.id)) { el.scenes = clone(src.scenes); n++; } });
+      sess().elements.forEach((el) => { if (el !== src && S.selEls.has(el.id)) { el.scenes = clone(src.scenes); n++; } });
       persist();
       renderElements();
       schedulePreview();
-      setStatus('Animation copied to ' + n + ' element' + (n === 1 ? '' : 's') + '.');
+      toast('Animation copied to ' + plural(n, 'layer') + '.');
     },
-    'bulk-delete': () => removeElements(Array.from(S.checkedEls)),
-    'bulk-clear-els': () => { S.checkedEls.clear(); renderElements(); },
+    'bulk-delete': () => removeElements(Array.from(S.selEls)),
 
-    'open-package': () => { renderPackage(); $('packageSheet').hidden = false; scheduleMeasure(0); },
-    'close-package': () => { $('packageSheet').hidden = true; $('channelMenu').hidden = true; },
-    'toggle-channel': () => { $('channelMenu').hidden = !$('channelMenu').hidden; },
-    'set-channel': (t) => { S.pkg.channel = t.dataset.channel; $('channelMenu').hidden = true; persistPkg(); renderPackageFoot(); schedulePreview(); scheduleMeasure(0); },
-    'add-exit': () => { S.pkg.exits.push({ name: 'Exit ' + (S.pkg.exits.length + 1), url: '' }); persistPkg(); renderPackage(); },
+    // export
+    'add-exit': () => { S.pkg.exits.push({ name: 'Exit ' + (S.pkg.exits.length + 1), url: '' }); persistPkg(); renderExport(); },
     'remove-exit': (t) => {
       const i = Number(t.closest('[data-exit]').dataset.exit);
       S.pkg.exits.splice(i, 1);
@@ -1440,8 +1889,7 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       }));
       persist();
       persistPkg();
-      renderPackage();
-      renderElements();
+      renderExport();
     },
     'package-preview': () => openPackagePreview(),
     'download-all': () => downloadAll(),
@@ -1503,7 +1951,8 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       const v = Number(t.value);
       if (!isFinite(v) || v < 0.1) return;
       sess().scenes[Number(t.dataset.sceneDur)].dur = v;
-      t.parentElement.style.flex = String(Math.max(0.5, v));
+      S.playLen = G.timeline(sess()).playLen;
+      renderScenes();
       persist();
       schedulePreview(300);
       return;
@@ -1519,7 +1968,9 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     }
     if (t.dataset.exf) {
       S.pkg.exits[Number(t.closest('[data-exit]').dataset.exit)][t.dataset.exf] = t.value;
+      if (t.dataset.exf === 'url') t.classList.toggle('invalid', !!t.value && !Steps.validUrl(t.value));
       persistPkg();
+      refreshExport();
       scheduleMeasure(800);
     }
   }
@@ -1527,9 +1978,9 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
   function onChange(e) {
     const t = e.target;
     if (t.id === 'scrubber') { S.scrubbing = false; return; }
-    if (t.id === 'bannerSelect') { openBanner(t.value); return; }
     if (t.id === 'playsSelect') { sess().plays = Number(t.value); persist(); renderTimeline(); schedulePreview(); return; }
     if (t.id === 'endOnLast') { sess().endOnLast = t.checked; persist(); schedulePreview(); return; }
+    if (t.id === 'channelSelect') { S.pkg.channel = t.value; persistPkg(); renderExport(); schedulePreview(); scheduleMeasure(0); return; }
     if (t.dataset.f && t.tagName === 'SELECT') { renderElements(); return; }
     if (t.dataset.f && t.type === 'number' && t.value === '') { renderElements(); return; }
     if (t.dataset.sceneDur !== undefined) { renderTimeline(); return; }
@@ -1541,8 +1992,6 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       x[t.dataset.xf] = t.dataset.xf === 'scale' ? Number(t.value) : t.value;
       ctx.session.exportOpts[id] = x;
       persist();
-      renderTree();
-      renderElements();
       if (isAdded(id)) schedulePreview();
       return;
     }
@@ -1552,7 +2001,7 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       el[t.dataset.ef] = t.dataset.ef === 'clip' ? t.checked : Number(t.value);
       persist();
       renderTree();
-      renderElements();
+      if (S.step === 'animate') renderElements();
       schedulePreview();
       return;
     }
@@ -1560,12 +2009,12 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       if (t.checked) delete S.pkg.exclude[t.dataset.size];
       else S.pkg.exclude[t.dataset.size] = true;
       persistPkg();
-      renderPackageFoot();
+      renderExport();
+      scheduleMeasure(0);
       return;
     }
-    if (t.dataset.exf || t.dataset.pf) {
-      if (t.dataset.exf === 'name') renderElements();
-    }
+    if (t.dataset.pf === 'border') renderExport();
+    if (t.dataset.exf === 'name') renderElements();
   }
 
   // -------------------------------------------------------------------------
@@ -1584,24 +2033,30 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       onCanvasSelection(m);
     } else if (m.type === 'banners') {
       S.banners = m.banners;
-      renderTop();
+      renderFrameButton();
+      if (!S.ctx) renderAll();
     }
   });
 
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-act]');
-    if (!e.target.closest('#channelDrop')) $('channelMenu').hidden = true;
-    if (!t) return;
+    if (!e.target.closest('.pop-anchor')) closeMenus();
+    if (!t || t.disabled) return;
     const fn = ACTIONS[t.dataset.act];
     if (fn) fn(t, e);
   });
   document.addEventListener('input', onInput);
   document.addEventListener('change', onChange);
+  // Clicking the dimmed backdrop closes a dialog.
+  document.querySelectorAll('.dialog-wrap').forEach((w) => w.addEventListener('mousedown', (e) => { if (e.target === w) closeTopLayer(); }));
   $('preview').addEventListener('load', onPreviewLoaded);
   window.addEventListener('resize', () => layoutStage());
 
   async function init() {
     hydrateIcons(document);
+    attachTooltips(document);
+    try { S.adv = localStorage.getItem('ba.adv') === '1'; } catch (e) { /* storage unavailable */ }
+    S.loading = true;
     renderAll();
     try {
       const r = await call('init');
@@ -1612,10 +2067,15 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       S.canvasSel = r.selection || [];
       const configured = S.banners.find((b) => b.elements > 0);
       const id = r.current || (configured && configured.id);
-      if (id) await openBanner(id);
-      else renderAll();
+      S.loading = false;
+      if (id) {
+        if (configured && configured.id === id) S.step = 'animate';
+        await openBanner(id);
+      } else renderAll();
     } catch (e) {
-      showError(e);
+      S.loading = false;
+      S.treeError = String(e && e.message || e);
+      renderAll();
     }
   }
 
@@ -2245,6 +2705,101 @@ function slug(s) {
 module.exports = { escapeHtml, slug };
 
 };
+__defs["packages/banner/src/steps.js"] = function (module, exports, require) {
+/*
+ * The three steps of the flow (Layers → Animate → Export) and what each still needs.
+ * Pure: the UI passes in its state and renders the result in the stepper and the
+ * Export checklist.
+ *
+ * input: {
+ *   ctx:      null | { info:{width,height}, session, index }   the banner being edited
+ *   pkg:      package settings { channel, exits:[{name,url}], exclude }
+ *   included: banners that will be exported [{ id, width, height, name }]
+ *   zipSizes: { [bannerId]: { bytes } | { error } }            measured zips
+ *   sizeLimit(w, h) → bytes
+ * }
+ * Each issue: { text, fix, level }. fix names the UI action that resolves it; level 'error'
+ * blocks the download, 'warning' is shown but doesn't block.
+ */
+const STEPS = [
+  { id: 'layers', n: 1, label: 'Layers' },
+  { id: 'animate', n: 2, label: 'Animate' },
+  { id: 'export', n: 3, label: 'Export' }
+];
+
+const URL_RE = /^https?:\/\/[^\s/?#]+\.[^\s/?#]+(\S*)$/i;
+
+function validUrl(url) {
+  return URL_RE.test(String(url || '').trim());
+}
+
+function kb(bytes) {
+  return Math.round(bytes / 1000) + ' KB';
+}
+
+function layerIssues(ctx) {
+  if (!ctx) return [{ text: 'Choose a banner frame', fix: 'choose-frame', level: 'error' }];
+  const els = ctx.session.elements;
+  const issues = [];
+  if (!els.length) issues.push({ text: 'Add at least one layer to the banner', fix: 'go-layers', level: 'error' });
+  const missing = els.filter((el) => !ctx.index[el.id]);
+  if (missing.length) issues.push({ text: missing.length === 1 ? '“' + missing[0].name + '” was deleted in Figma' : missing.length + ' layers were deleted in Figma', fix: 'go-animate', level: 'warning' });
+  return issues;
+}
+
+function animateIssues(ctx) {
+  if (!ctx || !ctx.session.elements.length) return [];
+  const never = ctx.session.elements.filter((el) => ctx.index[el.id] && !el.scenes.some((sc) => sc.on));
+  if (!never.length) return [];
+  return [{ text: never.length === 1 ? '“' + never[0].name + '” isn’t shown in any frame' : never.length + ' layers aren’t shown in any frame', fix: 'go-animate', level: 'warning' }];
+}
+
+function exportIssues(input) {
+  const pkg = input.pkg;
+  const issues = [];
+  if (!pkg.channel) issues.push({ text: 'Choose a channel', fix: 'focus-channel', level: 'error' });
+  const main = pkg.exits[0];
+  if (!main || !String(main.url || '').trim()) issues.push({ text: 'Add the click-through URL', fix: 'focus-exit', level: 'warning' });
+  else if (!validUrl(main.url)) issues.push({ text: 'The click-through URL must start with https://', fix: 'focus-exit', level: 'warning' });
+  pkg.exits.slice(1).forEach((x, i) => {
+    if (!validUrl(x.url)) issues.push({ text: '“' + (x.name || 'Exit ' + (i + 2)) + '” needs a valid URL', fix: 'focus-exit', level: 'warning' });
+  });
+  if (!input.included.length) issues.push({ text: 'Include at least one size', fix: 'focus-sizes', level: 'error' });
+  input.included.forEach((b) => {
+    const z = input.zipSizes[b.id];
+    const label = b.width + '×' + b.height;
+    if (z && z.error) issues.push({ text: label + ' could not be exported: ' + z.error, fix: 'focus-sizes', level: 'error' });
+    else if (z && z.bytes > input.sizeLimit(b.width, b.height)) {
+      issues.push({ text: label + ' is ' + kb(z.bytes) + ', over the ' + kb(input.sizeLimit(b.width, b.height)) + ' limit', fix: 'focus-sizes', level: 'warning' });
+    }
+  });
+  return issues;
+}
+
+// → [{ id, n, label, issues, done }]
+function stepStatus(input) {
+  const ctx = input.ctx;
+  const out = {
+    layers: layerIssues(ctx),
+    animate: animateIssues(ctx),
+    export: exportIssues(input)
+  };
+  return STEPS.map((s) => Object.assign({}, s, { issues: out[s.id], done: out[s.id].length === 0 && !!ctx && ctx.session.elements.length > 0 }));
+}
+
+// Every issue, in step order, tagged with its step.
+function allIssues(status) {
+  return status.reduce((all, s) => all.concat(s.issues.map((i) => Object.assign({ step: s.id }, i))), []);
+}
+
+// Issues that block the download.
+function blockers(status) {
+  return allIssues(status).filter((i) => i.level === 'error');
+}
+
+module.exports = { STEPS, validUrl, stepStatus, allIssues, blockers };
+
+};
 __defs["packages/core/zip.js"] = function (module, exports, require) {
 // ZIP writer. Each file is deflated (method 8) when that makes it smaller and
 // stored (method 0) otherwise — PNG/JPG are already compressed and rarely shrink.
@@ -2434,13 +2989,24 @@ const ICONS = {
   'frame': '<path d="M8 3v18M16 3v18M3 8h18M3 16h18"/>',
   'group': '<path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>',
   'image': '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M21 16l-5-5-9 8"/>',
-  'shape': '<rect x="4" y="4" width="16" height="16" rx="2"/>',
+  'shape': '<path d="M5.5 5.5h13v13h-13z"/>',
   'settings': '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
   'loop': '<path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
   'motion': '<path d="M3 17c3-7 6-7 9 0s6 7 9 0"/><path d="M18 6l3 0 0 3"/>',
   'star': '<path d="M12 3l2.8 6 6.2.6-4.8 4.2 1.4 6.2-5.6-3.2-5.6 3.2 1.4-6.2L3 9.6 9.2 9z"/>',
   'in': '<path d="M10 17l5-5-5-5M15 12H3M14 4h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-5"/>',
-  'out': '<path d="M15 17l5-5-5-5M20 12H8M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h5"/>'
+  'out': '<path d="M15 17l5-5-5-5M20 12H8M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h5"/>',
+  'plus': '<path d="M12 6v12M6 12h12"/>',
+  'minus': '<path d="M6 12h12"/>',
+  'check': '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  'more': '<circle cx="6" cy="12" r=".9"/><circle cx="12" cy="12" r=".9"/><circle cx="18" cy="12" r=".9"/>',
+  'warning': '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/>',
+  'error': '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/>',
+  'check-circle': '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16.5 9.5"/>',
+  'keyboard': '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>',
+  'cursor': '<path d="M6 4l12 7-5.5 1.5L10 18z"/>',
+  'frame-select': '<path d="M7 3v18M17 3v18M3 7h18M3 17h18"/><path d="M12 10v4M10 12h4"/>',
+  'chevron-down-sm': '<path d="M8 10l4 4 4-4"/>'
 };
 
 function icon(name) {
@@ -2459,7 +3025,6 @@ __defs["packages/core/ui/layers.js"] = function (module, exports, require) {
 // Layer tree in the UI: indexing, filtering and the shared layer row component.
 const { escapeHtml: esc } = require("packages/core/text.js");
 const { icon } = require("packages/core/ui/icons.js");
-const { DEFAULT_EXPORT } = require("packages/core/ui/images.js");
 
 const VECTOR_TYPES = ['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'LINE', 'ELLIPSE', 'POLYGON', 'RECTANGLE'];
 const CONTAINER_TYPES = ['GROUP', 'FRAME', 'COMPONENT', 'INSTANCE', 'COMPONENT_SET'];
@@ -2468,7 +3033,7 @@ const TYPE_LABELS = {
   RECTANGLE: 'Rectangle', ELLIPSE: 'Ellipse', VECTOR: 'Vector', BOOLEAN_OPERATION: 'Boolean',
   STAR: 'Star', LINE: 'Line', POLYGON: 'Polygon', COMPONENT_SET: 'Variants'
 };
-const FILTER_KINDS = { all: 'All', text: 'Text', image: 'Images', vector: 'Shapes', container: 'Groups & frames' };
+const FILTER_KINDS = { all: 'All', text: 'Text', image: 'Images', vector: 'Shapes', container: 'Groups' };
 
 // Adds parent/depth/order to each node of a serialized tree (see core/figma/tree.js).
 function indexTree(tree) {
@@ -2502,6 +3067,7 @@ function typeLabel(n) {
 
 function typeIcon(n) {
   if (!n) return 'shape';
+  if (n.isMask) return 'mask';
   if (n.type === 'TEXT') return 'text';
   if (n.img) return 'image';
   if (n.type === 'GROUP') return 'group';
@@ -2550,47 +3116,71 @@ function options(map, value) {
   }).join('');
 }
 
+// Layer types that can't be exported as images, with the reason shown to the user.
+const UNSUPPORTED = {
+  SLICE: 'Slices are export areas, not artwork',
+  CONNECTOR: 'Connectors are FigJam-only',
+  STICKY: 'Stickies are FigJam-only',
+  SHAPE_WITH_TEXT: 'FigJam shapes can’t be exported',
+  CODE_BLOCK: 'Code blocks can’t be exported',
+  WIDGET: 'Widgets can’t be exported',
+  EMBED: 'Embeds can’t be exported',
+  LINK_UNFURL: 'Link previews can’t be exported'
+};
+
+// Why a layer can't go into the output, or '' when it can.
+function unsupportedReason(n) {
+  if (UNSUPPORTED[n.type]) return UNSUPPORTED[n.type];
+  if (n.isMask) return 'Masks clip other layers; add the layers they mask';
+  if (!n.w || !n.h) return 'This layer has no size';
+  return '';
+}
+
 /*
- * One layer card. s (row state):
- *   added, addedLabel ('In HTML'), checked, expanded, canvasSel,
- *   exp: { mode, scale, format }, clip: null | { on, maskName }
+ * One row of the layer tree, styled like Figma's layers panel.
+ * s (row state): added, addedLabel ('In banner'), selected, expanded, canvasSel,
+ *   clip: null | { on, maskName }
+ * Actions: toggle-node, select-node (row click), add-node / remove-node, locate.
  */
 function layerRow(row, s) {
   const n = row.n;
-  const x = Object.assign({}, DEFAULT_EXPORT, s.exp);
+  const reason = unsupportedReason(n);
   const hasKids = n.children.length && !row.flat;
-  const meta = (s.added ? '<span class="ok">✓ ' + esc(s.addedLabel || 'Added') + '</span> · ' : '') + n.w + ' × ' + n.h + ' · ' + typeLabel(n) +
-    (n.isMask ? ' · mask' : '') + (!n.visible ? ' · <span class="hid">hidden</span>' : '') +
-    (row.flat && n.parent ? ' · in ' + esc(n.parent.name) : '');
-  return '<div class="node' + (s.added ? ' in-html' : '') + (s.canvasSel ? ' canvas-sel' : '') + '" data-node="' + n.id + '" style="margin-left:' + Math.min(row.depth, 6) * 18 + 'px">' +
-    '<div class="row">' +
-      (hasKids ? '<button class="caret' + (s.expanded ? '' : ' closed') + '" data-act="toggle-node" title="Expand">' + icon('chevron-down') + '</button>' : '<span class="caret-space"></span>') +
-      '<input type="checkbox" class="cb" data-act="check-node"' + (s.checked ? ' checked' : '') + '>' +
-      '<span class="type-ic">' + icon(typeIcon(n)) + '</span>' +
-      '<div class="info"><div class="name">' + esc(n.name) + '</div><div class="meta">' + meta + '</div></div>' +
-      '<button class="icon-btn ghost sm" data-act="locate" title="Select in Figma">' + icon('locate') + '</button>' +
-      '<button class="btn add-btn' + (s.added ? ' remove' : '') + '" data-act="' + (s.added ? 'remove-node' : 'add-node') + '">' + (s.added ? 'Remove' : '+ Add') + '</button>' +
-    '</div>' +
-    '<div class="row2">' +
-      '<select data-xf="mode" title="Framed: crop to the banner · Full: keep the whole layer">' + options({ framed: 'Framed', full: 'Full' }, x.mode) + '</select>' +
-      '<select data-xf="scale" title="Export scale">' + options({ 1: '1x', 2: '2x', 3: '3x' }, x.scale) + '</select>' +
-      '<select data-xf="format" title="Image format">' + options({ png: 'PNG', jpg: 'JPG', svg: 'SVG' }, x.format) + '</select>' +
-      '<span class="grow"></span>' +
-      (s.clip ? '<button class="icon-btn sm clip-btn' + (s.clip.on ? ' on' : '') + '" data-act="toggle-clip" title="Clip to mask “' + esc(s.clip.maskName || '') + '”">' + icon('mask') + '</button>' : '') +
-    '</div>' +
+  const cls = ['layer'];
+  if (s.added) cls.push('added');
+  if (s.selected) cls.push('selected');
+  if (s.canvasSel) cls.push('canvas-sel');
+  if (reason) cls.push('unsupported');
+  if (!n.visible) cls.push('hidden-layer');
+  const tip = reason ? ' data-tip="' + esc(reason) + '"' : '';
+  return '<div class="' + cls.join(' ') + '" data-node="' + esc(n.id) + '" data-act="select-node" role="treeitem" aria-selected="' + (s.selected ? 'true' : 'false') + '"' +
+      (hasKids ? ' aria-expanded="' + (s.expanded ? 'true' : 'false') + '"' : '') + ' style="padding-left:' + (4 + Math.min(row.depth, 8) * 16) + 'px">' +
+    (hasKids ? '<button class="caret' + (s.expanded ? '' : ' closed') + '" data-act="toggle-node" data-tip="' + (s.expanded ? 'Collapse' : 'Expand') + '">' + icon('chevron-down') + '</button>' : '<span class="caret-space"></span>') +
+    '<span class="type"' + tip + '>' + icon(typeIcon(n)) + '</span>' +
+    '<span class="name">' + esc(n.name) + '</span>' +
+    (s.clip ? '<span class="mask-ic' + (s.clip.on ? ' on' : '') + '" data-tip="' + (s.clip.on ? 'Clipped to mask “' : 'Not clipped to mask “') + esc(s.clip.maskName || '') + '”">' + icon('mask') + '</span>' : '') +
+    (row.flat && n.parent ? '<span class="meta">in ' + esc(n.parent.name) + '</span>' : '') +
+    (s.added ? '<span class="tag">' + esc(s.addedLabel || 'Added') + '</span>' : '') +
+    '<span class="acts">' +
+      '<button class="icon-btn secondary on-hover" data-act="locate" data-tip="Select on canvas">' + icon('locate') + '</button>' +
+      (reason ? '' : s.added
+        ? '<button class="icon-btn secondary on-hover" data-act="remove-node" data-tip="Remove from banner">' + icon('minus') + '</button>'
+        : '<button class="icon-btn on-hover" data-act="add-node" data-tip="Add to banner">' + icon('plus') + '</button>') +
+    '</span>' +
   '</div>';
 }
 
 // Chips and toggles for the filter panel.
-function filterControls(filter) {
-  return Object.keys(FILTER_KINDS).map((k) => '<button class="chip' + (filter.kind === k ? ' on' : '') + '" data-act="filter-kind" data-kind="' + k + '">' + FILTER_KINDS[k] + '</button>').join('') +
-    '<span class="grow"></span>' +
-    '<label class="inline-check"><input type="checkbox" data-filter="inHtml"' + (filter.inHtml ? ' checked' : '') + '>In HTML only</label>' +
-    '<label class="inline-check"><input type="checkbox" data-filter="hidden"' + (filter.hidden ? ' checked' : '') + '>Show hidden</label>';
+// addedLabel names the output ("banner") in "Only layers in banner".
+function filterControls(filter, addedLabel) {
+  return '<div class="seg">' + Object.keys(FILTER_KINDS).map((k) => '<button class="' + (filter.kind === k ? 'on' : '') + '" data-act="filter-kind" data-kind="' + k + '">' + FILTER_KINDS[k] + '</button>').join('') + '</div>' +
+    '<label class="check"><input type="checkbox" data-filter="inHtml"' + (filter.inHtml ? ' checked' : '') + '>Only layers in ' + esc(addedLabel || 'output') + '</label>' +
+    '<label class="check"><input type="checkbox" data-filter="hidden"' + (filter.hidden ? ' checked' : '') + '>Show hidden layers</label>';
 }
 
 module.exports = {
   VECTOR_TYPES, CONTAINER_TYPES, TYPE_LABELS, FILTER_KINDS,
+  UNSUPPORTED, unsupportedReason,
   indexTree, descendantsIn, typeLabel, typeIcon, matchesFilter, visibleRows, options, layerRow, filterControls
 };
 
@@ -2691,6 +3281,117 @@ function download(data, name, type) {
 }
 
 module.exports = { $, download };
+
+};
+__defs["packages/core/ui/tooltip.js"] = function (module, exports, require) {
+// Figma-style tooltips for any element with data-tip (and optional data-key for a shortcut).
+// Icon-only buttons must have one; data-tip also becomes the aria-label.
+const { escapeHtml: esc } = require("packages/core/text.js");
+
+function tipHtml(el) {
+  const key = el.getAttribute('data-key');
+  return esc(el.getAttribute('data-tip')) + (key ? '<kbd>' + esc(key) + '</kbd>' : '');
+}
+
+// Gives every [data-tip] without an accessible name an aria-label.
+function labelTips(root) {
+  root.querySelectorAll('[data-tip]').forEach((el) => {
+    if (!el.getAttribute('aria-label') && !el.textContent.trim()) el.setAttribute('aria-label', el.getAttribute('data-tip'));
+  });
+}
+
+function attachTooltips(doc) {
+  const tip = doc.createElement('div');
+  tip.id = 'tooltip';
+  tip.hidden = true;
+  tip.setAttribute('role', 'tooltip');
+  doc.body.appendChild(tip);
+  let timer = null;
+  let current = null;
+
+  const hide = () => { clearTimeout(timer); timer = null; current = null; tip.hidden = true; };
+  const show = (el) => {
+    if (!el.isConnected || !el.getAttribute('data-tip')) return;
+    tip.innerHTML = tipHtml(el);
+    tip.hidden = false;
+    const r = el.getBoundingClientRect();
+    const t = tip.getBoundingClientRect();
+    const vw = doc.documentElement.clientWidth, vh = doc.documentElement.clientHeight;
+    let x = r.left + r.width / 2 - t.width / 2;
+    let y = r.bottom + 6;
+    if (y + t.height > vh - 4) y = r.top - t.height - 6;
+    x = Math.max(4, Math.min(vw - t.width - 4, x));
+    tip.style.left = x + 'px';
+    tip.style.top = y + 'px';
+  };
+  const target = (e) => e.target.closest && e.target.closest('[data-tip]');
+
+  doc.addEventListener('mouseover', (e) => {
+    const el = target(e);
+    if (el === current) return;
+    hide();
+    if (!el) return;
+    current = el;
+    timer = setTimeout(() => show(el), 450);
+  });
+  doc.addEventListener('focusin', (e) => { const el = target(e); if (el && el.matches(':focus-visible')) { current = el; show(el); } });
+  doc.addEventListener('focusout', hide);
+  doc.addEventListener('mousedown', hide, true);
+  doc.addEventListener('keydown', (e) => { if (e.key === 'Escape') hide(); });
+  doc.addEventListener('scroll', hide, true);
+  const observer = new MutationObserver(() => {
+    labelTips(doc);
+    if (current && !current.isConnected) hide();
+  });
+  observer.observe(doc.body, { childList: true, subtree: true });
+  labelTips(doc);
+  return { hide };
+}
+
+module.exports = { attachTooltips, labelTips, tipHtml };
+
+};
+__defs["packages/core/ui/keys.js"] = function (module, exports, require) {
+// Keyboard shortcuts for plugin UIs. Keys are ignored while typing in a field.
+
+// Normalised name for a keydown event: "Space", "ArrowLeft", "A", "Shift+A", "Mod+S"…
+function keyName(e) {
+  let k = e.key === ' ' ? 'Space' : e.key;
+  if (k.length === 1) k = k.toUpperCase();
+  const mods = [];
+  if (e.metaKey || e.ctrlKey) mods.push('Mod');
+  if (e.altKey) mods.push('Alt');
+  if (e.shiftKey && k.length > 1) mods.push('Shift'); // "?" already implies Shift
+  return mods.concat(k).join('+');
+}
+
+function isTyping(target) {
+  if (!target || !target.tagName) return false;
+  const tag = target.tagName;
+  if (tag === 'TEXTAREA' || tag === 'SELECT' || target.isContentEditable) return true;
+  if (tag !== 'INPUT') return false;
+  return ['checkbox', 'radio', 'range', 'button'].indexOf(target.type) === -1;
+}
+
+/*
+ * map: { "Space": fn, "ArrowLeft": fn, … }. A handler returning false lets the event
+ * through; anything else prevents the default action.
+ */
+function handleKey(map, e) {
+  if (isTyping(e.target)) return false;
+  if (e.target && e.target.type === 'range' && /^Arrow/.test(e.key)) return false;
+  const fn = map[keyName(e)];
+  if (!fn) return false;
+  if (fn(e) === false) return false;
+  e.preventDefault();
+  return true;
+}
+
+function bindShortcuts(doc, map) {
+  doc.addEventListener('keydown', (e) => handleKey(map, e));
+}
+
+module.exports = { keyName, isTyping, handleKey, bindShortcuts };
 
 };
 __require("packages/banner/src/app.js");

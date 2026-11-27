@@ -22,6 +22,17 @@ async function locate(id) {
   return true;
 }
 
+// Selects layers on the canvas without moving the viewport (like clicking in the layers panel).
+async function select(ids) {
+  const nodes = [];
+  for (const id of ids || []) {
+    const n = await figma.getNodeByIdAsync(id);
+    if (n && !n.removed && n.type !== 'PAGE' && n.type !== 'DOCUMENT') nodes.push(n);
+  }
+  figma.currentPage.selection = nodes;
+  return nodes.length;
+}
+
 // Selects the parent of the first selected layer; null when there is none to go up to.
 function selectParent() {
   const sel = figma.currentPage.selection;
@@ -32,4 +43,4 @@ function selectParent() {
   return parent.id;
 }
 
-module.exports = { getNode, selectionInfo, locate, selectParent };
+module.exports = { getNode, selectionInfo, locate, select, selectParent };

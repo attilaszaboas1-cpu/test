@@ -61,6 +61,8 @@ test('selection info, locate and select parent', async () => {
   assert.strictEqual(await selection.locate(f.photo.id), true);
   assert.deepStrictEqual(f.page.selection, [f.photo]);
   await assert.rejects(selection.getNode('nope'), /Layer not found/);
+  assert.strictEqual(await selection.select([f.photo.id, f.label.id, 'gone', f.page.id]), 2, 'unknown ids and pages are skipped');
+  assert.deepStrictEqual(f.page.selection, [f.photo, f.label]);
   f.page.selection = [];
   assert.deepStrictEqual(selection.selectionInfo(), { ids: [], frameId: null });
 });

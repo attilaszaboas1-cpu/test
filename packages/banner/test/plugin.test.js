@@ -22,8 +22,8 @@ test('committed code.js and ui.html match the sources (run npm run build)', () =
   const out = buildPlugin(DIR);
   assert.ok(out.code === fs.readFileSync(path.join(DIR, 'code.js'), 'utf8'), 'code.js is stale');
   assert.ok(out.html === fs.readFileSync(path.join(DIR, 'ui.html'), 'utf8'), 'ui.html is stale');
-  assert.match(out.html, /--brand:/, 'core styles inlined');
-  assert.match(out.html, /\.scene-bar/, 'banner styles inlined');
+  assert.match(out.html, /--figma-color-bg/, 'core styles inlined');
+  assert.match(out.html, /\.step-tab/, 'banner styles inlined');
   assert.doesNotMatch(out.html, /__STYLES__|__UI__/);
 });
 
@@ -77,6 +77,17 @@ test('code.js exports assets and follows the selection', async () => {
   assert.deepStrictEqual(JSON.parse(JSON.stringify(f.figma.posted.pop())), { type: 'selection', ids: [f.line.id], bannerId: f.frame.id });
   assert.strictEqual((await f.call('selectParent')).result, f.group.id);
   assert.strictEqual((await f.call('locate', { id: f.photo.id })).result, true);
+  assert.strictEqual((await f.call('select', { ids: [f.label.id] })).result, 1);
+  assert.strictEqual(f.page.selection.map((n) => n.id).join(), f.label.id);
   await f.call('notify', { text: 'hi' });
   assert.strictEqual(f.figma.notified[0].text, 'hi');
+});
+
+test('every icon-only button in the static markup has a tooltip', () => {
+  const html = fs.readFileSync(path.join(DIR, 'src/ui.template.html'), 'utf8');
+  const buttons = html.match(/<button[^>]*>[\s\S]*?<\/button>/g);
+  assert.ok(buttons.length > 15);
+  const iconOnly = buttons.filter((b) => !b.replace(/<[^>]+>/g, '').trim());
+  assert.ok(iconOnly.length > 8);
+  iconOnly.forEach((b) => assert.match(b, /data-tip="[^"]+"/, b));
 });

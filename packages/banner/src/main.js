@@ -7,7 +7,7 @@ const imageExport = require('../../core/figma/export');
 const selection = require('../../core/figma/selection');
 const { serve } = require('../../core/figma/rpc');
 
-figma.showUI(__html__, { width: 1120, height: 800, themeColors: true, title: 'Banner Automation' });
+figma.showUI(__html__, { width: 1040, height: 720, themeColors: true, title: 'Banner Automation' });
 
 const SESSION_KEY = 'ba.session';
 const SNAPSHOT_KEY = 'ba.snapshot';
@@ -74,6 +74,10 @@ serve({
 
   async locate(p) {
     return selection.locate(p.id);
+  },
+
+  async select(p) {
+    return selection.select(p.ids);
   },
 
   async selectParent() {

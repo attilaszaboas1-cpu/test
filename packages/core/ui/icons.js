@@ -31,13 +31,24 @@ const ICONS = {
   'frame': '<path d="M8 3v18M16 3v18M3 8h18M3 16h18"/>',
   'group': '<path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>',
   'image': '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M21 16l-5-5-9 8"/>',
-  'shape': '<rect x="4" y="4" width="16" height="16" rx="2"/>',
+  'shape': '<path d="M5.5 5.5h13v13h-13z"/>',
   'settings': '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
   'loop': '<path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
   'motion': '<path d="M3 17c3-7 6-7 9 0s6 7 9 0"/><path d="M18 6l3 0 0 3"/>',
   'star': '<path d="M12 3l2.8 6 6.2.6-4.8 4.2 1.4 6.2-5.6-3.2-5.6 3.2 1.4-6.2L3 9.6 9.2 9z"/>',
   'in': '<path d="M10 17l5-5-5-5M15 12H3M14 4h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-5"/>',
-  'out': '<path d="M15 17l5-5-5-5M20 12H8M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h5"/>'
+  'out': '<path d="M15 17l5-5-5-5M20 12H8M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h5"/>',
+  'plus': '<path d="M12 6v12M6 12h12"/>',
+  'minus': '<path d="M6 12h12"/>',
+  'check': '<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  'more': '<circle cx="6" cy="12" r=".9"/><circle cx="12" cy="12" r=".9"/><circle cx="18" cy="12" r=".9"/>',
+  'warning': '<path d="M12 4l9 16H3z"/><path d="M12 10v4.5M12 17.5h.01"/>',
+  'error': '<circle cx="12" cy="12" r="9"/><path d="M12 7.5v5.5M12 16.5h.01"/>',
+  'check-circle': '<circle cx="12" cy="12" r="9"/><path d="M8 12.5l2.8 2.8L16.5 9.5"/>',
+  'keyboard': '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10"/>',
+  'cursor': '<path d="M6 4l12 7-5.5 1.5L10 18z"/>',
+  'frame-select': '<path d="M7 3v18M17 3v18M3 7h18M3 17h18"/><path d="M12 10v4M10 12h4"/>',
+  'chevron-down-sm': '<path d="M8 10l4 4 4-4"/>'
 };
 
 function icon(name) {

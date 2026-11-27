@@ -49,24 +49,56 @@ test('visibleRows: expanded tree, hidden filter, search and kind filters', () =>
   assert.deepStrictEqual(Layers.visibleRows(t, order, view({ filter: { kind: 'all', inHtml: true, hidden: true } }), (id) => id === 'b').map((r) => r.n.id), ['b']);
 });
 
-test('layerRow renders the shared layer card', () => {
+test('layerRow renders a Figma-style layer row', () => {
   const t = sampleTree();
   const { index } = Layers.indexTree(t);
-  const html = Layers.layerRow({ n: index.l, depth: 1 }, { added: true, addedLabel: 'In HTML', exp: { format: 'jpg' }, clip: { on: true, maskName: 'mask' } });
-  assert.match(html, /class="node in-html"/);
-  assert.match(html, /✓ In HTML/);
-  assert.match(html, /data-act="remove-node">Remove/);
-  assert.match(html, /<option value="jpg" selected>JPG/);
-  assert.match(html, /<option value="2" selected>2x/);
-  assert.match(html, /clip-btn on/);
-  assert.match(html, /margin-left:18px/);
+  const html = Layers.layerRow({ n: index.l, depth: 1 }, { added: true, addedLabel: 'In banner', selected: true, clip: { on: true, maskName: 'mask' } });
+  assert.match(html, /class="layer added selected"/);
+  assert.match(html, /aria-selected="true"/);
+  assert.match(html, /<span class="tag">In banner<\/span>/);
+  assert.match(html, /data-act="remove-node" data-tip="Remove from banner"/);
+  assert.match(html, /mask-ic on" data-tip="Clipped to mask “mask”"/);
+  assert.match(html, /padding-left:20px/);
   const plain = Layers.layerRow({ n: index.g, depth: 0 }, { expanded: false });
-  assert.match(plain, /caret closed/);
-  assert.match(plain, /\+ Add/);
-  assert.doesNotMatch(plain, /clip-btn/);
+  assert.match(plain, /caret closed" data-act="toggle-node" data-tip="Expand"/);
+  assert.match(plain, /aria-expanded="false"/);
+  assert.match(plain, /data-act="add-node" data-tip="Add to banner"/);
+  assert.doesNotMatch(plain, /mask-ic/);
   const evil = Layers.layerRow({ n: Object.assign({}, index.p, { name: '<img onerror=x>' }), depth: 0 }, {});
   assert.doesNotMatch(evil, /<img onerror/);
-  assert.match(Layers.filterControls({ kind: 'text', inHtml: true, hidden: false }), /chip on" data-act="filter-kind" data-kind="text"/);
+  const flat = Layers.layerRow({ n: index.t, depth: 0, flat: true }, {});
+  assert.match(flat, /<span class="meta">in button<\/span>/);
+});
+
+test('every icon-only button in a layer row has a tooltip', () => {
+  const t = sampleTree();
+  const { index } = Layers.indexTree(t);
+  const rows = [Layers.layerRow({ n: index.g, depth: 0 }, {}), Layers.layerRow({ n: index.l, depth: 1 }, { added: true, clip: { on: false } })];
+  for (const html of rows) {
+    const buttons = html.match(/<button[^>]*>/g) || [];
+    assert.ok(buttons.length >= 2);
+    buttons.forEach((b) => assert.match(b, /data-tip="[^"]+"/, b));
+  }
+});
+
+test('unsupported layers cannot be added', () => {
+  const t = sampleTree();
+  const { index } = Layers.indexTree(t);
+  assert.match(Layers.unsupportedReason(index.m), /Masks clip other layers/);
+  assert.match(Layers.unsupportedReason({ type: 'SLICE', w: 10, h: 10 }), /Slices/);
+  assert.match(Layers.unsupportedReason({ type: 'RECTANGLE', w: 0, h: 10 }), /no size/);
+  assert.strictEqual(Layers.unsupportedReason(index.p), '');
+  const html = Layers.layerRow({ n: { id: 's', name: 'slice', type: 'SLICE', w: 5, h: 5, visible: true, children: [] }, depth: 0 }, {});
+  assert.match(html, /class="layer unsupported"/);
+  assert.doesNotMatch(html, /add-node/);
+  assert.match(html, /data-tip="Slices are export areas, not artwork"/);
+});
+
+test('filter controls', () => {
+  const html = Layers.filterControls({ kind: 'text', inHtml: true, hidden: false }, 'banner');
+  assert.match(html, /<button class="on" data-act="filter-kind" data-kind="text">Text/);
+  assert.match(html, /data-filter="inHtml" checked>Only layers in banner/);
+  assert.match(html, /data-filter="hidden">Show hidden layers/);
 });
 
 test('type labels and icons', () => {
@@ -76,6 +108,7 @@ test('type labels and icons', () => {
   assert.strictEqual(Layers.typeIcon({ type: 'RECTANGLE', img: true }), 'image');
   assert.strictEqual(Layers.typeIcon({ type: 'INSTANCE' }), 'frame');
   assert.strictEqual(Layers.typeIcon(null), 'shape');
+  assert.strictEqual(Layers.typeIcon({ type: 'RECTANGLE', isMask: true }), 'mask');
 });
 
 test('cropBox keeps the part inside the frame', () => {
