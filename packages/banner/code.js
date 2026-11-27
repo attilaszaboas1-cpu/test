@@ -2,7 +2,7 @@
 var __defs = {}, __cache = {};
 function __require(id) { var c = __cache[id]; if (c) return c.exports; c = __cache[id] = { exports: {} }; __defs[id].call(c.exports, c, c.exports, __require); return c.exports; }
 __defs["packages/banner/src/main.js"] = function (module, exports, require) {
-// Banner Automation — Figma main thread.
+// GDH Cast Banner — Figma main thread.
 // Serves the layer tree of a banner frame, persists sessions as plugin data and
 // exports the layers the user added to the HTML as images. Generic pieces live in core.
 const tree = require("packages/core/figma/tree.js");
@@ -11,8 +11,9 @@ const imageExport = require("packages/core/figma/export.js");
 const selection = require("packages/core/figma/selection.js");
 const { serve } = require("packages/core/figma/rpc.js");
 
-figma.showUI(__html__, { width: 1040, height: 720, themeColors: true, title: 'Banner Automation' });
+figma.showUI(__html__, { width: 1040, height: 720, themeColors: true, title: 'GDH Cast Banner' });
 
+// Storage keys keep their original 'ba.' prefix so sessions saved before the rename still load.
 const SESSION_KEY = 'ba.session';
 const SNAPSHOT_KEY = 'ba.snapshot';
 const PACKAGE_KEY = 'ba.package';

@@ -1,8 +1,8 @@
 {
-  "name": "figma-banner-automation",
-  "version": "2.1.0",
+  "name": "gdh-cast",
+  "version": "3.0.0",
   "private": true,
-  "description": "Figma plugins for exporting production ad assets (banners now, emails later)",
+  "description": "GDH Cast: Figma plugins for production ad assets (GDH Cast Banner now, GDH Cast Email later)",
   "scripts": {
     "build": "node tools/build.js",
     "test": "node --test \"packages/*/test/*.test.js\" \"tools/test/*.test.js\""

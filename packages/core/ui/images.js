@@ -30,7 +30,18 @@ function canvasBytes(canvas, type, quality) {
 }
 
 async function decode(img) {
-  return createImageBitmap(new Blob([img.bytes], { type: MIME[img.ext] }));
+  const blob = new Blob([img.bytes], { type: MIME[img.ext] });
+  if (img.ext !== 'svg') return createImageBitmap(blob);
+  // createImageBitmap can't read SVG blobs; go through an <img>.
+  const url = URL.createObjectURL(blob);
+  try {
+    const el = new Image();
+    el.src = url;
+    await el.decode();
+    return el;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
 }
 
 // Re-encodes an opaque image as JPG when that is smaller; transparent PNGs are kept.
@@ -74,4 +85,73 @@ async function processImage(raw, frame, compress) {
   return img;
 }
 
-module.exports = { MIME, DEFAULT_EXPORT, exportOptions, cropBox, canvasBytes, decode, compressImage, processImage };
+/*
+ * Flattens layers into one image (e.g. a banner's static backup).
+ * spec: { width, height, scale, background:{ css, bytes?, ext? }, border?: color,
+ *         layers:[{ image:{bytes,ext,x,y,width,height}, mask?:{…same}, motion?:{x,y,s,r} }] }
+ * Layers are drawn in order (back → front). A mask clips its layer by the mask's alpha,
+ * like CSS mask-image. Motion is a translate/scale/rotate around the layer's centre.
+ * Returns { bytes, ext, width, height }.
+ */
+async function composeImage(spec, type, quality) {
+  const scale = spec.scale || 1;
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.round(spec.width * scale);
+  canvas.height = Math.round(spec.height * scale);
+  const g = canvas.getContext('2d');
+  g.scale(scale, scale);
+  // JPEG has no alpha: start from white so transparent areas don't turn black.
+  g.fillStyle = '#ffffff';
+  g.fillRect(0, 0, spec.width, spec.height);
+  const bg = spec.background || {};
+  if (bg.css && bg.css !== 'transparent') {
+    g.fillStyle = bg.css;
+    g.fillRect(0, 0, spec.width, spec.height);
+  }
+  if (bg.bytes) g.drawImage(await decode(bg), 0, 0, spec.width, spec.height);
+
+  for (const layer of spec.layers || []) {
+    const img = layer.image;
+    const bmp = await decode(img);
+    let source = bmp;
+    let box = { x: img.x, y: img.y, w: img.width, h: img.height };
+    if (layer.mask) {
+      // Draw the layer into the mask's box, then keep only what the mask covers.
+      const m = layer.mask;
+      const off = document.createElement('canvas');
+      off.width = Math.max(1, Math.round(m.width * scale));
+      off.height = Math.max(1, Math.round(m.height * scale));
+      const o = off.getContext('2d');
+      o.scale(scale, scale);
+      drawWithMotion(o, bmp, { x: img.x - m.x, y: img.y - m.y, w: img.width, h: img.height }, layer.motion);
+      o.globalCompositeOperation = 'destination-in';
+      o.drawImage(await decode(m), 0, 0, m.width, m.height);
+      source = off;
+      box = { x: m.x, y: m.y, w: m.width, h: m.height };
+      g.drawImage(source, box.x, box.y, box.w, box.h);
+      continue;
+    }
+    drawWithMotion(g, source, box, layer.motion);
+  }
+
+  if (spec.border) {
+    g.strokeStyle = spec.border;
+    g.lineWidth = 1;
+    g.strokeRect(0.5, 0.5, spec.width - 1, spec.height - 1);
+  }
+  const ext = type === 'image/png' ? 'png' : 'jpg';
+  const bytes = await canvasBytes(canvas, ext === 'png' ? 'image/png' : 'image/jpeg', quality === undefined ? 0.85 : quality);
+  return { bytes: bytes, ext: ext, width: canvas.width, height: canvas.height };
+}
+
+function drawWithMotion(g, src, box, motion) {
+  if (!motion) { g.drawImage(src, box.x, box.y, box.w, box.h); return; }
+  g.save();
+  g.translate(box.x + box.w / 2 + (motion.x || 0), box.y + box.h / 2 + (motion.y || 0));
+  g.rotate((motion.r || 0) * Math.PI / 180);
+  g.scale(motion.s || 1, motion.s || 1);
+  g.drawImage(src, -box.w / 2, -box.h / 2, box.w, box.h);
+  g.restore();
+}
+
+module.exports = { MIME, DEFAULT_EXPORT, exportOptions, cropBox, canvasBytes, decode, compressImage, processImage, composeImage };

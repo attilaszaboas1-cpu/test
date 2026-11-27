@@ -1,5 +1,5 @@
 /*
- * Banner Automation — HTML5 generator.
+ * GDH Cast Banner — HTML5 generator.
  * Pure functions shared by the plugin UI (inlined into ui.html) and the Node tests.
  *
  * Session model (stored per banner frame):
@@ -512,7 +512,9 @@ function buildBanner(opts) {
     let ox = 0, oy = 0, open = '', close = '';
     const mask = el.clip && el.maskId && assets.masks && assets.masks[el.maskId];
     if (mask) {
-      if (!maskFiles[el.maskId]) maskFiles[el.maskId] = src(mask.bytes, mask.ext, 'mask-' + slug(el.maskName || 'shape'));
+      // Masks are embedded as data URIs: browsers refuse mask-image files on file:// pages, so a
+    // file reference would hide masked layers when the banner is opened from disk.
+    if (!maskFiles[el.maskId]) maskFiles[el.maskId] = 'data:' + MIME[mask.ext] + ';base64,' + bytesToBase64(mask.bytes);
       const url = 'url("' + maskFiles[el.maskId] + '") 0 0/100% 100% no-repeat';
       ox = mask.x;
       oy = mask.y;
@@ -584,6 +586,88 @@ function buildBanner(opts) {
   return { html: html, files: files, total: tl.total, playLen: tl.playLen };
 }
 
+// ---------------------------------------------------------------------------
+// Pharma rules
+// ---------------------------------------------------------------------------
+const ANIMATION_LIMIT = 15; // seconds of animation allowed before the ISI
+
+// How long the banner animates in seconds (all plays); Infinity when it loops forever.
+function animationLength(session) {
+  const plays = Math.max(0, Math.floor(num(session.plays, 1)));
+  return plays > 0 ? timeline(session).total : Infinity;
+}
+
+/*
+ * The layers of the static backup image: what is on screen at the end of the last frame,
+ * back → front, at rest (entrances finished, loops back at rest, motion at its end point).
+ * assets as for buildBanner. Returns [{ id, name, image, mask?, motion? }].
+ */
+function staticLayers(session, assets) {
+  const scenes = session.scenes && session.scenes.length ? session.scenes : [{ dur: 5 }];
+  const last = scenes.length - 1;
+  return (session.elements || []).slice().reverse().map(function (el) {
+    const sc = el.scenes && el.scenes[last];
+    const image = assets.items && assets.items[el.id];
+    if (!sc || !sc.on || !image) return null;
+    const layer = { id: el.id, name: el.name, image: image };
+    const mask = el.clip && el.maskId && assets.masks && assets.masks[el.maskId];
+    if (mask) layer.mask = mask;
+    if (sc.motion && sc.motion.p && sc.motion.p !== 'none') {
+      const p = MOTION_PRESETS[sc.motion.p] && sc.motion.p !== 'custom' ? MOTION_PRESETS[sc.motion.p] : sc.motion;
+      layer.motion = { x: num(p.x, 0), y: num(p.y, 0), s: num(p.s, 1), r: num(p.r, 0) };
+    }
+    return layer;
+  }).filter(Boolean);
+}
+
+/*
+ * Checks a built index.html against the click-through rules: every exit goes through
+ * clickTag, no hard-coded landing URLs, no target attributes.
+ * Returns { clickTag, targets, hardcoded:[url] }.
+ */
+function auditHtml(html) {
+  const targets = (html.match(/<[a-z][^>]*\starget\s*=/gi) || []).length;
+  // Landing URLs may only appear as clickTag values (var clickTag = "…").
+  const stripped = html.replace(/var\s+clickTag\d*\s*=\s*"[^"]*"\s*;/g, '');
+  const hardcoded = [];
+  const re = /(?:href\s*=\s*["']|window\.open\(\s*["'])(https?:[^"']*)/gi;
+  let m;
+  while ((m = re.exec(stripped))) hardcoded.push(m[1]);
+  return {
+    clickTag: /clickTag|clickTAG/.test(html) && !/Enabler\.exit/.test(html),
+    targets: targets,
+    hardcoded: hardcoded
+  };
+}
+
+// File naming: Brand-Audience-AssetName-HTML5|Static-VVPMcode-WIDTHxHEIGHT
+const NAMING_FIELDS = [
+  { key: 'brand', label: 'Brand', placeholder: 'AccuChek' },
+  { key: 'audience', label: 'Audience', placeholder: 'HCP' },
+  { key: 'asset', label: 'Asset name', placeholder: 'SmartGuideLaunch' },
+  { key: 'vvpm', label: 'VVPM code', placeholder: 'MC-12345' }
+];
+
+// One name part: spaces and characters that aren't safe in file names are removed.
+function namePart(v) {
+  return String(v || '').replace(/[\s\/\\:*?"<>|]+/g, '').replace(/^[.-]+|[.-]+$/g, '');
+}
+
+function namingMissing(naming) {
+  return NAMING_FIELDS.filter(function (f) { return !namePart(naming && naming[f.key]); }).map(function (f) { return f.label; });
+}
+
+// kind: 'HTML5' | 'Static'. Missing parts show as the field label in brackets.
+function assetName(naming, kind, width, height) {
+  const part = function (k, label) { return namePart(naming && naming[k]) || '[' + label + ']'; };
+  return [part('brand', 'Brand'), part('audience', 'Audience'), part('asset', 'AssetName'), kind, part('vvpm', 'VVPM'), width + 'x' + height].join('-');
+}
+
+function packageName(naming) {
+  return [namePart(naming.brand), namePart(naming.audience), namePart(naming.asset), namePart(naming.vvpm)].filter(Boolean).join('-') || 'banners';
+}
+
+
 module.exports = {
   EASINGS: EASINGS,
   EASE_LABELS: EASE_LABELS,
@@ -599,6 +683,15 @@ module.exports = {
   sceneStarts: sceneStarts,
   compileElement: compileElement,
   buildBanner: buildBanner,
+  ANIMATION_LIMIT: ANIMATION_LIMIT,
+  animationLength: animationLength,
+  staticLayers: staticLayers,
+  auditHtml: auditHtml,
+  NAMING_FIELDS: NAMING_FIELDS,
+  namePart: namePart,
+  namingMissing: namingMissing,
+  assetName: assetName,
+  packageName: packageName,
   escapeHtml: escapeHtml,
   slug: slug
 };

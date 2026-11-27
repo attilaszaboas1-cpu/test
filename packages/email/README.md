@@ -1,7 +1,9 @@
-# Email (planned)
+# GDH Cast Email (planned)
 
-Reserved for a separate email plugin. It will reuse `packages/core` (layer tree,
-image export, saved sessions, zip writer, UI components) like `packages/banner` does.
+Reserved for the **GDH Cast Email** Figma plugin. Like `packages/banner` (GDH Cast Banner),
+it will build on `packages/core`: the layer tree, image export, saved sessions, zip writer
+and UI components.
 
-To add it: create `manifest.json`, `plugin.config.js` and `src/` here (copy the
-banner package's layout), then `npm run build` produces its `code.js` and `ui.html`.
+To add it, create `manifest.json` (name "GDH Cast Email", with its own id),
+`plugin.config.js` and `src/` here, copying the banner package's layout. Then
+`npm run build` produces its `code.js` and `ui.html`.

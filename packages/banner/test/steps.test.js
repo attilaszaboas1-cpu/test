@@ -74,3 +74,45 @@ test('URL check', () => {
   assert.ok(!Steps.validUrl('javascript:alert(1)'));
   assert.ok(!Steps.validUrl(''));
 });
+
+const okChecks = { b1: { length: 10, audit: { clickTag: true, targets: 0, hardcoded: [] }, staticBytes: 20000 }, b2: { length: 10, audit: { clickTag: true, targets: 0, hardcoded: [] }, staticBytes: 30000 } };
+const naming = { brand: 'AccuChek', audience: 'HCP', asset: 'Launch', vvpm: 'MC-1' };
+const pharma = (over) => input(Object.assign({ checks: okChecks, animationLimit: 15, namingMissing: G.namingMissing, pkg: { channel: 'html5', exits: [{ url: 'https://www.example.com' }], exclude: {}, naming } }, over));
+const G = require('../src/generator');
+
+test('pharma rules all pass for a compliant package', () => {
+  const st = Steps.stepStatus(pharma());
+  assert.deepStrictEqual(Steps.allIssues(st), []);
+  assert.deepStrictEqual(Steps.pharmaChecks(st, true).map((r) => r.id + ':' + r.state), ['size:ok', 'length:ok', 'static:ok', 'clicktag:ok', 'naming:ok']);
+  assert.deepStrictEqual(Steps.pharmaChecks(st, false).map((r) => r.state), ['pending', 'pending', 'pending', 'pending', 'ok'], 'unmeasured rules are pending');
+});
+
+test('pharma rule failures', () => {
+  const checks = {
+    b1: { length: 20, audit: { clickTag: true, targets: 2, hardcoded: ['https://x.example'] }, staticError: 'decode failed' },
+    b2: { length: Infinity, audit: { clickTag: true, targets: 0, hardcoded: [] }, staticBytes: 1 }
+  };
+  const st = Steps.stepStatus(pharma({ checks, zipSizes: { b1: { bytes: 160000 }, b2: { bytes: 100 } }, pkg: { channel: 'html5', exits: [{ url: 'https://www.example.com' }], exclude: {}, naming: { brand: 'A' } } }));
+  const rules = Object.fromEntries(Steps.pharmaChecks(st, true).map((r) => [r.id, r]));
+  assert.strictEqual(rules.size.state, 'warning');
+  assert.strictEqual(rules.length.state, 'warning');
+  assert.deepStrictEqual(rules.length.issues.map((i) => i.text), [
+    '300×250 animates for 20 s, over the 15 s limit before the ISI',
+    '300×600 loops forever; it must stop within 15 s, before the ISI'
+  ]);
+  assert.strictEqual(rules.static.state, 'error');
+  assert.strictEqual(rules.clicktag.state, 'error');
+  assert.deepStrictEqual(rules.clicktag.issues.map((i) => i.text), ['300×250 has 2 target attributes', '300×250 links to https://x.example directly instead of through clickTag']);
+  assert.strictEqual(rules.naming.state, 'error');
+  assert.match(rules.naming.issues[0].text, /Audience, Asset name, VVPM code/);
+  assert.ok(Steps.blockers(st).some((i) => i.rule === 'naming'), 'missing names block the download');
+});
+
+test('GWD gets a clickTag warning', () => {
+  const gwdChecks = { b1: Object.assign({}, okChecks.b1, { audit: { clickTag: false, targets: 0, hardcoded: [] } }), b2: okChecks.b2 };
+  const st = Steps.stepStatus(pharma({ checks: gwdChecks, pkg: { channel: 'gwd', exits: [{ url: 'https://www.example.com' }], exclude: {}, naming } }));
+  const issues = Steps.allIssues(st);
+  assert.strictEqual(issues.length, 1);
+  assert.strictEqual(issues[0].rule, 'clicktag');
+  assert.strictEqual(issues[0].level, 'warning');
+});

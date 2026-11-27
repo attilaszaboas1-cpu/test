@@ -1,4 +1,4 @@
-/* Banner Automation — plugin UI.
+/* GDH Cast Banner — plugin UI.
  * Three steps: 1 Layers (pick what goes in the banner) → 2 Animate → 3 Export.
  * Shared pieces (RPC, icons, layer tree, images, zip, tooltips, shortcuts) come from core. */
 (function () {
@@ -39,7 +39,10 @@
   }
 
   function defaultPackage() {
-    return { border: true, borderColor: '#000000', compress: true, channel: '', exits: [{ name: 'Main exit', url: '' }], exclude: {} };
+    return {
+      border: true, borderColor: '#000000', compress: true, channel: '', exits: [{ name: 'Main exit', url: '' }], exclude: {},
+      naming: { brand: '', audience: '', asset: '', vvpm: '' }
+    };
   }
 
   function normalizeSession(raw) {
@@ -62,6 +65,7 @@
     exporting: false,      // exporting layer images for the preview
     pkg: defaultPackage(),
     zipSizes: {},
+    checks: {},            // per banner: { length, audit, staticBytes, staticError } (pharma rules)
     step: 'layers',
     scene: 0,
     open: null,            // element whose editor is expanded
@@ -177,7 +181,10 @@
       pkg: S.pkg,
       included: includedBanners(),
       zipSizes: S.zipSizes,
-      sizeLimit: G.sizeLimit
+      sizeLimit: G.sizeLimit,
+      checks: S.checks,
+      animationLimit: G.ANIMATION_LIMIT,
+      namingMissing: G.namingMissing
     });
   }
 
@@ -424,7 +431,7 @@
     const max = Math.max.apply(null, s.scenes.map((sc) => sc.dur));
     const len = G.timeline(s).playLen;
     box.innerHTML =
-      '<div class="section-head"><h3>Frames</h3><span class="muted num">' + round1(len) + ' s' + (s.plays > 1 ? ' × ' + s.plays : s.plays === 0 ? ', loops' : '') + '</span>' +
+      '<div class="section-head"><h3>Frames</h3>' + lengthBadge(s) +
         '<button class="icon-btn" data-act="scene-add" data-tip="Add frame">' + icon('plus') + '</button></div>' +
       '<div class="frames">' + s.scenes.map((sc, i) =>
         '<div class="frame-row' + (i === S.scene ? ' cur' : '') + '" data-act="pick-scene" data-i="' + i + '">' +
@@ -438,6 +445,17 @@
       '</div>';
     S.playLen = len;
     renderScenes();
+  }
+
+  // Total animation time, amber when it runs past the 15 s pharma limit.
+  function lengthBadge(s) {
+    const len = G.timeline(s).playLen;
+    const total = G.animationLength(s);
+    const over = total > G.ANIMATION_LIMIT + 1e-6;
+    const text = round1(len) + ' s' + (s.plays > 1 ? ' × ' + s.plays : s.plays === 0 ? ', loops' : '');
+    return over
+      ? '<span class="text-warning num length-warn" data-tip="' + (total === Infinity ? 'Loops forever' : 'Animates for ' + round1(total) + ' s') + '. Pharma banners must stop within ' + G.ANIMATION_LIMIT + ' s, before the ISI.">' + icon('warning') + text + '</span>'
+      : '<span class="muted num" data-tip="Animation stops within ' + G.ANIMATION_LIMIT + ' s">' + text + '</span>';
   }
 
   // Scene markers on the scrubber and the frame label in the transport bar.
@@ -910,7 +928,9 @@
     if (z && z.error) return '<span class="zip-size over" data-zipsize="' + esc(b.id) + '" data-tip="' + esc(z.error) + '">' + icon('error') + 'Export failed</span>';
     if (z && z.bytes) {
       const over = z.bytes > limit;
-      return '<span class="zip-size ' + (over ? 'over' : 'ok') + '" data-zipsize="' + esc(b.id) + '" data-tip="Zipped size' + (S.pkg.compress ? ', images compressed' : '') + '. Limit ' + lim + '.">' +
+      const c = S.checks[b.id];
+      const tip = 'HTML5 zip' + (S.pkg.compress ? ', images compressed' : '') + '. Limit ' + lim + '.' + (c && c.staticBytes ? ' Static backup: ' + kb(c.staticBytes) + ' JPG.' : '');
+      return '<span class="zip-size ' + (over ? 'over' : 'ok') + '" data-zipsize="' + esc(b.id) + '" data-tip="' + esc(tip) + '">' +
         (over ? icon('warning') : '') + kb(z.bytes) + ' / ' + lim + '</span>';
     }
     return '<span class="zip-size muted" data-zipsize="' + esc(b.id) + '"><span class="spinner"></span>Measuring…</span>';
@@ -918,8 +938,12 @@
 
   // What still needs attention before downloading, with a Fix link for each item.
   function checklistHtml() {
-    const issues = Steps.allIssues(status());
-    const errors = issues.filter((i) => i.level === 'error');
+    const all = Steps.allIssues(status());
+    // Pharma rule problems are listed under "Pharma checks"; here they're summarised in one line.
+    const ruled = all.filter((i) => i.rule && i.rule !== 'size');
+    const issues = all.filter((i) => !i.rule || i.rule === 'size');
+    const errors = all.filter((i) => i.level === 'error');
+    if (ruled.length) issues.push({ text: ruled.length === 1 ? '1 pharma check needs attention' : ruled.length + ' pharma checks need attention', fix: 'focus-pharma', level: ruled.some((i) => i.level === 'error') ? 'error' : 'warning' });
     const n = includedBanners().length;
     const ch = G.CHANNELS[S.pkg.channel];
     return issues.length
@@ -928,6 +952,23 @@
         issues.map((i) => '<li class="' + i.level + '">' + icon(i.level === 'error' ? 'error' : 'warning') + '<span>' + esc(i.text) + '</span>' +
           (i.fix ? '<button class="link" data-act="' + esc(i.fix) + '">Fix</button>' : '') + '</li>').join('') + '</ul></div></div>'
       : '<div class="callout success">' + icon('check-circle') + '<span>Ready: ' + plural(n, 'banner') + ' for ' + esc(ch ? ch.label : '') + '.</span></div>';
+  }
+
+  // The pharma rules with their result for the included sizes.
+  function pharmaHtml() {
+    const measured = includedBanners().every((b) => S.checks[b.id] && S.zipSizes[b.id]);
+    const rules = Steps.pharmaChecks(status(), measured);
+    const ic = { ok: 'check-circle', warning: 'warning', error: 'error' };
+    return '<div class="section-head"><h3>Pharma checks</h3><span class="muted">' + rules.filter((r) => r.state === 'ok').length + ' of ' + rules.length + ' passed</span></div>' +
+      '<ul class="rules">' + rules.map((r) => '<li class="' + r.state + '">' + (r.state === 'pending' ? '<span class="spinner"></span>' : icon(ic[r.state])) +
+        '<span><span class="rule">' + esc(r.label) + '</span>' + r.issues.map((i) => '<span class="rule-issue">' + esc(i.text) +
+          (i.fix ? ' <button class="link" data-act="' + esc(i.fix) + '">Fix</button>' : '') + '</span>').join('') + '</span></li>').join('') + '</ul>';
+  }
+
+  function namePreviewHtml() {
+    const b = includedBanners()[0] || (S.ctx && S.ctx.info) || { width: 300, height: 250 };
+    return '<span class="muted">Example</span><code>' + esc(G.assetName(S.pkg.naming, 'HTML5', b.width, b.height)) + '.zip</code>' +
+      '<code>' + esc(G.assetName(S.pkg.naming, 'Static', b.width, b.height)) + '.jpg</code>';
   }
 
   function renderExport() {
@@ -939,6 +980,11 @@
 
     $('exportBody').innerHTML =
       '<div class="section" id="checkSection">' + checklistHtml() + '</div>' +
+      '<div class="section" id="pharmaSection">' + pharmaHtml() + '</div>' +
+      '<div class="section" id="namingSection"><div class="section-head"><h3>File names</h3></div><div class="grid2">' +
+        G.NAMING_FIELDS.map((f) => field(f.label, '<input type="text" data-nf="' + f.key + '" value="' + esc(p.naming[f.key] || '') + '" placeholder="e.g. ' + esc(f.placeholder) + '"' +
+          (G.namePart(p.naming[f.key]) ? '' : ' class="required"') + '>')).join('') + '</div>' +
+        '<div class="name-preview" id="namePreview">' + namePreviewHtml() + '</div></div>' +
       '<div class="section" id="channelSection"><div class="section-head"><h3>Channel</h3></div>' +
         '<select id="channelSelect" style="width:100%" aria-label="Channel"><option value=""' + (p.channel ? '' : ' selected') + ' disabled>Choose where the banners will run…</option>' +
         Object.keys(visibleChannels).map((k) => '<option value="' + k + '"' + (p.channel === k ? ' selected' : '') + '>' + esc(G.CHANNELS[k].label) + '</option>').join('') + '</select>' +
@@ -983,6 +1029,8 @@
     const active = document.activeElement;
     if (active && active.closest && active.closest('#exportBody') && active.tagName === 'INPUT' && active.type !== 'checkbox') {
       $('checkSection').innerHTML = checklistHtml();
+      $('pharmaSection').innerHTML = pharmaHtml();
+      $('namePreview').innerHTML = namePreviewHtml();
       renderExportFoot();
       return;
     }
@@ -1010,17 +1058,46 @@
     const token = ++measureToken;
     S.zipSizes = {};
     updateZipSizes();
+    S.checks = {};
     for (const b of includedBanners()) {
       try {
         const r = await buildPackageBanner(b.id, false);
         const zip = await Zip.makeZip(r.out.files);
         if (token !== measureToken) return;
         S.zipSizes[b.id] = { bytes: zip.length };
+        S.checks[b.id] = Object.assign(pharmaCheck(r), await staticCheck(r));
       } catch (e) {
         if (token !== measureToken) return;
         S.zipSizes[b.id] = { error: String(e && e.message || e) };
       }
+      if (token !== measureToken) return;
       updateZipSizes();
+    }
+  }
+
+  // Rule checks on a built banner (see steps.js): animation length and click-through audit.
+  function pharmaCheck(r) {
+    return { length: G.animationLength(r.ctx.session), audit: G.auditHtml(r.out.html) };
+  }
+
+  // The static backup: the last frame, flattened to a JPG at 1x.
+  async function buildStatic(r) {
+    return Images.composeImage({
+      width: r.ctx.info.width,
+      height: r.ctx.info.height,
+      scale: 1,
+      background: r.assets.background,
+      border: S.pkg.border ? S.pkg.borderColor : null,
+      layers: G.staticLayers(r.ctx.session, r.assets)
+    }, 'image/jpeg', 0.85);
+  }
+
+  async function staticCheck(r) {
+    try {
+      const img = await buildStatic(r);
+      return { staticBytes: img.bytes.length };
+    } catch (e) {
+      return { staticError: String(e && e.message || e) };
     }
   }
 
@@ -1032,7 +1109,7 @@
       name: ctx.info.name, width: ctx.info.width, height: ctx.info.height, session: ctx.session,
       assets: assets, pkg: S.pkg, channel: S.pkg.channel, inline: !!preview, preview: !!preview
     });
-    return { ctx: ctx, out: out };
+    return { ctx: ctx, out: out, assets: assets };
   }
 
   async function downloadAll() {
@@ -1042,21 +1119,26 @@
     S.downloading = true;
     renderExportFoot();
     try {
-      const zips = [];
+      const files = [];
       const over = [];
+      const naming = S.pkg.naming;
       for (const b of list) {
         $('downloadLabel').textContent = 'Packaging ' + b.width + '×' + b.height + '…';
         const r = await buildPackageBanner(b.id, false);
         const data = await Zip.makeZip(r.out.files);
+        const still = await buildStatic(r);
         S.zipSizes[b.id] = { bytes: data.length };
+        S.checks[b.id] = Object.assign(pharmaCheck(r), { staticBytes: still.bytes.length });
         if (data.length > G.sizeLimit(b.width, b.height)) over.push(b.width + '×' + b.height + ' (' + kb(data.length) + ')');
-        zips.push({ name: G.slug(r.ctx.info.name) + '_' + r.ctx.info.width + 'x' + r.ctx.info.height + '_' + channel + '.zip', data: data });
+        const w = r.ctx.info.width, h = r.ctx.info.height;
+        files.push({ name: G.assetName(naming, 'HTML5', w, h) + '.zip', data: data });
+        files.push({ name: G.assetName(naming, 'Static', w, h) + '.' + still.ext, data: still.bytes });
       }
-      if (zips.length === 1) download(zips[0].data, zips[0].name);
-      else download(await Zip.makeZip(zips, { store: true }), 'banners_' + channel + '.zip');
-      call('notify', { text: 'Packaged ' + plural(zips.length, 'banner') + ' for ' + G.CHANNELS[channel].label });
+      // One package: an HTML5 zip and a static backup per size.
+      download(await Zip.makeZip(files, { store: true }), G.packageName(naming) + '.zip');
+      call('notify', { text: 'Packaged ' + plural(list.length, 'banner') + ' with static backups for ' + G.CHANNELS[channel].label });
       if (over.length) toast('Downloaded, but over the size limit: ' + over.join(', ') + '.', 'danger');
-      else toast('Downloaded ' + plural(zips.length, 'banner') + '.');
+      else toast('Downloaded ' + plural(list.length, 'banner') + ' with static backups.');
     } catch (e) {
       toast('Export failed: ' + (e && e.message || e), 'danger', { label: 'Try again', act: 'download-all' });
     } finally {
@@ -1217,6 +1299,9 @@
     'focus-channel': () => focusIn('channelSection', 'select'),
     'focus-exit': () => focusIn('exitsSection', 'input.invalid, input[type=url]'),
     'focus-sizes': () => focusIn('sizesSection', 'input'),
+    'focus-pharma': () => focusIn('pharmaSection', 'button.link'),
+    'focus-naming': () => focusIn('namingSection', 'input.required, input'),
+    'fix-length': () => { goStep('animate'); const f = document.querySelector('[data-scene-dur]'); if (f) f.focus(); },
     'close-toast': () => { $('toast').hidden = true; },
 
     // layers
@@ -1415,6 +1500,8 @@
       if (!isFinite(v) || v < 0.1) return;
       sess().scenes[Number(t.dataset.sceneDur)].dur = v;
       S.playLen = G.timeline(sess()).playLen;
+      const badge = document.querySelector('#timelineSection .section-head > span');
+      if (badge) badge.outerHTML = lengthBadge(sess());
       renderScenes();
       persist();
       schedulePreview(300);
@@ -1427,6 +1514,13 @@
       persistPkg();
       schedulePreview(300);
       scheduleMeasure();
+      return;
+    }
+    if (t.dataset.nf) {
+      S.pkg.naming[t.dataset.nf] = t.value;
+      t.classList.toggle('required', !G.namePart(t.value));
+      persistPkg();
+      refreshExport();
       return;
     }
     if (t.dataset.exf) {

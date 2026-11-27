@@ -1,4 +1,4 @@
-// Banner Automation — Figma main thread.
+// GDH Cast Banner — Figma main thread.
 // Serves the layer tree of a banner frame, persists sessions as plugin data and
 // exports the layers the user added to the HTML as images. Generic pieces live in core.
 const tree = require('../../core/figma/tree');
@@ -7,8 +7,9 @@ const imageExport = require('../../core/figma/export');
 const selection = require('../../core/figma/selection');
 const { serve } = require('../../core/figma/rpc');
 
-figma.showUI(__html__, { width: 1040, height: 720, themeColors: true, title: 'Banner Automation' });
+figma.showUI(__html__, { width: 1040, height: 720, themeColors: true, title: 'GDH Cast Banner' });
 
+// Storage keys keep their original 'ba.' prefix so sessions saved before the rename still load.
 const SESSION_KEY = 'ba.session';
 const SNAPSHOT_KEY = 'ba.snapshot';
 const PACKAGE_KEY = 'ba.package';

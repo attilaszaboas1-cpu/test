@@ -1,4 +1,4 @@
-# Banner Automation (Figma plugin)
+# GDH Cast Banner (Figma plugin)
 
 Turn Figma banner frames into animated HTML5 ads, then package them for an ad channel (GWD, HTML5, AE, WPPP, BAN).
 
@@ -6,7 +6,7 @@ Turn Figma banner frames into animated HTML5 ads, then package them for an ad ch
 
 1. Open the **Figma desktop app**.
 2. Go to **Plugins → Development → Import plugin from manifest…** and choose `packages/banner/manifest.json`.
-3. Run it from **Plugins → Development → Banner Automation**.
+3. Run it from **Plugins → Development → GDH Cast Banner**.
 
 The committed `code.js` and `ui.html` are already built, so you don't need to build anything to use the plugin.
 
@@ -58,7 +58,20 @@ The steps show their state: a ✓ when complete, and a badge with the number of 
 - **Click-through**: the main exit URL, plus extra exits for single layers.
 - **Sizes**: each banner frame with layers in it, with its **zipped weight** against the upload limit: 150 KB, or 200 KB for 300×600 (1 KB = 1000 bytes). The weight turns red when over.
 - **Options**: compress images (opaque images are re-encoded as JPG when that's smaller), and a 1 px border with its colour.
-- **Preview all** plays every size side by side. **Download** gives you one upload-ready ZIP per size, bundled into `banners_<channel>.zip` when there are several. Files are deflate-compressed.
+- **File names**: Brand, Audience, Asset name and VVPM code. Spaces and characters that aren't allowed in file names are removed. An example of the resulting names is shown under the fields.
+- **Preview all** plays every size side by side. **Download** gives you one package, `Brand-Audience-AssetName-VVPM.zip`. For each size it holds the upload-ready HTML5 zip (deflate-compressed) and its static backup JPG.
+
+### Pharma checks
+
+The Export step checks every included size against these rules and lists them with their result. Problems also show up in the checklist and on the Export step badge.
+
+| Rule | What the plugin does |
+|---|---|
+| Size limit: 150 KB per banner, 200 KB for 300×600 | Shows the zipped HTML5 weight of each size against its limit (1 KB = 1000 bytes) and warns when it's over. The static backup isn't counted, because it's a separate file. |
+| Animation stops within 15 s, before the ISI | Adds up frames × plays. It warns when that's longer than 15 s, or when the banner loops forever. Frames shows the total in amber in the Animate step too. |
+| Static backup for every animated banner | Draws the last frame automatically (background, every layer shown in the last frame at rest, masks, motion end points, border) as a 1x JPG, and puts it in the package next to the HTML5 zip. |
+| clickTag only, no target attributes | Checks every built `index.html`: no `target` attributes (an error), no landing URLs written in directly instead of through clickTag (an error), and warns for channels whose exits don't use clickTag (GWD uses `Enabler.exit`). The HTML5, WPPP and BAN builds pass. |
+| Zip naming: `Brand-Audience-AssetName-HTML5\|Static-VVPMcode-WIDTHxHEIGHT` | Names files from the four fields, for example `AccuChek-HCP-SmartGuideLaunch-HTML5-MC-12345-300x250.zip` and `…-Static-MC-12345-300x250.jpg`. Download stays disabled until all four fields are filled in. |
 - **⋯ › Copy animation to other sizes** copies the animation to other frames, matching layers by name.
 
 The animation is pure CSS `@keyframes` with no runtime library. The output includes `<meta name="ad.size">` and respects `prefers-reduced-motion`.
@@ -78,6 +91,12 @@ The animation is pure CSS `@keyframes` with no runtime library. The output inclu
 
 Every icon-only button has a tooltip, which also shows its shortcut.
 
+## Naming
+
+- The plugin is called **GDH Cast Banner**. Its Figma plugin id stays `banner-automation`, because Figma keys the existing development import and the saved sessions (plugin data) to the id.
+- The internal storage keys keep their `ba.` prefix for the same reason.
+- The planned email plugin will be **GDH Cast Email**, and the shared code in `packages/core` is **GDH Cast** core.
+
 ## Repository layout
 
 ```
@@ -90,7 +109,7 @@ packages/
                        base.css (UI3 tokens from Figma's theme variables, shared components)
     zip.js             ZIP writer (deflate)
     text.js            HTML escaping, slugs
-  banner/              Banner Automation plugin
+  banner/              GDH Cast Banner plugin
     manifest.json      import this in Figma
     code.js, ui.html   built files (committed)
     plugin.config.js   build inputs
@@ -99,7 +118,7 @@ packages/
     src/steps.js       what each step still needs (stepper, Export checklist)
     src/generator.js   HTML5 banner generator
     src/ui.css, src/ui.template.html
-  email/               reserved for the email plugin
+  email/               reserved for the GDH Cast Email plugin
 tools/
   build.js             builds every packages/*/plugin.config.js into code.js + ui.html
   bundle.js            tiny CommonJS bundler (Figma needs single files)

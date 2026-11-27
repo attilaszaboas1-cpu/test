@@ -12,8 +12,8 @@ const DIR = path.join(__dirname, '..');
 
 test('manifest is importable on its own', () => {
   const m = JSON.parse(fs.readFileSync(path.join(DIR, 'manifest.json'), 'utf8'));
-  assert.strictEqual(m.name, 'Banner Automation');
-  assert.strictEqual(m.id, 'banner-automation');
+  assert.strictEqual(m.name, 'GDH Cast Banner');
+  assert.strictEqual(m.id, 'banner-automation', 'id stays stable so existing imports and saved sessions keep working');
   assert.ok(fs.existsSync(path.join(DIR, m.main)), m.main);
   assert.ok(fs.existsSync(path.join(DIR, m.ui)), m.ui);
 });
@@ -41,7 +41,7 @@ async function runMain() {
 
 test('code.js opens the UI and serves the banner tree', async () => {
   const f = await runMain();
-  assert.strictEqual(f.figma.uiOptions.title, 'Banner Automation');
+  assert.strictEqual(f.figma.uiOptions.title, 'GDH Cast Banner');
   f.page.selection = [f.label];
   const init = (await f.call('init')).result;
   assert.deepStrictEqual(init.banners.map((b) => b.name + ' ' + b.width + 'x' + b.height), ['MPU 300x250', 'HPA 300x600']);

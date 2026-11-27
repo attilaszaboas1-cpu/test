@@ -9,7 +9,12 @@
  *   included: banners that will be exported [{ id, width, height, name }]
  *   zipSizes: { [bannerId]: { bytes } | { error } }            measured zips
  *   sizeLimit(w, h) → bytes
+ *   checks:   { [bannerId]: { length, audit:{clickTag,targets,hardcoded}, staticBytes?, staticError? } }
+ *   animationLimit: seconds (15)
+ *   namingMissing(naming) → [missing field labels]
  * }
+ * Export issues carry the pharma rule they belong to (rule: 'size' | 'length' | 'static' |
+ * 'clicktag' | 'naming'), so the Export step can show each rule with its result.
  * Each issue: { text, fix, level }. fix names the UI action that resolves it; level 'error'
  * blocks the download, 'warning' is shown but doesn't block.
  */
@@ -23,6 +28,10 @@ const URL_RE = /^https?:\/\/[^\s/?#]+\.[^\s/?#]+(\S*)$/i;
 
 function validUrl(url) {
   return URL_RE.test(String(url || '').trim());
+}
+
+function round1(n) {
+  return Math.round(n * 10) / 10;
 }
 
 function kb(bytes) {
@@ -60,11 +69,29 @@ function exportIssues(input) {
   input.included.forEach((b) => {
     const z = input.zipSizes[b.id];
     const label = b.width + '×' + b.height;
-    if (z && z.error) issues.push({ text: label + ' could not be exported: ' + z.error, fix: 'focus-sizes', level: 'error' });
+    if (z && z.error) issues.push({ text: label + ' could not be exported: ' + z.error, fix: 'focus-sizes', level: 'error', rule: 'size' });
     else if (z && z.bytes > input.sizeLimit(b.width, b.height)) {
-      issues.push({ text: label + ' is ' + kb(z.bytes) + ', over the ' + kb(input.sizeLimit(b.width, b.height)) + ' limit', fix: 'focus-sizes', level: 'warning' });
+      issues.push({ text: label + ' is ' + kb(z.bytes) + ', over the ' + kb(input.sizeLimit(b.width, b.height)) + ' limit', fix: 'focus-sizes', level: 'warning', rule: 'size' });
+    }
+    const c = input.checks && input.checks[b.id];
+    if (!c) return;
+    const limit = input.animationLimit || 15;
+    if (c.length === Infinity) issues.push({ text: label + ' loops forever; it must stop within ' + limit + ' s, before the ISI', fix: 'fix-length', level: 'warning', rule: 'length' });
+    else if (c.length > limit + 1e-6) issues.push({ text: label + ' animates for ' + round1(c.length) + ' s, over the ' + limit + ' s limit before the ISI', fix: 'fix-length', level: 'warning', rule: 'length' });
+    if (c.staticError) issues.push({ text: label + ': the static backup could not be made: ' + c.staticError, fix: 'focus-sizes', level: 'error', rule: 'static' });
+    if (c.audit) {
+      if (c.audit.targets) issues.push({ text: label + ' has ' + c.audit.targets + ' target attribute' + (c.audit.targets > 1 ? 's' : ''), fix: 'focus-channel', level: 'error', rule: 'clicktag' });
+      if (c.audit.hardcoded.length) issues.push({ text: label + ' links to ' + c.audit.hardcoded[0] + ' directly instead of through clickTag', fix: 'focus-channel', level: 'error', rule: 'clicktag' });
     }
   });
+  const anyAudit = input.included.map((b) => input.checks && input.checks[b.id] && input.checks[b.id].audit).find(Boolean);
+  if (pkg.channel && anyAudit && !anyAudit.clickTag) {
+    issues.push({ text: 'This channel doesn’t use clickTag (GWD uses Enabler exits); choose HTML5, AE, WPPP or BAN', fix: 'focus-channel', level: 'warning', rule: 'clicktag' });
+  }
+  if (input.namingMissing) {
+    const missing = input.namingMissing(pkg.naming || {});
+    if (missing.length) issues.push({ text: 'Fill in the file name: ' + missing.join(', '), fix: 'focus-naming', level: 'error', rule: 'naming' });
+  }
   return issues;
 }
 
@@ -89,4 +116,26 @@ function blockers(status) {
   return allIssues(status).filter((i) => i.level === 'error');
 }
 
-module.exports = { STEPS, validUrl, stepStatus, allIssues, blockers };
+/*
+ * The pharma rules checked on the Export step, each with its result.
+ * measured: true once every included size has been built and checked.
+ * → [{ id, label, state: 'ok' | 'warning' | 'error' | 'pending', issues }]
+ */
+const PHARMA_RULES = [
+  { id: 'size', label: 'Zip weight: 150 KB, 200 KB for 300×600' },
+  { id: 'length', label: 'Animation stops within 15 s, before the ISI' },
+  { id: 'static', label: 'Static backup image from the last frame' },
+  { id: 'clicktag', label: 'clickTag only, no target attributes' },
+  { id: 'naming', label: 'File names: Brand-Audience-AssetName-HTML5|Static-VVPM-WxH' }
+];
+
+function pharmaChecks(status, measured) {
+  const issues = allIssues(status).filter((i) => i.rule);
+  return PHARMA_RULES.map((r) => {
+    const mine = issues.filter((i) => i.rule === r.id);
+    const state = mine.some((i) => i.level === 'error') ? 'error' : mine.length ? 'warning' : (measured || r.id === 'naming') ? 'ok' : 'pending';
+    return Object.assign({}, r, { state: state, issues: mine });
+  });
+}
+
+module.exports = { STEPS, PHARMA_RULES, validUrl, stepStatus, allIssues, blockers, pharmaChecks };

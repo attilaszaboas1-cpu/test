@@ -1,6 +1,6 @@
 {
-  "name": "@banner-automation/banner",
-  "version": "2.1.0",
+  "name": "@gdh-cast/banner",
+  "version": "3.0.0",
   "private": true,
-  "description": "Banner Automation: Figma plugin that turns banner frames into animated HTML5 ads"
+  "description": "GDH Cast Banner: Figma plugin that turns banner frames into animated HTML5 ads"
 }

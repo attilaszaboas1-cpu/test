@@ -114,12 +114,12 @@ test('html5 output uses the clickTag convention and per-element exits', () => {
   assert.match(out.html, /href="javascript:window.open\(window.clickTag\)"/);
   assert.match(out.html, /onclick="return bannerExit\(event,1\)"/);
   assert.match(out.html, /<title>Test &lt;banner&gt;<\/title>/);
-  assert.deepStrictEqual(out.files.map((f) => f.name), ['index.html', 'images/01-headline.png', 'images/mask-mask.png', 'images/02-cta.png']);
+  assert.deepStrictEqual(out.files.map((f) => f.name), ['index.html', 'images/01-headline.png', 'images/02-cta.png']);
 });
 
 test('masked elements are wrapped in a mask container', () => {
   const out = sampleBanner('html5');
-  assert.match(out.html, /\.k1\{left:5px;top:5px;width:80px;height:40px;-webkit-mask:url\("images\/mask-mask.png"\)/);
+  assert.match(out.html, /\.k1\{left:5px;top:5px;width:80px;height:40px;-webkit-mask:url\("data:image\/png;base64,iVBORw=="\)/, 'mask embedded so it works from file://');
   assert.match(out.html, /\.l1\{left:5px;top:5px;/);
   const unclipped = sampleBanner('html5', { clip: false });
   assert.doesNotMatch(unclipped.html, /class="k /);
@@ -242,4 +242,65 @@ test('a packaged banner zip passes unzip -t', async (t) => {
   } finally {
     fs.rmSync(dir, { recursive: true, force: true });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Pharma rules
+// ---------------------------------------------------------------------------
+test('animation length counts every play; looping is infinite', () => {
+  const s = { scenes: [{ dur: 4 }, { dur: 6 }], plays: 1, elements: [] };
+  assert.strictEqual(G.animationLength(s), 10);
+  assert.strictEqual(G.animationLength(Object.assign({}, s, { plays: 2 })), 20);
+  assert.strictEqual(G.animationLength(Object.assign({}, s, { plays: 0 })), Infinity);
+  assert.strictEqual(G.ANIMATION_LIMIT, 15);
+});
+
+test('static backup layers are the last frame at rest, back to front', () => {
+  const img = (x) => ({ x, y: 0, width: 10, height: 10, ext: 'png', bytes: new Uint8Array(1) });
+  const session = {
+    scenes: [{ dur: 3 }, { dur: 3 }],
+    elements: [
+      { id: 'cta', name: 'CTA', clip: true, maskId: 'm', scenes: [scene(false), scene(true, { motion: { p: 'zoom-in' } })] },
+      { id: 'head', name: 'Headline', scenes: [scene(true), scene(false)] },
+      { id: 'logo', name: 'Logo', clip: false, maskId: 'm', scenes: [scene(true), scene(true, { motion: { p: 'custom', x: 5, y: -2, s: 1.2, r: 3 } })] },
+      { id: 'noimg', name: 'Missing', scenes: [scene(true), scene(true)] }
+    ]
+  };
+  const assets = { items: { cta: img(1), head: img(2), logo: img(3) }, masks: { m: img(9) } };
+  const layers = G.staticLayers(session, assets);
+  assert.deepStrictEqual(layers.map((l) => l.id), ['logo', 'cta'], 'last-frame layers only, back → front, skipping ones without an image');
+  assert.deepStrictEqual(layers[0].motion, { x: 5, y: -2, s: 1.2, r: 3 });
+  assert.ok(!layers[0].mask, 'clip off → no mask');
+  assert.strictEqual(layers[1].mask, assets.masks.m);
+  assert.deepStrictEqual(layers[1].motion, { x: 0, y: 0, s: 1.1, r: 0 }, 'slow zoom ends at 1.1');
+});
+
+test('every channel output has no target attributes; clickTag channels pass the audit', () => {
+  for (const ch of Object.keys(G.CHANNELS)) {
+    const a = G.auditHtml(sampleBanner(ch).html);
+    assert.strictEqual(a.targets, 0, ch + ' target attributes');
+    assert.deepStrictEqual(a.hardcoded, [], ch + ' hard-coded URLs');
+  }
+  for (const ch of ['html5', 'wppp', 'ban', 'ae']) assert.ok(G.auditHtml(sampleBanner(ch).html).clickTag, ch + ' uses clickTag');
+  assert.ok(!G.auditHtml(sampleBanner('gwd').html).clickTag, 'GWD exits use Enabler.exit');
+});
+
+test('audit catches target attributes and hard-coded landing URLs', () => {
+  const bad = '<a href="https://evil.example/x" target="_blank">x</a><div onclick="window.open(\'https://b.example\')"></div><script>var clickTag = "https://ok.example";</script>';
+  const a = G.auditHtml(bad);
+  assert.strictEqual(a.targets, 1);
+  assert.deepStrictEqual(a.hardcoded, ['https://evil.example/x', 'https://b.example']);
+});
+
+test('file naming: Brand-Audience-AssetName-HTML5|Static-VVPM-WxH', () => {
+  const naming = { brand: 'Accu-Chek', audience: 'HCP', asset: 'Smart Guide Launch', vvpm: 'US-CGM-2400123' };
+  assert.strictEqual(G.assetName(naming, 'HTML5', 300, 250), 'Accu-Chek-HCP-SmartGuideLaunch-HTML5-US-CGM-2400123-300x250');
+  assert.strictEqual(G.assetName(naming, 'Static', 300, 600), 'Accu-Chek-HCP-SmartGuideLaunch-Static-US-CGM-2400123-300x600');
+  assert.strictEqual(G.packageName(naming), 'Accu-Chek-HCP-SmartGuideLaunch-US-CGM-2400123');
+  assert.strictEqual(G.namePart(' a/b:c*d?"e<f>g|h \\ '), 'abcdefgh');
+  assert.strictEqual(G.namePart('-x-'), 'x', 'no separator at the ends');
+  assert.deepStrictEqual(G.namingMissing({ brand: 'X', audience: '  ', asset: '***' }), ['Audience', 'Asset name', 'VVPM code']);
+  assert.deepStrictEqual(G.namingMissing(naming), []);
+  assert.strictEqual(G.assetName({}, 'HTML5', 728, 90), '[Brand]-[Audience]-[AssetName]-HTML5-[VVPM]-728x90');
+  assert.strictEqual(G.packageName({}), 'banners');
 });
