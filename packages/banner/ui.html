@@ -350,7 +350,6 @@ input.invalid { border-color: var(--text-danger) !important; }
 .size-row .dim { font-weight: var(--w-strong); font-variant-numeric: tabular-nums; min-width: 60px; }
 .size-row .name { flex: 1; min-width: 0; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .zip-size { font-variant-numeric: tabular-nums; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
-.zip-size.ok { color: var(--text-success); }
 .zip-size.over { color: var(--text-danger); font-weight: var(--w-strong); }
 .zip-size .spinner { width: 12px; height: 12px; border-width: 1.5px; }
 .color-input { display: flex; align-items: center; gap: var(--s1); }
@@ -732,7 +731,6 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       pkg: S.pkg,
       included: includedBanners(),
       zipSizes: S.zipSizes,
-      sizeLimit: G.sizeLimit,
       checks: S.checks,
       namingMissing: G.namingMissing
     });
@@ -1467,16 +1465,12 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
 
   function zipSizeHtml(b) {
     const z = S.zipSizes[b.id];
-    const limit = G.sizeLimit(b.width, b.height);
-    const lim = kb(limit).replace('.0 KB', ' KB');
     if (S.pkg.exclude[b.id]) return '<span class="zip-size muted" data-zipsize="' + esc(b.id) + '">Not included</span>';
     if (z && z.error) return '<span class="zip-size over" data-zipsize="' + esc(b.id) + '" data-tip="' + esc(z.error) + '">' + icon('error') + 'Export failed</span>';
     if (z && z.bytes) {
-      const over = z.bytes > limit;
       const c = S.checks[b.id];
-      const tip = 'HTML5 zip' + (S.pkg.compress ? ', images compressed' : '') + '. Limit ' + lim + '.' + (c && c.staticBytes ? ' Static backup: ' + kb(c.staticBytes) + ' JPG.' : '');
-      return '<span class="zip-size ' + (over ? 'over' : 'ok') + '" data-zipsize="' + esc(b.id) + '" data-tip="' + esc(tip) + '">' +
-        (over ? icon('warning') : '') + kb(z.bytes) + ' / ' + lim + '</span>';
+      const tip = 'Zipped HTML5 size' + (S.pkg.compress ? ', images compressed' : '') + '.' + (c && c.staticBytes ? ' Static backup: ' + kb(c.staticBytes) + ' JPG.' : '');
+      return '<span class="zip-size muted" data-zipsize="' + esc(b.id) + '" data-tip="' + esc(tip) + '">' + kb(z.bytes) + '</span>';
     }
     return '<span class="zip-size muted" data-zipsize="' + esc(b.id) + '"><span class="spinner"></span>Measuring…</span>';
   }
@@ -1485,8 +1479,8 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
   function checklistHtml() {
     const all = Steps.allIssues(status());
     // Pharma rule problems are listed under "Pharma checks"; here they're summarised in one line.
-    const ruled = all.filter((i) => i.rule && i.rule !== 'size');
-    const issues = all.filter((i) => !i.rule || i.rule === 'size');
+    const ruled = all.filter((i) => i.rule);
+    const issues = all.filter((i) => !i.rule);
     const errors = all.filter((i) => i.level === 'error');
     if (ruled.length) issues.push({ text: ruled.length === 1 ? '1 pharma check needs attention' : ruled.length + ' pharma checks need attention', fix: 'focus-pharma', level: ruled.some((i) => i.level === 'error') ? 'error' : 'warning' });
     const n = includedBanners().length;
@@ -1543,7 +1537,7 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
             (i === 0 ? '<span></span>' : '<button class="icon-btn secondary" data-act="remove-exit" data-tip="Remove exit">' + icon('minus') + '</button>') + '</div>';
         }).join('') +
         (p.exits.length > 1 ? '<div class="muted" style="margin-top:8px">Link a layer to an exit in Animate › Click & export.</div>' : '') + '</div>' +
-      '<div class="section" id="sizesSection"><div class="section-head"><h3>Sizes</h3><span class="muted">Zipped size / limit</span></div><div class="sizes">' +
+      '<div class="section" id="sizesSection"><div class="section-head"><h3>Sizes</h3><span class="muted">Zipped size</span></div><div class="sizes">' +
         (sizes.length
           ? sizes.map((b) => '<label class="size-row"><input type="checkbox" data-size="' + esc(b.id) + '"' + (p.exclude[b.id] ? '' : ' checked') + '>' +
               '<span class="dim">' + b.width + '×' + b.height + '</span><span class="name">' + esc(b.name) + '</span>' + zipSizeHtml(b) + '</label>').join('')
@@ -1665,7 +1659,6 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     renderExportFoot();
     try {
       const files = [];
-      const over = [];
       const naming = S.pkg.naming;
       for (const b of list) {
         $('downloadLabel').textContent = 'Packaging ' + b.width + '×' + b.height + '…';
@@ -1674,7 +1667,6 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
         const still = await buildStatic(r);
         S.zipSizes[b.id] = { bytes: data.length };
         S.checks[b.id] = Object.assign(pharmaCheck(r), { staticBytes: still.bytes.length });
-        if (data.length > G.sizeLimit(b.width, b.height)) over.push(b.width + '×' + b.height + ' (' + kb(data.length) + ')');
         const w = r.ctx.info.width, h = r.ctx.info.height;
         files.push({ name: G.assetName(naming, 'HTML5', w, h) + '.zip', data: data });
         files.push({ name: G.assetName(naming, 'Static', w, h) + '.' + still.ext, data: still.bytes });
@@ -1682,8 +1674,7 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       // One package: an HTML5 zip and a static backup per size.
       download(await Zip.makeZip(files, { store: true }), G.packageName(naming) + '.zip');
       call('notify', { text: 'Packaged ' + plural(list.length, 'banner') + ' with static backups for ' + G.CHANNELS[channel].label });
-      if (over.length) toast('Downloaded, but over the size limit: ' + over.join(', ') + '.', 'danger');
-      else toast('Downloaded ' + plural(list.length, 'banner') + ' with static backups.');
+      toast('Downloaded ' + plural(list.length, 'banner') + ' with static backups.');
     } catch (e) {
       toast('Export failed: ' + (e && e.message || e), 'danger', { label: 'Try again', act: 'download-all' });
     } finally {
@@ -2300,11 +2291,6 @@ function channelId(id) {
   return CHANNELS[k] ? k : '';
 }
 
-// Upload limit for the zipped banner, in bytes (1 KB = 1000 bytes, the stricter reading).
-function sizeLimit(width, height) {
-  return Number(width) === 300 && Number(height) === 600 ? 200000 : 150000;
-}
-
 const DIRECTIONS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 const WIPES = {
   'wipe-right': ['inset(0 100% 0 0)', 'inset(0 0 0 100%)'],
@@ -2846,7 +2832,6 @@ function packageName(naming) {
   return [namePart(naming.brand), namePart(naming.audience), namePart(naming.asset), namePart(naming.vvpm)].filter(Boolean).join('-') || 'banners';
 }
 
-
 module.exports = {
   EASINGS: EASINGS,
   EASE_LABELS: EASE_LABELS,
@@ -2856,7 +2841,6 @@ module.exports = {
   MOTION_PRESETS: MOTION_PRESETS,
   CHANNELS: CHANNELS,
   channelId: channelId,
-  sizeLimit: sizeLimit,
   MIME: MIME,
   timeline: timeline,
   sceneStarts: sceneStarts,
@@ -2900,11 +2884,10 @@ __defs["packages/banner/src/steps.js"] = function (module, exports, require) {
  *   pkg:      package settings { channel, exits:[{name,url}], exclude }
  *   included: banners that will be exported [{ id, width, height, name }]
  *   zipSizes: { [bannerId]: { bytes } | { error } }            measured zips
- *   sizeLimit(w, h) → bytes
  *   checks:   { [bannerId]: { audit:{clickTag,targets,hardcoded}, staticBytes?, staticError? } }
  *   namingMissing(naming) → [missing field labels]
  * }
- * Export issues carry the pharma rule they belong to (rule: 'size' | 'static' |
+ * Export issues carry the pharma rule they belong to (rule: 'static' |
  * 'clicktag' | 'naming'), so the Export step can show each rule with its result.
  * Each issue: { text, fix, level }. fix names the UI action that resolves it; level 'error'
  * blocks the download, 'warning' is shown but doesn't block.
@@ -2919,10 +2902,6 @@ const URL_RE = /^https?:\/\/[^\s/?#]+\.[^\s/?#]+(\S*)$/i;
 
 function validUrl(url) {
   return URL_RE.test(String(url || '').trim());
-}
-
-function kb(bytes) {
-  return Math.round(bytes / 1000) + ' KB';
 }
 
 function layerIssues(ctx) {
@@ -2956,10 +2935,7 @@ function exportIssues(input) {
   input.included.forEach((b) => {
     const z = input.zipSizes[b.id];
     const label = b.width + '×' + b.height;
-    if (z && z.error) issues.push({ text: label + ' could not be exported: ' + z.error, fix: 'focus-sizes', level: 'error', rule: 'size' });
-    else if (z && z.bytes > input.sizeLimit(b.width, b.height)) {
-      issues.push({ text: label + ' is ' + kb(z.bytes) + ', over the ' + kb(input.sizeLimit(b.width, b.height)) + ' limit', fix: 'focus-sizes', level: 'warning', rule: 'size' });
-    }
+    if (z && z.error) issues.push({ text: label + ' could not be exported: ' + z.error, fix: 'focus-sizes', level: 'error' });
     const c = input.checks && input.checks[b.id];
     if (!c) return;
     if (c.staticError) issues.push({ text: label + ': the static backup could not be made: ' + c.staticError, fix: 'focus-sizes', level: 'error', rule: 'static' });
@@ -3006,7 +2982,6 @@ function blockers(status) {
  * → [{ id, label, state: 'ok' | 'warning' | 'error' | 'pending', issues }]
  */
 const PHARMA_RULES = [
-  { id: 'size', label: 'Zip weight: 150 KB, 200 KB for 300×600' },
   { id: 'static', label: 'Static backup image from the last frame' },
   { id: 'clicktag', label: 'clickTag only, no target attributes' },
   { id: 'naming', label: 'File names: Brand-Audience-AssetName-HTML5|Static-VVPM-WxH' }

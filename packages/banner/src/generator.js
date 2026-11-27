@@ -113,11 +113,6 @@ function channelId(id) {
   return CHANNELS[k] ? k : '';
 }
 
-// Upload limit for the zipped banner, in bytes (1 KB = 1000 bytes, the stricter reading).
-function sizeLimit(width, height) {
-  return Number(width) === 300 && Number(height) === 600 ? 200000 : 150000;
-}
-
 const DIRECTIONS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
 const WIPES = {
   'wipe-right': ['inset(0 100% 0 0)', 'inset(0 0 0 100%)'],
@@ -659,7 +654,6 @@ function packageName(naming) {
   return [namePart(naming.brand), namePart(naming.audience), namePart(naming.asset), namePart(naming.vvpm)].filter(Boolean).join('-') || 'banners';
 }
 
-
 module.exports = {
   EASINGS: EASINGS,
   EASE_LABELS: EASE_LABELS,
@@ -669,7 +663,6 @@ module.exports = {
   MOTION_PRESETS: MOTION_PRESETS,
   CHANNELS: CHANNELS,
   channelId: channelId,
-  sizeLimit: sizeLimit,
   MIME: MIME,
   timeline: timeline,
   sceneStarts: sceneStarts,

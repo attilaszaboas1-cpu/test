@@ -8,11 +8,10 @@
  *   pkg:      package settings { channel, exits:[{name,url}], exclude }
  *   included: banners that will be exported [{ id, width, height, name }]
  *   zipSizes: { [bannerId]: { bytes } | { error } }            measured zips
- *   sizeLimit(w, h) → bytes
  *   checks:   { [bannerId]: { audit:{clickTag,targets,hardcoded}, staticBytes?, staticError? } }
  *   namingMissing(naming) → [missing field labels]
  * }
- * Export issues carry the pharma rule they belong to (rule: 'size' | 'static' |
+ * Export issues carry the pharma rule they belong to (rule: 'static' |
  * 'clicktag' | 'naming'), so the Export step can show each rule with its result.
  * Each issue: { text, fix, level }. fix names the UI action that resolves it; level 'error'
  * blocks the download, 'warning' is shown but doesn't block.
@@ -27,10 +26,6 @@ const URL_RE = /^https?:\/\/[^\s/?#]+\.[^\s/?#]+(\S*)$/i;
 
 function validUrl(url) {
   return URL_RE.test(String(url || '').trim());
-}
-
-function kb(bytes) {
-  return Math.round(bytes / 1000) + ' KB';
 }
 
 function layerIssues(ctx) {
@@ -64,10 +59,7 @@ function exportIssues(input) {
   input.included.forEach((b) => {
     const z = input.zipSizes[b.id];
     const label = b.width + '×' + b.height;
-    if (z && z.error) issues.push({ text: label + ' could not be exported: ' + z.error, fix: 'focus-sizes', level: 'error', rule: 'size' });
-    else if (z && z.bytes > input.sizeLimit(b.width, b.height)) {
-      issues.push({ text: label + ' is ' + kb(z.bytes) + ', over the ' + kb(input.sizeLimit(b.width, b.height)) + ' limit', fix: 'focus-sizes', level: 'warning', rule: 'size' });
-    }
+    if (z && z.error) issues.push({ text: label + ' could not be exported: ' + z.error, fix: 'focus-sizes', level: 'error' });
     const c = input.checks && input.checks[b.id];
     if (!c) return;
     if (c.staticError) issues.push({ text: label + ': the static backup could not be made: ' + c.staticError, fix: 'focus-sizes', level: 'error', rule: 'static' });
@@ -114,7 +106,6 @@ function blockers(status) {
  * → [{ id, label, state: 'ok' | 'warning' | 'error' | 'pending', issues }]
  */
 const PHARMA_RULES = [
-  { id: 'size', label: 'Zip weight: 150 KB, 200 KB for 300×600' },
   { id: 'static', label: 'Static backup image from the last frame' },
   { id: 'clicktag', label: 'clickTag only, no target attributes' },
   { id: 'naming', label: 'File names: Brand-Audience-AssetName-HTML5|Static-VVPM-WxH' }

@@ -219,11 +219,6 @@ test('hidden Xandr build still works', () => {
   assert.match(xandr.html, /APPNEXUS\.getClickTag\(\)/);
 });
 
-test('size limits: 150 KB, 200 KB for 300x600', () => {
-  assert.strictEqual(G.sizeLimit(300, 250), 150000);
-  assert.strictEqual(G.sizeLimit(728, 90), 150000);
-  assert.strictEqual(G.sizeLimit(300, 600), 200000);
-});
 
 test('a packaged banner zip passes unzip -t', async (t) => {
   const { execFileSync } = require('node:child_process');

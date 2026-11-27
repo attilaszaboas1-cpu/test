@@ -43,7 +43,7 @@ The steps show their state: a ✓ when complete, and a badge with the number of 
 
 ### 3 · Export
 
-- A checklist at the top lists what's still missing, each with a **Fix** link. Without a channel or a size, **Download** stays disabled. A missing or malformed URL and sizes over the limit are warnings that don't block.
+- A checklist at the top lists what's still missing, each with a **Fix** link. Without a channel, a size or the file names, **Download** stays disabled. A missing or malformed URL is a warning that doesn't block.
 - **Channel**:
 
   | Channel | Click-through implementation |
@@ -56,7 +56,7 @@ The steps show their state: a ✓ when complete, and a badge with the number of 
 
   A Xandr build (`APPNEXUS.getClickTag()`) is still in the generator but hidden from the menu.
 - **Click-through**: the main exit URL, plus extra exits for single layers.
-- **Sizes**: each banner frame with layers in it, with its **zipped weight** against the upload limit: 150 KB, or 200 KB for 300×600 (1 KB = 1000 bytes). The weight turns red when over.
+- **Sizes**: each banner frame with layers in it, with its zipped HTML5 weight for reference (1 KB = 1000 bytes; there is no limit check).
 - **Options**: compress images (opaque images are re-encoded as JPG when that's smaller), and a 1 px border with its colour.
 - **File names**: Brand, Audience, Asset name and VVPM code. Spaces and characters that aren't allowed in file names are removed. An example of the resulting names is shown under the fields.
 - **Preview all** plays every size side by side. **Download** gives you one package, `Brand-Audience-AssetName-VVPM.zip`. For each size it holds the upload-ready HTML5 zip (deflate-compressed) and its static backup JPG.
@@ -67,7 +67,6 @@ The Export step checks every included size against these rules and lists them wi
 
 | Rule | What the plugin does |
 |---|---|
-| Size limit: 150 KB per banner, 200 KB for 300×600 | Shows the zipped HTML5 weight of each size against its limit (1 KB = 1000 bytes) and warns when it's over. The static backup isn't counted, because it's a separate file. |
 | Static backup for every animated banner | Draws the last frame automatically (background, every layer shown in the last frame at rest, masks, motion end points, border) as a 1x JPG, and puts it in the package next to the HTML5 zip. |
 | clickTag only, no target attributes | Checks every built `index.html`: no `target` attributes (an error), no landing URLs written in directly instead of through clickTag (an error), and warns for channels whose exits don't use clickTag (GWD uses `Enabler.exit`). The HTML5, WPPP and BAN builds pass. |
 | Zip naming: `Brand-Audience-AssetName-HTML5\|Static-VVPMcode-WIDTHxHEIGHT` | Names files from the four fields, for example `AccuChek-HCP-SmartGuideLaunch-HTML5-MC-12345-300x250.zip` and `…-Static-MC-12345-300x250.jpg`. Download stays disabled until all four fields are filled in. |

@@ -1,7 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const Steps = require('../src/steps');
-const { sizeLimit } = require('../src/generator');
 
 const el = (id, scenes) => ({ id, name: id, scenes: scenes.map((on) => ({ on })) });
 function input(over) {
@@ -10,8 +9,7 @@ function input(over) {
     ctx,
     pkg: { channel: 'html5', exits: [{ name: 'Main exit', url: 'https://www.example.com/x' }], exclude: {} },
     included: [{ id: 'b1', width: 300, height: 250 }, { id: 'b2', width: 300, height: 600 }],
-    zipSizes: { b1: { bytes: 90000 }, b2: { bytes: 180000 } },
-    sizeLimit
+    zipSizes: { b1: { bytes: 90000 }, b2: { bytes: 180000 } }
   }, over);
 }
 const byId = (st) => Object.fromEntries(st.map((s) => [s.id, s]));
@@ -58,10 +56,9 @@ test('export issues: channel, URLs, sizes', () => {
   assert.match(Steps.stepStatus(input({ included: [] }))[2].issues[0].text, /Include at least one size/);
 });
 
-test('size limits: 150 KB, 200 KB for 300x600, export errors block', () => {
-  let st = Steps.stepStatus(input({ zipSizes: { b1: { bytes: 151000 }, b2: { bytes: 199000 } } }));
-  assert.deepStrictEqual(st[2].issues.map((x) => x.text), ['300×250 is 151 KB, over the 150 KB limit']);
-  assert.strictEqual(st[2].issues[0].level, 'warning');
+test('zip weight is not limited; export errors block', () => {
+  let st = Steps.stepStatus(input({ zipSizes: { b1: { bytes: 900000 }, b2: { bytes: 2000000 } } }));
+  assert.deepStrictEqual(Steps.allIssues(st), [], 'heavy zips are not flagged');
   st = Steps.stepStatus(input({ zipSizes: { b1: { bytes: 1000 }, b2: { error: 'boom' } } }));
   assert.deepStrictEqual(Steps.blockers(st).map((x) => x.text), ['300×600 could not be exported: boom']);
 });
@@ -83,8 +80,8 @@ const G = require('../src/generator');
 test('pharma rules all pass for a compliant package', () => {
   const st = Steps.stepStatus(pharma());
   assert.deepStrictEqual(Steps.allIssues(st), []);
-  assert.deepStrictEqual(Steps.pharmaChecks(st, true).map((r) => r.id + ':' + r.state), ['size:ok', 'static:ok', 'clicktag:ok', 'naming:ok']);
-  assert.deepStrictEqual(Steps.pharmaChecks(st, false).map((r) => r.state), ['pending', 'pending', 'pending', 'ok'], 'unmeasured rules are pending');
+  assert.deepStrictEqual(Steps.pharmaChecks(st, true).map((r) => r.id + ':' + r.state), ['static:ok', 'clicktag:ok', 'naming:ok']);
+  assert.deepStrictEqual(Steps.pharmaChecks(st, false).map((r) => r.state), ['pending', 'pending', 'ok'], 'unmeasured rules are pending');
 });
 
 test('pharma rule failures', () => {
@@ -94,7 +91,7 @@ test('pharma rule failures', () => {
   };
   const st = Steps.stepStatus(pharma({ checks, zipSizes: { b1: { bytes: 160000 }, b2: { bytes: 100 } }, pkg: { channel: 'html5', exits: [{ url: 'https://www.example.com' }], exclude: {}, naming: { brand: 'A' } } }));
   const rules = Object.fromEntries(Steps.pharmaChecks(st, true).map((r) => [r.id, r]));
-  assert.strictEqual(rules.size.state, 'warning');
+  assert.strictEqual(rules.size, undefined, 'there is no size limit rule');
   assert.strictEqual(rules.length, undefined, 'there is no animation length rule');
   assert.ok(!Steps.allIssues(st).some((i) => /ISI|animates for|loops forever/.test(i.text)), 'long or looping banners are not flagged');
   assert.strictEqual(rules.static.state, 'error');

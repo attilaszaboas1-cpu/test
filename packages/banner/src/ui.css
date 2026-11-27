@@ -132,7 +132,6 @@ input.invalid { border-color: var(--text-danger) !important; }
 .size-row .dim { font-weight: var(--w-strong); font-variant-numeric: tabular-nums; min-width: 60px; }
 .size-row .name { flex: 1; min-width: 0; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .zip-size { font-variant-numeric: tabular-nums; white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
-.zip-size.ok { color: var(--text-success); }
 .zip-size.over { color: var(--text-danger); font-weight: var(--w-strong); }
 .zip-size .spinner { width: 12px; height: 12px; border-width: 1.5px; }
 .color-input { display: flex; align-items: center; gap: var(--s1); }

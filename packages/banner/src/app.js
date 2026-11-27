@@ -181,7 +181,6 @@
       pkg: S.pkg,
       included: includedBanners(),
       zipSizes: S.zipSizes,
-      sizeLimit: G.sizeLimit,
       checks: S.checks,
       namingMissing: G.namingMissing
     });
@@ -916,16 +915,12 @@
 
   function zipSizeHtml(b) {
     const z = S.zipSizes[b.id];
-    const limit = G.sizeLimit(b.width, b.height);
-    const lim = kb(limit).replace('.0 KB', ' KB');
     if (S.pkg.exclude[b.id]) return '<span class="zip-size muted" data-zipsize="' + esc(b.id) + '">Not included</span>';
     if (z && z.error) return '<span class="zip-size over" data-zipsize="' + esc(b.id) + '" data-tip="' + esc(z.error) + '">' + icon('error') + 'Export failed</span>';
     if (z && z.bytes) {
-      const over = z.bytes > limit;
       const c = S.checks[b.id];
-      const tip = 'HTML5 zip' + (S.pkg.compress ? ', images compressed' : '') + '. Limit ' + lim + '.' + (c && c.staticBytes ? ' Static backup: ' + kb(c.staticBytes) + ' JPG.' : '');
-      return '<span class="zip-size ' + (over ? 'over' : 'ok') + '" data-zipsize="' + esc(b.id) + '" data-tip="' + esc(tip) + '">' +
-        (over ? icon('warning') : '') + kb(z.bytes) + ' / ' + lim + '</span>';
+      const tip = 'Zipped HTML5 size' + (S.pkg.compress ? ', images compressed' : '') + '.' + (c && c.staticBytes ? ' Static backup: ' + kb(c.staticBytes) + ' JPG.' : '');
+      return '<span class="zip-size muted" data-zipsize="' + esc(b.id) + '" data-tip="' + esc(tip) + '">' + kb(z.bytes) + '</span>';
     }
     return '<span class="zip-size muted" data-zipsize="' + esc(b.id) + '"><span class="spinner"></span>Measuring…</span>';
   }
@@ -934,8 +929,8 @@
   function checklistHtml() {
     const all = Steps.allIssues(status());
     // Pharma rule problems are listed under "Pharma checks"; here they're summarised in one line.
-    const ruled = all.filter((i) => i.rule && i.rule !== 'size');
-    const issues = all.filter((i) => !i.rule || i.rule === 'size');
+    const ruled = all.filter((i) => i.rule);
+    const issues = all.filter((i) => !i.rule);
     const errors = all.filter((i) => i.level === 'error');
     if (ruled.length) issues.push({ text: ruled.length === 1 ? '1 pharma check needs attention' : ruled.length + ' pharma checks need attention', fix: 'focus-pharma', level: ruled.some((i) => i.level === 'error') ? 'error' : 'warning' });
     const n = includedBanners().length;
@@ -992,7 +987,7 @@
             (i === 0 ? '<span></span>' : '<button class="icon-btn secondary" data-act="remove-exit" data-tip="Remove exit">' + icon('minus') + '</button>') + '</div>';
         }).join('') +
         (p.exits.length > 1 ? '<div class="muted" style="margin-top:8px">Link a layer to an exit in Animate › Click & export.</div>' : '') + '</div>' +
-      '<div class="section" id="sizesSection"><div class="section-head"><h3>Sizes</h3><span class="muted">Zipped size / limit</span></div><div class="sizes">' +
+      '<div class="section" id="sizesSection"><div class="section-head"><h3>Sizes</h3><span class="muted">Zipped size</span></div><div class="sizes">' +
         (sizes.length
           ? sizes.map((b) => '<label class="size-row"><input type="checkbox" data-size="' + esc(b.id) + '"' + (p.exclude[b.id] ? '' : ' checked') + '>' +
               '<span class="dim">' + b.width + '×' + b.height + '</span><span class="name">' + esc(b.name) + '</span>' + zipSizeHtml(b) + '</label>').join('')
@@ -1114,7 +1109,6 @@
     renderExportFoot();
     try {
       const files = [];
-      const over = [];
       const naming = S.pkg.naming;
       for (const b of list) {
         $('downloadLabel').textContent = 'Packaging ' + b.width + '×' + b.height + '…';
@@ -1123,7 +1117,6 @@
         const still = await buildStatic(r);
         S.zipSizes[b.id] = { bytes: data.length };
         S.checks[b.id] = Object.assign(pharmaCheck(r), { staticBytes: still.bytes.length });
-        if (data.length > G.sizeLimit(b.width, b.height)) over.push(b.width + '×' + b.height + ' (' + kb(data.length) + ')');
         const w = r.ctx.info.width, h = r.ctx.info.height;
         files.push({ name: G.assetName(naming, 'HTML5', w, h) + '.zip', data: data });
         files.push({ name: G.assetName(naming, 'Static', w, h) + '.' + still.ext, data: still.bytes });
@@ -1131,8 +1124,7 @@
       // One package: an HTML5 zip and a static backup per size.
       download(await Zip.makeZip(files, { store: true }), G.packageName(naming) + '.zip');
       call('notify', { text: 'Packaged ' + plural(list.length, 'banner') + ' with static backups for ' + G.CHANNELS[channel].label });
-      if (over.length) toast('Downloaded, but over the size limit: ' + over.join(', ') + '.', 'danger');
-      else toast('Downloaded ' + plural(list.length, 'banner') + ' with static backups.');
+      toast('Downloaded ' + plural(list.length, 'banner') + ' with static backups.');
     } catch (e) {
       toast('Export failed: ' + (e && e.message || e), 'danger', { label: 'Try again', act: 'download-all' });
     } finally {
