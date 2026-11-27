@@ -228,7 +228,8 @@
   }
 
   function closeMenus(except) {
-    ['frameMenu', 'moreMenu'].forEach((id) => { if (id !== except) $(id).hidden = true; });
+    ['frameMenu', 'moreMenu', 'channelMenu'].forEach((id) => { if (id !== except && $(id)) $(id).hidden = true; });
+    if ($('channelBtn')) $('channelBtn').setAttribute('aria-expanded', String(except === 'channelMenu' && !$('channelMenu').hidden));
     $('frameBtn').classList.toggle('open', except === 'frameMenu' && !$('frameMenu').hidden);
   }
 
@@ -970,14 +971,15 @@
     $('exportBody').innerHTML =
       '<div class="section" id="checkSection">' + checklistHtml() + '</div>' +
       '<div class="section" id="pharmaSection">' + pharmaHtml() + '</div>' +
-      '<div class="section" id="namingSection"><div class="section-head"><h3>File names</h3></div><div class="grid2">' +
-        G.NAMING_FIELDS.map((f) => field(f.label, '<input type="text" data-nf="' + f.key + '" value="' + esc(p.naming[f.key] || '') + '" placeholder="e.g. ' + esc(f.placeholder) + '"' +
-          (G.namePart(p.naming[f.key]) ? '' : ' class="required"') + '>')).join('') + '</div>' +
-        '<div class="name-preview" id="namePreview">' + namePreviewHtml() + '</div></div>' +
       '<div class="section" id="channelSection"><div class="section-head"><h3>Channel</h3></div>' +
-        '<select id="channelSelect" style="width:100%" aria-label="Channel"><option value=""' + (p.channel ? '' : ' selected') + ' disabled>Choose where the banners will run…</option>' +
-        Object.keys(visibleChannels).map((k) => '<option value="' + k + '"' + (p.channel === k ? ' selected' : '') + '>' + esc(G.CHANNELS[k].label) + '</option>').join('') + '</select>' +
-        (ch ? '<div class="channel-desc">' + esc(ch.desc) + '</div>' : '') + '</div>' +
+        '<div class="channel-pick">' +
+          '<button class="channel-btn" id="channelBtn" data-act="toggle-channels" aria-haspopup="listbox" aria-expanded="false" aria-label="Channel">' +
+            (ch ? '<span class="opt"><b>' + esc(ch.label) + '</b><small>' + esc(ch.desc) + '</small></span>' : '<span class="opt placeholder">Choose where the banners will run…</span>') +
+            icon('chevron-down') + '</button>' +
+          '<div class="listbox" id="channelMenu" role="listbox" aria-label="Channel" hidden>' +
+            Object.keys(visibleChannels).map((k) => '<button class="option' + (p.channel === k ? ' on' : '') + '" role="option" aria-selected="' + (p.channel === k) + '" data-act="set-channel" data-channel="' + k + '">' +
+              '<span class="opt"><b>' + esc(G.CHANNELS[k].label) + '</b><small>' + esc(G.CHANNELS[k].desc) + '</small></span>' + (p.channel === k ? icon('check') : '') + '</button>').join('') +
+          '</div></div></div>' +
       '<div class="section" id="exitsSection"><div class="section-head"><h3>Click-through</h3><button class="icon-btn" data-act="add-exit" data-tip="Add an exit for a single layer">' + icon('plus') + '</button></div>' +
         p.exits.map((x, i) => {
           const bad = x.url && !Steps.validUrl(x.url);
@@ -987,6 +989,10 @@
             (i === 0 ? '<span></span>' : '<button class="icon-btn secondary" data-act="remove-exit" data-tip="Remove exit">' + icon('minus') + '</button>') + '</div>';
         }).join('') +
         (p.exits.length > 1 ? '<div class="muted" style="margin-top:8px">Link a layer to an exit in Animate › Click & export.</div>' : '') + '</div>' +
+      '<div class="section" id="namingSection"><div class="section-head"><h3>File names</h3></div><div class="grid2">' +
+        G.NAMING_FIELDS.map((f) => field(f.label, '<input type="text" data-nf="' + f.key + '" value="' + esc(p.naming[f.key] || '') + '" placeholder="e.g. ' + esc(f.placeholder) + '"' +
+          (G.namePart(p.naming[f.key]) ? '' : ' class="required"') + '>')).join('') + '</div>' +
+        '<div class="name-preview" id="namePreview">' + namePreviewHtml() + '</div></div>' +
       '<div class="section" id="sizesSection"><div class="section-head"><h3>Sizes</h3><span class="muted">Zipped size</span></div><div class="sizes">' +
         (sizes.length
           ? sizes.map((b) => '<label class="size-row"><input type="checkbox" data-size="' + esc(b.id) + '"' + (p.exclude[b.id] ? '' : ' checked') + '>' +
@@ -1229,6 +1235,7 @@
   }
 
   function closeTopLayer() {
+    if ($('channelMenu') && !$('channelMenu').hidden) { closeMenus(); $('channelBtn').focus(); return true; }
     if (!$('frameMenu').hidden || !$('moreMenu').hidden) { closeMenus(); return true; }
     for (const id of ['keysSheet', 'syncSheet', 'previewSheet']) {
       if (!$(id).hidden) { ACTIONS[{ keysSheet: 'close-keys', syncSheet: 'close-sync', previewSheet: 'close-preview' }[id]](); return true; }
@@ -1282,7 +1289,30 @@
     'go-layers': () => goStep('layers'),
     'go-animate': () => goStep('animate'),
     'go-export': () => goStep('export'),
-    'focus-channel': () => focusIn('channelSection', 'select'),
+    'focus-channel': () => focusIn('channelSection', '#channelBtn'),
+    'toggle-channels': () => {
+      const menu = $('channelMenu');
+      menu.hidden = !menu.hidden;
+      closeMenus('channelMenu');
+      if (!menu.hidden) {
+        // Fixed position so the list isn't clipped by the scrolling panel.
+        const r = $('channelBtn').getBoundingClientRect();
+        menu.style.left = r.left + 'px';
+        menu.style.width = r.width + 'px';
+        menu.style.maxHeight = 'none';
+        const h = menu.scrollHeight;
+        const below = window.innerHeight - r.bottom - 12;
+        const above = r.top - 12;
+        // Open downwards when the whole list fits, otherwise upwards (like the reference).
+        const up = h > below && above > below;
+        const room = up ? above : below;
+        menu.style.maxHeight = Math.min(h, room) + 'px';
+        menu.style.top = (up ? r.top - 4 - Math.min(h, room) : r.bottom + 4) + 'px';
+        const cur = menu.querySelector('.option.on') || menu.querySelector('.option');
+        if (cur) cur.focus();
+      }
+    },
+    'set-channel': (t) => { S.pkg.channel = t.dataset.channel; closeMenus(); persistPkg(); renderExport(); schedulePreview(); scheduleMeasure(0); $('channelBtn').focus(); },
     'focus-exit': () => focusIn('exitsSection', 'input.invalid, input[type=url]'),
     'focus-sizes': () => focusIn('sizesSection', 'input'),
     'focus-pharma': () => focusIn('pharmaSection', 'button.link'),
@@ -1522,7 +1552,6 @@
     if (t.id === 'scrubber') { S.scrubbing = false; return; }
     if (t.id === 'playsSelect') { sess().plays = Number(t.value); persist(); renderTimeline(); schedulePreview(); return; }
     if (t.id === 'endOnLast') { sess().endOnLast = t.checked; persist(); schedulePreview(); return; }
-    if (t.id === 'channelSelect') { S.pkg.channel = t.value; persistPkg(); renderExport(); schedulePreview(); scheduleMeasure(0); return; }
     if (t.dataset.f && t.tagName === 'SELECT') { renderElements(); return; }
     if (t.dataset.f && t.type === 'number' && t.value === '') { renderElements(); return; }
     if (t.dataset.sceneDur !== undefined) { renderTimeline(); return; }
@@ -1582,10 +1611,20 @@
 
   document.addEventListener('click', (e) => {
     const t = e.target.closest('[data-act]');
-    if (!e.target.closest('.pop-anchor')) closeMenus();
+    if (!e.target.closest('.pop-anchor') && !e.target.closest('.channel-pick')) closeMenus();
     if (!t || t.disabled) return;
     const fn = ACTIONS[t.dataset.act];
     if (fn) fn(t, e);
+  });
+  // Arrow keys move through the channel list.
+  document.addEventListener('keydown', (e) => {
+    const list = e.target.closest && e.target.closest('#channelMenu');
+    if (!list || (e.key !== 'ArrowDown' && e.key !== 'ArrowUp' && e.key !== 'Home' && e.key !== 'End')) return;
+    const opts = Array.from(list.querySelectorAll('.option'));
+    const i = opts.indexOf(e.target);
+    const next = e.key === 'Home' ? 0 : e.key === 'End' ? opts.length - 1 : Math.max(0, Math.min(opts.length - 1, i + (e.key === 'ArrowDown' ? 1 : -1)));
+    opts[next].focus();
+    e.preventDefault();
   });
   document.addEventListener('input', onInput);
   document.addEventListener('change', onChange);

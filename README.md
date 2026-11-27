@@ -44,7 +44,7 @@ The steps show their state: a ✓ when complete, and a badge with the number of 
 ### 3 · Export
 
 - A checklist at the top lists what's still missing, each with a **Fix** link. Without a channel, a size or the file names, **Download** stays disabled. A missing or malformed URL is a warning that doesn't block.
-- **Channel**:
+- **Channel**: a dropdown that lists every channel with a short description of what it builds:
 
   | Channel | Click-through implementation |
   |---|---|
