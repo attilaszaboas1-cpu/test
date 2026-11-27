@@ -1,6 +1,6 @@
 {
-  "name": "HTML5 Banner Animator",
-  "id": "html5-banner-animator",
+  "name": "Banner Automation",
+  "id": "banner-automation",
   "api": "1.0.0",
   "main": "code.js",
   "ui": "ui.html",

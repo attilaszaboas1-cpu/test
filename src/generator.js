@@ -98,12 +98,29 @@
     'custom': { label: 'Custom' }
   };
 
+  // Menu order follows the reference tool. `build` is the click-through implementation
+  // a channel uses; WPPP and BAN share the HTML5 build for now so they can diverge later.
+  // Hidden channels still build but are left out of the Channel menu.
   const CHANNELS = {
-    'html5': { label: 'HTML5', desc: 'Standard clickTag — Google Ads, DV360, most DSPs' },
-    'gwd': { label: 'GWD', desc: 'Google Studio / CM360 — Enabler.js exits' },
-    'adform': { label: 'Adform', desc: 'Adform DHTML clickTAG + manifest.json' },
-    'xandr': { label: 'Xandr', desc: 'Xandr (AppNexus) HTML5 library click tag' }
+    'gwd': { label: 'GWD', build: 'gwd', desc: 'Google Studio / CM360 — Enabler.js exits' },
+    'html5': { label: 'HTML5', build: 'html5', desc: 'Standard clickTag — Google Ads, DV360, most DSPs' },
+    'ae': { label: 'AE', build: 'adform', desc: 'Adform — DHTML clickTAG + manifest.json' },
+    'wppp': { label: 'WPPP', build: 'html5', desc: 'clickTag (same as HTML5 for now)' },
+    'ban': { label: 'BAN', build: 'html5', desc: 'clickTag (same as HTML5 for now)' },
+    'xandr': { label: 'Xandr', build: 'xandr', hidden: true, desc: 'Xandr (AppNexus) HTML5 library click tag' }
   };
+  // Channel ids saved by earlier versions.
+  const CHANNEL_ALIASES = { 'adform': 'ae' };
+
+  function channelId(id) {
+    const k = CHANNEL_ALIASES[id] || id;
+    return CHANNELS[k] ? k : '';
+  }
+
+  // Upload limit for the zipped banner, in bytes (1 KB = 1000 bytes, the stricter reading).
+  function sizeLimit(width, height) {
+    return Number(width) === 300 && Number(height) === 600 ? 200000 : 150000;
+  }
 
   const DIRECTIONS = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] };
   const WIPES = {
@@ -392,12 +409,27 @@
     const files = [];
     let root = '<div id="banner" onclick="return bannerExit(event,0)">';
     let rootClose = '</div>';
+    let htmlClass = '';
+    const build = channel === 'preview' ? 'preview' : (CHANNELS[channelId(channel)] || CHANNELS.html5).build;
 
-    switch (channel) {
+    switch (build) {
       case 'gwd':
+        // Exits are wired once Enabler reports INIT; the animation is held (paused on
+        // frame 0) until the host page has loaded (PAGE_LOADED), Studio's polite-load
+        // pattern. Opened without Enabler (e.g. locally) it plays at once and the exits
+        // fall back to window.open.
+        htmlClass = 'ba-hold';
         lines.push('<script src="https://s0.2mdn.net/ads/studio/Enabler.js"><\/script>');
         lines.push('<script>var EXITS=' + JSON.stringify(exits.map(function (x, i) { return { name: x.name || ('Exit ' + (i + 1)), url: x.url || '' }; })).replace(/</g, '\\u003c') + ';' +
-          'function bannerExit(e,i){' + EXIT_PREAMBLE + 'var x=EXITS[i]||EXITS[0];Enabler.exit(x.name,x.url);return false;}<\/script>');
+          'var exitsReady=false;' +
+          'function startBanner(){document.documentElement.classList.remove("ba-hold");}' +
+          'function onPageLoaded(){startBanner();}' +
+          'function onEnablerInit(){exitsReady=true;' +
+            'if(Enabler.isPageLoaded())onPageLoaded();else Enabler.addEventListener(studio.events.StudioEvent.PAGE_LOADED,onPageLoaded);}' +
+          'if(window.Enabler){if(Enabler.isInitialized())onEnablerInit();else Enabler.addEventListener(studio.events.StudioEvent.INIT,onEnablerInit);}' +
+          'else{startBanner();}' +
+          'function bannerExit(e,i){' + EXIT_PREAMBLE + 'var x=EXITS[i]||EXITS[0];' +
+            'if(window.Enabler){if(exitsReady)Enabler.exit(x.name,x.url);}else if(x.url){window.open(x.url,"_blank");}return false;}<\/script>');
         break;
       case 'adform': {
         lines.push('<script>document.write(\'<script src="\'+(window.API_URL||\'https://s1.adform.net/banners/scripts/rmb/Adform.DHTML.js?bv=\'+Math.random())+\'"><\\/script>\');<\/script>');
@@ -428,7 +460,7 @@
         root = '<a id="banner" href="javascript:window.open(window.clickTag)">';
         rootClose = '</a>';
     }
-    return { head: lines.join('\n'), root: root, rootClose: rootClose, files: files };
+    return { head: lines.join('\n'), root: root, rootClose: rootClose, files: files, htmlClass: htmlClass };
   }
 
   function previewControls(playLen) {
@@ -520,6 +552,9 @@
 
     const channel = opts.preview ? 'preview' : (opts.channel || 'html5');
     const ch = channelCode(channel, exits, opts.name, W, H);
+    const htmlClasses = [];
+    if (opts.preview && opts.outline) htmlClasses.push('outline');
+    if (ch.htmlClass) htmlClasses.push(ch.htmlClass);
     const radius = assets.radius ? 'border-radius:' + assets.radius + 'px;' : '';
     const border = pkg.border !== false
       ? '<div id="border" style="border-color:' + escapeHtml(pkg.borderColor || '#000000') + '"></div>'
@@ -527,7 +562,7 @@
 
     const html = [
       '<!DOCTYPE html>',
-      '<html lang="en"' + (opts.preview && opts.outline ? ' class="outline"' : '') + '>',
+      '<html lang="en"' + (htmlClasses.length ? ' class="' + htmlClasses.join(' ') + '"' : '') + '>',
       '<head>',
       '<meta charset="utf-8">',
       '<meta name="ad.size" content="width=' + W + ',height=' + H + '">',
@@ -541,6 +576,7 @@
       '#banner .l{will-change:transform,opacity}',
       '#banner .m,#banner .e,#banner img{display:block;width:100%;height:100%}',
       '#border{position:absolute;left:0;top:0;width:100%;height:100%;border:1px solid #000;pointer-events:none;' + radius + '}',
+      ch.htmlClass === 'ba-hold' ? '.ba-hold #banner *{animation-play-state:paused!important}' : '',
       '.outline #banner .l{outline:1px dashed rgba(236,72,153,.9);outline-offset:-1px}',
       css.join('\n'),
       keyframes.join('\n'),
@@ -563,7 +599,9 @@
   }
 
   // ---------------------------------------------------------------------------
-  // Minimal ZIP writer (STORE — images are already compressed).
+  // ZIP writer. Each file is deflated (method 8) when that makes it smaller and
+  // stored (method 0) otherwise — PNG/JPG are already compressed and rarely shrink.
+  // Deflate uses the platform CompressionStream('deflate-raw') (Chromium/Figma, Node 18+).
   // ---------------------------------------------------------------------------
   const CRC_TABLE = (function () {
     const t = new Uint32Array(256);
@@ -581,7 +619,19 @@
     return (c ^ 0xFFFFFFFF) >>> 0;
   }
 
-  function makeZip(files) {
+  async function deflateRaw(bytes) {
+    if (typeof CompressionStream !== 'function' || typeof Response !== 'function' || typeof Blob !== 'function') return null;
+    try {
+      const stream = new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'));
+      return new Uint8Array(await new Response(stream).arrayBuffer());
+    } catch (e) {
+      return null; // deflate-raw unsupported: store instead
+    }
+  }
+
+  // files: [{ name, data: string|Uint8Array }]. opts.store forces method 0.
+  async function makeZip(files, opts) {
+    const store = !!(opts && opts.store);
     const enc = new TextEncoder();
     const now = new Date();
     const time = (now.getHours() << 11) | (now.getMinutes() << 5) | (now.getSeconds() >> 1);
@@ -590,20 +640,25 @@
     const central = [];
     let offset = 0;
 
-    files.forEach(function (f) {
+    for (const f of files) {
       const data = typeof f.data === 'string' ? enc.encode(f.data) : f.data;
       const name = enc.encode(f.name);
       const crc = crc32(data);
+      const packed = store ? null : await deflateRaw(data);
+      const deflated = !!packed && packed.length < data.length;
+      const body = deflated ? packed : data;
+      const method = deflated ? 8 : 0;
 
       const local = new Uint8Array(30 + name.length);
       const lv = new DataView(local.buffer);
       lv.setUint32(0, 0x04034b50, true);
       lv.setUint16(4, 20, true);
       lv.setUint16(6, 0x0800, true);
+      lv.setUint16(8, method, true);
       lv.setUint16(10, time, true);
       lv.setUint16(12, date, true);
       lv.setUint32(14, crc, true);
-      lv.setUint32(18, data.length, true);
+      lv.setUint32(18, body.length, true);
       lv.setUint32(22, data.length, true);
       lv.setUint16(26, name.length, true);
       local.set(name, 30);
@@ -614,19 +669,20 @@
       cv.setUint16(4, 20, true);
       cv.setUint16(6, 20, true);
       cv.setUint16(8, 0x0800, true);
+      cv.setUint16(10, method, true);
       cv.setUint16(12, time, true);
       cv.setUint16(14, date, true);
       cv.setUint32(16, crc, true);
-      cv.setUint32(20, data.length, true);
+      cv.setUint32(20, body.length, true);
       cv.setUint32(24, data.length, true);
       cv.setUint16(28, name.length, true);
       cv.setUint32(42, offset, true);
       cen.set(name, 46);
 
-      parts.push(local, data);
+      parts.push(local, body);
       central.push(cen);
-      offset += local.length + data.length;
-    });
+      offset += local.length + body.length;
+    }
 
     const cdSize = central.reduce(function (s, c) { return s + c.length; }, 0);
     const end = new Uint8Array(22);
@@ -652,6 +708,8 @@
     LOOP_EFFECTS: LOOP_EFFECTS,
     MOTION_PRESETS: MOTION_PRESETS,
     CHANNELS: CHANNELS,
+    channelId: channelId,
+    sizeLimit: sizeLimit,
     MIME: MIME,
     timeline: timeline,
     sceneStarts: sceneStarts,

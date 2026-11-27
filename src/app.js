@@ -122,6 +122,7 @@
     banners: [],
     ctx: null,
     pkg: defaultPackage(),
+    zipSizes: {},
     scene: 0,
     open: null,
     tab: 'loop',
@@ -890,17 +891,69 @@
       '</div>' +
       '<div class="sec"><div class="sec-title">' + icon('files') + 'Sizes</div><div class="size-list">' +
         (sizes.length
-          ? sizes.map((b) => '<label><input type="checkbox" class="cb" data-size="' + b.id + '"' + (p.exclude[b.id] ? '' : ' checked') + '>' + b.width + '×' + b.height + ' <span class="muted">' + esc(b.name) + ' · ' + b.elements + ' elements</span></label>').join('')
+          ? sizes.map((b) => '<label><input type="checkbox" class="cb" data-size="' + b.id + '"' + (p.exclude[b.id] ? '' : ' checked') + '>' + b.width + '×' + b.height + ' <span class="muted">' + esc(b.name) + ' · ' + b.elements + ' elements</span>' + zipSizeHtml(b) + '</label>').join('')
           : '<span class="muted">No banner on this page has elements yet.</span>') +
       '</div></div>';
     renderPackageFoot();
+  }
+
+  // ---- Zip weight per banner (what the ad server sees) ----
+  function kb(bytes) {
+    return (Math.round(bytes / 100) / 10).toFixed(1) + ' KB'; // 1 KB = 1000 bytes
+  }
+
+  function zipSizeHtml(b) {
+    const z = S.zipSizes[b.id];
+    const limit = G.sizeLimit(b.width, b.height);
+    let text = 'Measuring…', cls = 'muted', title = '';
+    if (z && z.error) { text = 'Size unknown'; cls = 'over'; title = z.error; }
+    else if (z && z.bytes) {
+      text = kb(z.bytes) + ' / ' + kb(limit).replace('.0 KB', ' KB');
+      cls = z.bytes > limit ? 'over' : 'ok';
+      title = 'Zipped size' + (S.pkg.channel ? ' for ' + G.CHANNELS[S.pkg.channel].label : ' (HTML5 build)') + (S.pkg.compress ? ', images compressed' : ', images not compressed');
+    }
+    return '<span class="zip-size ' + cls + '" data-zipsize="' + b.id + '" title="' + esc(title) + '">' + text + '</span>';
+  }
+
+  function updateZipSizes() {
+    packageBanners().forEach((b) => {
+      const span = document.querySelector('[data-zipsize="' + CSS.escape(b.id) + '"]');
+      if (span) span.outerHTML = zipSizeHtml(b);
+    });
+  }
+
+  let measureTimer = null;
+  let measureToken = 0;
+
+  function scheduleMeasure(delay) {
+    clearTimeout(measureTimer);
+    if ($('packageSheet').hidden) return;
+    measureTimer = setTimeout(measurePackage, delay === undefined ? 400 : delay);
+  }
+
+  async function measurePackage() {
+    const token = ++measureToken;
+    S.zipSizes = {};
+    updateZipSizes();
+    for (const b of packageBanners()) {
+      try {
+        const r = await buildPackageBanner(b.id, false);
+        const zip = await G.makeZip(r.out.files);
+        if (token !== measureToken) return;
+        S.zipSizes[b.id] = { bytes: zip.length };
+      } catch (e) {
+        if (token !== measureToken) return;
+        S.zipSizes[b.id] = { error: String(e && e.message || e) };
+      }
+      updateZipSizes();
+    }
   }
 
   function renderPackageFoot() {
     const p = S.pkg;
     const ch = G.CHANNELS[p.channel];
     $('channelLabel').textContent = ch ? ch.label : 'Channel';
-    $('channelMenu').innerHTML = Object.keys(G.CHANNELS).map((k) =>
+    $('channelMenu').innerHTML = Object.keys(G.CHANNELS).filter((k) => !G.CHANNELS[k].hidden || p.channel === k).map((k) =>
       '<button class="' + (p.channel === k ? 'on' : '') + '" data-act="set-channel" data-channel="' + k + '"><b>' + esc(G.CHANNELS[k].label) + '</b><small>' + esc(G.CHANNELS[k].desc) + '</small></button>').join('');
     const n = includedBanners().length;
     $('filesCount').textContent = n + ' file' + (n === 1 ? '' : 's');
@@ -940,15 +993,21 @@
     try {
       if (!S.pkg.exits[0].url) setStatus('Main exit URL is empty — the click-through will open a blank page.', true);
       const zips = [];
+      const over = [];
       for (const b of list) {
         $('filesCount').textContent = 'Packaging ' + b.width + '×' + b.height + '…';
         const r = await buildPackageBanner(b.id, false);
-        zips.push({ name: G.slug(r.ctx.info.name) + '_' + r.ctx.info.width + 'x' + r.ctx.info.height + '_' + channel + '.zip', data: G.makeZip(r.out.files) });
+        const data = await G.makeZip(r.out.files);
+        S.zipSizes[b.id] = { bytes: data.length };
+        if (data.length > G.sizeLimit(b.width, b.height)) over.push(b.width + '×' + b.height + ' (' + kb(data.length) + ')');
+        zips.push({ name: G.slug(r.ctx.info.name) + '_' + r.ctx.info.width + 'x' + r.ctx.info.height + '_' + channel + '.zip', data: data });
       }
+      updateZipSizes();
       if (zips.length === 1) download(zips[0].data, zips[0].name);
-      else download(G.makeZip(zips), 'banners_' + channel + '.zip');
+      else download(await G.makeZip(zips, { store: true }), 'banners_' + channel + '.zip');
       call('notify', { text: 'Packaged ' + zips.length + ' banner' + (zips.length > 1 ? 's' : '') + ' for ' + G.CHANNELS[channel].label });
-      if (S.pkg.exits[0].url) setStatus('Downloaded ' + zips.length + ' banner' + (zips.length > 1 ? 's' : '') + '.');
+      if (over.length) setStatus('Over the size limit: ' + over.join(', ') + '.', true);
+      else if (S.pkg.exits[0].url) setStatus('Downloaded ' + zips.length + ' banner' + (zips.length > 1 ? 's' : '') + '.');
     } catch (e) {
       showError(e);
     } finally {
@@ -1182,10 +1241,10 @@
     'bulk-delete': () => removeElements(Array.from(S.checkedEls)),
     'bulk-clear-els': () => { S.checkedEls.clear(); renderElements(); },
 
-    'open-package': () => { renderPackage(); $('packageSheet').hidden = false; },
+    'open-package': () => { renderPackage(); $('packageSheet').hidden = false; scheduleMeasure(0); },
     'close-package': () => { $('packageSheet').hidden = true; $('channelMenu').hidden = true; },
     'toggle-channel': () => { $('channelMenu').hidden = !$('channelMenu').hidden; },
-    'set-channel': (t) => { S.pkg.channel = t.dataset.channel; $('channelMenu').hidden = true; persistPkg(); renderPackageFoot(); schedulePreview(); },
+    'set-channel': (t) => { S.pkg.channel = t.dataset.channel; $('channelMenu').hidden = true; persistPkg(); renderPackageFoot(); schedulePreview(); scheduleMeasure(0); },
     'add-exit': () => { S.pkg.exits.push({ name: 'Exit ' + (S.pkg.exits.length + 1), url: '' }); persistPkg(); renderPackage(); },
     'remove-exit': (t) => {
       const i = Number(t.closest('[data-exit]').dataset.exit);
@@ -1270,11 +1329,13 @@
       if (t.dataset.pf === 'compress') Object.values(ctxs).forEach((c) => { c.cache.processed = {}; });
       persistPkg();
       schedulePreview(300);
+      scheduleMeasure();
       return;
     }
     if (t.dataset.exf) {
       S.pkg.exits[Number(t.closest('[data-exit]').dataset.exit)][t.dataset.exf] = t.value;
       persistPkg();
+      scheduleMeasure(800);
     }
   }
 
@@ -1366,6 +1427,7 @@
       const r = await call('init');
       S.banners = r.banners || [];
       S.pkg = merge(defaultPackage(), r.pkg);
+      S.pkg.channel = G.channelId(S.pkg.channel);
       if (!S.pkg.exits.length) S.pkg.exits = defaultPackage().exits;
       S.canvasSel = r.selection || [];
       const configured = S.banners.find((b) => b.elements > 0);

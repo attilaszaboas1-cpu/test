@@ -124,25 +124,175 @@ test('masked elements are wrapped in a mask container', () => {
   assert.doesNotMatch(unclipped.html, /class="k /);
 });
 
-test('channel adapters', () => {
-  const gwd = sampleBanner('gwd');
-  assert.match(gwd.html, /Enabler\.js/);
-  assert.match(gwd.html, /Enabler\.exit\(x\.name,x\.url\)/);
+// Script bodies of a banner, for checking the click-through wiring.
+const scripts = (html) => (html.match(/<script[^>]*>[\s\S]*?<\/script>/g) || []).join('\n');
 
-  const adform = sampleBanner('adform');
-  assert.match(adform.html, /Adform\.DHTML\.js/);
-  const manifest = adform.files.find((f) => f.name === 'manifest.json');
+test('channel menu matches the reference order and hides Xandr', () => {
+  const visible = Object.keys(G.CHANNELS).filter((k) => !G.CHANNELS[k].hidden).map((k) => G.CHANNELS[k].label);
+  assert.deepStrictEqual(visible, ['GWD', 'HTML5', 'AE', 'WPPP', 'BAN']);
+  assert.ok(G.CHANNELS.xandr.hidden);
+  assert.strictEqual(G.channelId('adform'), 'ae', 'old saved Adform packages map to AE');
+  assert.strictEqual(G.channelId('nope'), '');
+});
+
+test('GWD waits for Enabler INIT before exiting and holds the animation until PAGE_LOADED', () => {
+  const out = sampleBanner('gwd');
+  const js = scripts(out.html);
+  assert.match(out.html, /<html lang="en" class="ba-hold">/);
+  assert.match(out.html, /\.ba-hold #banner \*\{animation-play-state:paused!important\}/);
+  assert.match(js, /s0\.2mdn\.net\/ads\/studio\/Enabler\.js/);
+  assert.match(js, /Enabler\.isInitialized\(\)/);
+  assert.match(js, /studio\.events\.StudioEvent\.INIT/);
+  assert.match(js, /Enabler\.isPageLoaded\(\)/);
+  assert.match(js, /studio\.events\.StudioEvent\.PAGE_LOADED/);
+  assert.match(js, /if\(exitsReady\)Enabler\.exit\(x\.name,x\.url\)/);
+  assert.match(js, /"name":"CTA","url":"https:\/\/b.example"/);
+  assert.doesNotMatch(js, /clickTag/);
+});
+
+test('GWD exit wiring runs correctly against a fake Enabler', () => {
+  const vm = require('node:vm');
+  const js = scripts(sampleBanner('gwd').html).split('\n').filter((l) => !/src=/.test(l))
+    .map((l) => l.replace(/<\/?script[^>]*>/g, '')).join('\n');
+  const listeners = {};
+  const exits = [];
+  const classes = new Set(['ba-hold']);
+  const enabler = {
+    inited: false, loaded: false,
+    isInitialized() { return this.inited; },
+    isPageLoaded() { return this.loaded; },
+    addEventListener(ev, fn) { listeners[ev] = fn; },
+    exit(name, url) { exits.push([name, url]); }
+  };
+  const ctx = {
+    Enabler: enabler,
+    studio: { events: { StudioEvent: { INIT: 'init', PAGE_LOADED: 'page' } } },
+    document: { documentElement: { classList: { remove: (c) => classes.delete(c) } } },
+    window: null
+  };
+  ctx.window = ctx;
+  vm.runInNewContext(js + ';this.exitFn=bannerExit;', ctx);
+  const click = (i) => ctx.exitFn({ preventDefault() {}, stopPropagation() {} }, i);
+
+  click(1);
+  assert.deepStrictEqual(exits, [], 'no exit before INIT');
+  enabler.inited = true;
+  listeners.init();
+  assert.ok(classes.has('ba-hold'), 'still held until the page has loaded');
+  click(1);
+  assert.deepStrictEqual(exits, [['CTA', 'https://b.example']]);
+  listeners.page();
+  assert.ok(!classes.has('ba-hold'), 'animation starts on PAGE_LOADED');
+});
+
+test('AE uses the Adform DHTML build with a manifest', () => {
+  const ae = sampleBanner('ae');
+  const js = scripts(ae.html);
+  assert.match(js, /document\.write\('<script src="'\+\(window\.API_URL\|\|'https:\/\/s1\.adform\.net\/banners\/scripts\/rmb\/Adform\.DHTML\.js\?bv='\+Math\.random\(\)\)/);
+  assert.match(js, /dhtml\.getVar\(n,EXITS\[i\]\)/);
+  assert.match(js, /dhtml\.getVar\('landingPageTarget','_blank'\)/);
+  const manifest = ae.files.find((f) => f.name === 'manifest.json');
   assert.ok(manifest);
-  assert.deepStrictEqual(JSON.parse(manifest.data).clicktags, { clickTAG: 'https://a.example', clickTAG2: 'https://b.example' });
+  const m = JSON.parse(manifest.data);
+  assert.deepStrictEqual(m.clicktags, { clickTAG: 'https://a.example', clickTAG2: 'https://b.example' });
+  assert.strictEqual(m.width, '300');
+  assert.strictEqual(m.height, '250');
+  assert.strictEqual(m.source, 'index.html');
+  assert.strictEqual(sampleBanner('adform').html, ae.html, 'legacy "adform" id builds the same banner');
+});
 
+test('WPPP and BAN produce the HTML5 clickTag build', () => {
+  const html5 = sampleBanner('html5');
+  for (const ch of ['wppp', 'ban']) {
+    const out = sampleBanner(ch);
+    assert.strictEqual(out.html, html5.html, ch + ' html');
+    assert.deepStrictEqual(out.files.map((f) => f.name), html5.files.map((f) => f.name), ch + ' files');
+    assert.ok(!out.files.some((f) => f.name === 'manifest.json'));
+  }
+  assert.doesNotMatch(html5.html, /Enabler|Adform|APPNEXUS|ba-hold/);
+});
+
+test('hidden Xandr build still works', () => {
   const xandr = sampleBanner('xandr');
+  assert.match(xandr.html, /appnexus-html5-lib\.min\.js/);
   assert.match(xandr.html, /APPNEXUS\.getClickTag\(\)/);
 });
 
-test('makeZip writes a valid archive', () => {
-  const zip = G.makeZip([{ name: 'index.html', data: '<p>hi</p>' }, { name: 'images/a.png', data: new Uint8Array([1, 2, 3]) }]);
-  const dv = new DataView(zip.buffer);
-  assert.strictEqual(dv.getUint32(0, true), 0x04034b50);
-  assert.strictEqual(dv.getUint32(zip.length - 22, true), 0x06054b50);
-  assert.strictEqual(dv.getUint16(zip.length - 12, true), 2);
+test('size limits: 150 KB, 200 KB for 300x600', () => {
+  assert.strictEqual(G.sizeLimit(300, 250), 150000);
+  assert.strictEqual(G.sizeLimit(728, 90), 150000);
+  assert.strictEqual(G.sizeLimit(300, 600), 200000);
+});
+
+// Reads a ZIP with zlib (independent of the writer) and returns { name: { method, data } }.
+function readZip(zip) {
+  const zlib = require('node:zlib');
+  const buf = Buffer.from(zip);
+  const out = {};
+  const end = buf.length - 22;
+  assert.strictEqual(buf.readUInt32LE(end), 0x06054b50);
+  const count = buf.readUInt16LE(end + 10);
+  let p = buf.readUInt32LE(end + 16);
+  for (let i = 0; i < count; i++) {
+    assert.strictEqual(buf.readUInt32LE(p), 0x02014b50);
+    const method = buf.readUInt16LE(p + 10);
+    const crc = buf.readUInt32LE(p + 16);
+    const csize = buf.readUInt32LE(p + 20);
+    const usize = buf.readUInt32LE(p + 24);
+    const nlen = buf.readUInt16LE(p + 28);
+    const xlen = buf.readUInt16LE(p + 30);
+    const clen = buf.readUInt16LE(p + 32);
+    const off = buf.readUInt32LE(p + 42);
+    const name = buf.toString('utf8', p + 46, p + 46 + nlen);
+    assert.strictEqual(buf.readUInt32LE(off), 0x04034b50);
+    assert.strictEqual(buf.readUInt16LE(off + 8), method, name + ': local/central method match');
+    const start = off + 30 + buf.readUInt16LE(off + 26) + buf.readUInt16LE(off + 28);
+    const body = buf.subarray(start, start + csize);
+    const data = method === 8 ? zlib.inflateRawSync(body) : body;
+    assert.strictEqual(data.length, usize, name + ' size');
+    assert.strictEqual(zlib.crc32 ? zlib.crc32(data) : crc, crc, name + ' crc');
+    out[name] = { method, data, csize };
+    p += 46 + nlen + xlen + clen;
+  }
+  return out;
+}
+
+test('makeZip deflates text and round-trips every file', async () => {
+  const html = '<div class="l">hello banner</div>\n'.repeat(400);
+  const random = new Uint8Array(4096).map((_, i) => (i * 2654435761) >>> 24); // incompressible-ish
+  const zip = await G.makeZip([{ name: 'index.html', data: html }, { name: 'images/a.png', data: random }]);
+  const files = readZip(zip);
+  assert.deepStrictEqual(Object.keys(files), ['index.html', 'images/a.png']);
+  assert.strictEqual(files['index.html'].method, 8, 'html is deflated');
+  assert.ok(files['index.html'].csize < html.length / 10, 'repetitive html shrinks a lot');
+  assert.strictEqual(files['index.html'].data.toString('utf8'), html);
+  assert.deepStrictEqual(new Uint8Array(files['images/a.png'].data), random);
+  assert.ok(zip.length < html.length, 'zip is smaller than the html alone');
+});
+
+test('makeZip stores files that deflate cannot shrink, and store mode stores everything', async () => {
+  const tiny = new Uint8Array([1, 2, 3]);
+  const files = readZip(await G.makeZip([{ name: 'x.bin', data: tiny }]));
+  assert.strictEqual(files['x.bin'].method, 0);
+  const stored = readZip(await G.makeZip([{ name: 'a.txt', data: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }], { store: true }));
+  assert.strictEqual(stored['a.txt'].method, 0);
+});
+
+test('a packaged banner zip passes unzip -t', async (t) => {
+  const { execFileSync } = require('node:child_process');
+  const fs = require('node:fs');
+  const os = require('node:os');
+  const path = require('node:path');
+  try { execFileSync('unzip', ['-v'], { stdio: 'ignore' }); } catch (e) { t.skip('unzip not installed'); return; }
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ba-zip-'));
+  try {
+    for (const ch of Object.keys(G.CHANNELS)) {
+      const file = path.join(dir, ch + '.zip');
+      fs.writeFileSync(file, await G.makeZip(sampleBanner(ch).files));
+      const log = execFileSync('unzip', ['-t', file]).toString();
+      assert.match(log, /No errors detected/, ch);
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
 });

@@ -1,6 +1,6 @@
 # Banner Automation (Figma plugin)
 
-Turn Figma banner frames into animated HTML5 ads, then package them for an ad channel (HTML5 clickTag, Google Studio/GWD, Adform, Xandr).
+Turn Figma banner frames into animated HTML5 ads, then package them for an ad channel (GWD, HTML5, AE, WPPP, BAN).
 
 ## Install (development)
 
@@ -59,13 +59,17 @@ The committed `ui.html` is already built, so you don't need to build anything to
 
   | Channel | Click-through implementation |
   |---|---|
+  | GWD | Loads `Enabler.js` (Google Studio / CM360). Exits are wired with `Enabler.exit(name, url)` once Enabler fires `INIT`; the animation stays paused on its first frame until `PAGE_LOADED`. Opened without Enabler (locally), it plays at once and exits use `window.open`. |
   | HTML5 | `clickTag` / `clickTag2`… variables with `window.open(window.clickTag)`. Works for Google Ads, DV360 and most DSPs. |
-  | GWD | Loads `Enabler.js` and uses `Enabler.exit(name, url)` (Google Studio / CM360). |
-  | Adform | Adform DHTML `clickTAG` plus a `manifest.json`. |
-  | Xandr | AppNexus HTML5 library and `APPNEXUS.getClickTag()`. |
+  | AE | Adform: loads `Adform.DHTML.js` with Adform's `document.write` / `window.API_URL` snippet, reads `clickTAG`, `clickTAG2`… with `dhtml.getVar`, and adds a `manifest.json`. |
+  | WPPP | Same output as HTML5 for now (kept separate so it can diverge). |
+  | BAN | Same output as HTML5 for now (kept separate so it can diverge). |
+
+  A Xandr build (`APPNEXUS.getClickTag()`) is still in the generator but hidden from the menu.
 
 - **Preview** plays every size side by side.
-- **Download all** gives you one upload-ready ZIP per size. When you export several sizes, they come bundled in a single `banners_<channel>.zip`.
+- Each size shows its **zipped weight** against the upload limit: 150 KB, or 200 KB for 300×600 (1 KB = 1000 bytes). It turns red when over, and Download all warns about any size over the limit.
+- **Download all** gives you one upload-ready ZIP per size. Files are deflate-compressed; images that don't get smaller are stored as-is. When you export several sizes, they come bundled in a single `banners_<channel>.zip`.
 
 The animation is pure CSS `@keyframes` with no runtime library. The output includes `<meta name="ad.size">` and respects `prefers-reduced-motion`.
 
