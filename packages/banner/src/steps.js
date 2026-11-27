@@ -9,10 +9,9 @@
  *   included: banners that will be exported [{ id, width, height, name }]
  *   zipSizes: { [bannerId]: { bytes } | { error } }            measured zips
  *   checks:   { [bannerId]: { audit:{clickTag,targets,hardcoded}, staticBytes?, staticError? } }
- *   namingMissing(naming) → [missing field labels]
  * }
  * Export issues carry the pharma rule they belong to (rule: 'static' |
- * 'clicktag' | 'naming'), so the Export step can show each rule with its result.
+ * 'clicktag'), so the Export step can show each rule with its result.
  * Each issue: { text, fix, level }. fix names the UI action that resolves it; level 'error'
  * blocks the download, 'warning' is shown but doesn't block.
  */
@@ -72,10 +71,6 @@ function exportIssues(input) {
   if (pkg.channel && anyAudit && !anyAudit.clickTag) {
     issues.push({ text: 'This channel doesn’t use clickTag (GWD uses Enabler exits); choose HTML5, AE, WPPP or BAN', fix: 'focus-channel', level: 'warning', rule: 'clicktag' });
   }
-  if (input.namingMissing) {
-    const missing = input.namingMissing(pkg.naming || {});
-    if (missing.length) issues.push({ text: 'Fill in the file name: ' + missing.join(', '), fix: 'focus-naming', level: 'error', rule: 'naming' });
-  }
   return issues;
 }
 
@@ -107,15 +102,14 @@ function blockers(status) {
  */
 const PHARMA_RULES = [
   { id: 'static', label: 'Static backup image from the last frame' },
-  { id: 'clicktag', label: 'clickTag only, no target attributes' },
-  { id: 'naming', label: 'File names: Brand-Audience-AssetName-HTML5|Static-VVPM-WxH' }
+  { id: 'clicktag', label: 'clickTag only, no target attributes' }
 ];
 
 function pharmaChecks(status, measured) {
   const issues = allIssues(status).filter((i) => i.rule);
   return PHARMA_RULES.map((r) => {
     const mine = issues.filter((i) => i.rule === r.id);
-    const state = mine.some((i) => i.level === 'error') ? 'error' : mine.length ? 'warning' : (measured || r.id === 'naming') ? 'ok' : 'pending';
+    const state = mine.some((i) => i.level === 'error') ? 'error' : mine.length ? 'warning' : measured ? 'ok' : 'pending';
     return Object.assign({}, r, { state: state, issues: mine });
   });
 }

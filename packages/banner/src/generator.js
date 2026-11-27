@@ -627,7 +627,8 @@ function auditHtml(html) {
   };
 }
 
-// File naming: Brand-Audience-AssetName-HTML5|Static-VVPMcode-WIDTHxHEIGHT
+// File naming (optional): Brand-Audience-AssetName-HTML5|Static-VVPMcode-WIDTHxHEIGHT.
+// Empty fields are left out; with none filled in, files are named after the frame.
 const NAMING_FIELDS = [
   { key: 'brand', label: 'Brand', placeholder: 'AccuChek' },
   { key: 'audience', label: 'Audience', placeholder: 'HCP' },
@@ -640,18 +641,25 @@ function namePart(v) {
   return String(v || '').replace(/[\s\/\\:*?"<>|]+/g, '').replace(/^[.-]+|[.-]+$/g, '');
 }
 
-function namingMissing(naming) {
-  return NAMING_FIELDS.filter(function (f) { return !namePart(naming && naming[f.key]); }).map(function (f) { return f.label; });
+function hasNaming(naming) {
+  return NAMING_FIELDS.some(function (f) { return !!namePart(naming && naming[f.key]); });
 }
 
-// kind: 'HTML5' | 'Static'. Missing parts show as the field label in brackets.
-function assetName(naming, kind, width, height) {
-  const part = function (k, label) { return namePart(naming && naming[k]) || '[' + label + ']'; };
-  return [part('brand', 'Brand'), part('audience', 'Audience'), part('asset', 'AssetName'), kind, part('vvpm', 'VVPM'), width + 'x' + height].join('-');
+/*
+ * kind: 'HTML5' | 'Static'. frameName names the file when no naming field is filled in.
+ * → "Brand-Audience-AssetName-HTML5-VVPM-300x250", or "frame-name-HTML5-300x250".
+ */
+function assetName(naming, kind, width, height, frameName) {
+  const size = width + 'x' + height;
+  if (!hasNaming(naming)) return [slug(frameName || 'banner'), kind, size].join('-');
+  const p = function (k) { return namePart(naming[k]); };
+  return [p('brand'), p('audience'), p('asset'), kind, p('vvpm'), size].filter(Boolean).join('-');
 }
 
-function packageName(naming) {
-  return [namePart(naming.brand), namePart(naming.audience), namePart(naming.asset), namePart(naming.vvpm)].filter(Boolean).join('-') || 'banners';
+// The download that holds every size. fallback is used when no naming field is filled in.
+function packageName(naming, fallback) {
+  const parts = ['brand', 'audience', 'asset', 'vvpm'].map(function (k) { return namePart(naming && naming[k]); }).filter(Boolean);
+  return parts.length ? parts.join('-') : (fallback || 'banners');
 }
 
 module.exports = {
@@ -672,7 +680,7 @@ module.exports = {
   auditHtml: auditHtml,
   NAMING_FIELDS: NAMING_FIELDS,
   namePart: namePart,
-  namingMissing: namingMissing,
+  hasNaming: hasNaming,
   assetName: assetName,
   packageName: packageName,
   escapeHtml: escapeHtml,

@@ -279,15 +279,18 @@ test('audit catches target attributes and hard-coded landing URLs', () => {
   assert.deepStrictEqual(a.hardcoded, ['https://evil.example/x', 'https://b.example']);
 });
 
-test('file naming: Brand-Audience-AssetName-HTML5|Static-VVPM-WxH', () => {
+test('file naming is optional: Brand-Audience-AssetName-HTML5|Static-VVPM-WxH', () => {
   const naming = { brand: 'Accu-Chek', audience: 'HCP', asset: 'Smart Guide Launch', vvpm: 'US-CGM-2400123' };
   assert.strictEqual(G.assetName(naming, 'HTML5', 300, 250), 'Accu-Chek-HCP-SmartGuideLaunch-HTML5-US-CGM-2400123-300x250');
   assert.strictEqual(G.assetName(naming, 'Static', 300, 600), 'Accu-Chek-HCP-SmartGuideLaunch-Static-US-CGM-2400123-300x600');
   assert.strictEqual(G.packageName(naming), 'Accu-Chek-HCP-SmartGuideLaunch-US-CGM-2400123');
   assert.strictEqual(G.namePart(' a/b:c*d?"e<f>g|h \\ '), 'abcdefgh');
   assert.strictEqual(G.namePart('-x-'), 'x', 'no separator at the ends');
-  assert.deepStrictEqual(G.namingMissing({ brand: 'X', audience: '  ', asset: '***' }), ['Audience', 'Asset name', 'VVPM code']);
-  assert.deepStrictEqual(G.namingMissing(naming), []);
-  assert.strictEqual(G.assetName({}, 'HTML5', 728, 90), '[Brand]-[Audience]-[AssetName]-HTML5-[VVPM]-728x90');
-  assert.strictEqual(G.packageName({}), 'banners');
+  assert.strictEqual(G.assetName({ brand: 'AccuChek', vvpm: 'MC-1' }, 'HTML5', 300, 250, 'MPU'), 'AccuChek-HTML5-MC-1-300x250', 'empty fields are left out');
+  assert.strictEqual(G.assetName({ brand: '  ', audience: '' }, 'Static', 728, 90, 'Accu-Chek SmartGuide'), 'accu-chek-smartguide-Static-728x90', 'no fields → named after the frame');
+  assert.strictEqual(G.assetName({}, 'HTML5', 300, 250), 'banner-HTML5-300x250');
+  assert.ok(G.hasNaming({ asset: 'x' }));
+  assert.ok(!G.hasNaming({ brand: ' * ' }));
+  assert.strictEqual(G.packageName({}, 'banners-html5'), 'banners-html5');
+  assert.strictEqual(G.packageName({ audience: 'HCP' }), 'HCP');
 });

@@ -43,7 +43,7 @@ The steps show their state: a ✓ when complete, and a badge with the number of 
 
 ### 3 · Export
 
-- A checklist at the top lists what's still missing, each with a **Fix** link. Without a channel, a size or the file names, **Download** stays disabled. A missing or malformed URL is a warning that doesn't block.
+- A checklist at the top lists what's still missing, each with a **Fix** link. Without a channel or a size, **Download** stays disabled. A missing or malformed URL is a warning that doesn't block.
 - **Channel**: a dropdown that lists every channel with a short description of what it builds:
 
   | Channel | Click-through implementation |
@@ -58,8 +58,8 @@ The steps show their state: a ✓ when complete, and a badge with the number of 
 - **Click-through**: the main exit URL, plus extra exits for single layers.
 - **Sizes**: each banner frame with layers in it, with its zipped HTML5 weight for reference (1 KB = 1000 bytes; there is no limit check).
 - **Options**: compress images (opaque images are re-encoded as JPG when that's smaller), and a 1 px border with its colour.
-- **File names**: Brand, Audience, Asset name and VVPM code. Spaces and characters that aren't allowed in file names are removed. An example of the resulting names is shown under the fields.
-- **Preview all** plays every size side by side. **Download** gives you one package, `Brand-Audience-AssetName-VVPM.zip`. For each size it holds the upload-ready HTML5 zip (deflate-compressed) and its static backup JPG.
+- **File names** (optional): Brand, Audience, Asset name and VVPM code give `Brand-Audience-AssetName-HTML5|Static-VVPMcode-WIDTHxHEIGHT`, for example `AccuChek-HCP-SmartGuideLaunch-HTML5-MC-12345-300x250.zip`. Empty fields are left out. With none filled in, files are named after the frame, for example `accu-chek-smartguide-HTML5-300x250.zip`. Spaces and characters that aren't allowed in file names are removed, and the resulting names are shown under the fields.
+- **Preview all** plays every size side by side. **Download** gives you one package, `Brand-Audience-AssetName-VVPM.zip` (or `banners-<channel>.zip` without file names). For each size it holds the upload-ready HTML5 zip (deflate-compressed) and its static backup JPG.
 
 ### Pharma checks
 
@@ -69,7 +69,6 @@ The Export step checks every included size against these rules and lists them wi
 |---|---|
 | Static backup for every animated banner | Draws the last frame automatically (background, every layer shown in the last frame at rest, masks, motion end points, border) as a 1x JPG, and puts it in the package next to the HTML5 zip. |
 | clickTag only, no target attributes | Checks every built `index.html`: no `target` attributes (an error), no landing URLs written in directly instead of through clickTag (an error), and warns for channels whose exits don't use clickTag (GWD uses `Enabler.exit`). The HTML5, WPPP and BAN builds pass. |
-| Zip naming: `Brand-Audience-AssetName-HTML5\|Static-VVPMcode-WIDTHxHEIGHT` | Names files from the four fields, for example `AccuChek-HCP-SmartGuideLaunch-HTML5-MC-12345-300x250.zip` and `…-Static-MC-12345-300x250.jpg`. Download stays disabled until all four fields are filled in. |
 - **⋯ › Copy animation to other sizes** copies the animation to other frames, matching layers by name.
 
 The animation is pure CSS `@keyframes` with no runtime library. The output includes `<meta name="ad.size">` and respects `prefers-reduced-motion`.

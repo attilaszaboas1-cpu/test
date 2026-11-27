@@ -74,14 +74,14 @@ test('URL check', () => {
 
 const okChecks = { b1: { audit: { clickTag: true, targets: 0, hardcoded: [] }, staticBytes: 20000 }, b2: { audit: { clickTag: true, targets: 0, hardcoded: [] }, staticBytes: 30000 } };
 const naming = { brand: 'AccuChek', audience: 'HCP', asset: 'Launch', vvpm: 'MC-1' };
-const pharma = (over) => input(Object.assign({ checks: okChecks, namingMissing: G.namingMissing, pkg: { channel: 'html5', exits: [{ url: 'https://www.example.com' }], exclude: {}, naming } }, over));
+const pharma = (over) => input(Object.assign({ checks: okChecks, pkg: { channel: 'html5', exits: [{ url: 'https://www.example.com' }], exclude: {}, naming } }, over));
 const G = require('../src/generator');
 
 test('pharma rules all pass for a compliant package', () => {
   const st = Steps.stepStatus(pharma());
   assert.deepStrictEqual(Steps.allIssues(st), []);
-  assert.deepStrictEqual(Steps.pharmaChecks(st, true).map((r) => r.id + ':' + r.state), ['static:ok', 'clicktag:ok', 'naming:ok']);
-  assert.deepStrictEqual(Steps.pharmaChecks(st, false).map((r) => r.state), ['pending', 'pending', 'ok'], 'unmeasured rules are pending');
+  assert.deepStrictEqual(Steps.pharmaChecks(st, true).map((r) => r.id + ':' + r.state), ['static:ok', 'clicktag:ok']);
+  assert.deepStrictEqual(Steps.pharmaChecks(st, false).map((r) => r.state), ['pending', 'pending'], 'unmeasured rules are pending');
 });
 
 test('pharma rule failures', () => {
@@ -97,9 +97,8 @@ test('pharma rule failures', () => {
   assert.strictEqual(rules.static.state, 'error');
   assert.strictEqual(rules.clicktag.state, 'error');
   assert.deepStrictEqual(rules.clicktag.issues.map((i) => i.text), ['300×250 has 2 target attributes', '300×250 links to https://x.example directly instead of through clickTag']);
-  assert.strictEqual(rules.naming.state, 'error');
-  assert.match(rules.naming.issues[0].text, /Audience, Asset name, VVPM code/);
-  assert.ok(Steps.blockers(st).some((i) => i.rule === 'naming'), 'missing names block the download');
+  assert.strictEqual(rules.naming, undefined, 'file names are optional, not a check');
+  assert.ok(!Steps.allIssues(st).some((i) => /file name/i.test(i.text)), 'empty name fields are not flagged');
 });
 
 test('GWD gets a clickTag warning', () => {

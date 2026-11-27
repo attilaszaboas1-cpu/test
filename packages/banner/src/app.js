@@ -181,8 +181,7 @@
       pkg: S.pkg,
       included: includedBanners(),
       zipSizes: S.zipSizes,
-      checks: S.checks,
-      namingMissing: G.namingMissing
+      checks: S.checks
     });
   }
 
@@ -957,8 +956,10 @@
 
   function namePreviewHtml() {
     const b = includedBanners()[0] || (S.ctx && S.ctx.info) || { width: 300, height: 250 };
-    return '<span class="muted">Example</span><code>' + esc(G.assetName(S.pkg.naming, 'HTML5', b.width, b.height)) + '.zip</code>' +
-      '<code>' + esc(G.assetName(S.pkg.naming, 'Static', b.width, b.height)) + '.jpg</code>';
+    const frame = b.name || (S.ctx && S.ctx.info.name);
+    return '<span class="muted">' + (G.hasNaming(S.pkg.naming) ? 'Files will be named' : 'Optional. Empty fields are left out; with none filled in, files are named after the frame:') + '</span>' +
+      '<code>' + esc(G.assetName(S.pkg.naming, 'HTML5', b.width, b.height, frame)) + '.zip</code>' +
+      '<code>' + esc(G.assetName(S.pkg.naming, 'Static', b.width, b.height, frame)) + '.jpg</code>';
   }
 
   function renderExport() {
@@ -989,9 +990,8 @@
             (i === 0 ? '<span></span>' : '<button class="icon-btn secondary" data-act="remove-exit" data-tip="Remove exit">' + icon('minus') + '</button>') + '</div>';
         }).join('') +
         (p.exits.length > 1 ? '<div class="muted" style="margin-top:8px">Link a layer to an exit in Animate › Click & export.</div>' : '') + '</div>' +
-      '<div class="section" id="namingSection"><div class="section-head"><h3>File names</h3></div><div class="grid2">' +
-        G.NAMING_FIELDS.map((f) => field(f.label, '<input type="text" data-nf="' + f.key + '" value="' + esc(p.naming[f.key] || '') + '" placeholder="e.g. ' + esc(f.placeholder) + '"' +
-          (G.namePart(p.naming[f.key]) ? '' : ' class="required"') + '>')).join('') + '</div>' +
+      '<div class="section" id="namingSection"><div class="section-head"><h3>File names</h3><span class="muted">Optional</span></div><div class="grid2">' +
+        G.NAMING_FIELDS.map((f) => field(f.label, '<input type="text" data-nf="' + f.key + '" value="' + esc(p.naming[f.key] || '') + '" placeholder="e.g. ' + esc(f.placeholder) + '">')).join('') + '</div>' +
         '<div class="name-preview" id="namePreview">' + namePreviewHtml() + '</div></div>' +
       '<div class="section" id="sizesSection"><div class="section-head"><h3>Sizes</h3><span class="muted">Zipped size</span></div><div class="sizes">' +
         (sizes.length
@@ -1124,11 +1124,11 @@
         S.zipSizes[b.id] = { bytes: data.length };
         S.checks[b.id] = Object.assign(pharmaCheck(r), { staticBytes: still.bytes.length });
         const w = r.ctx.info.width, h = r.ctx.info.height;
-        files.push({ name: G.assetName(naming, 'HTML5', w, h) + '.zip', data: data });
-        files.push({ name: G.assetName(naming, 'Static', w, h) + '.' + still.ext, data: still.bytes });
+        files.push({ name: G.assetName(naming, 'HTML5', w, h, r.ctx.info.name) + '.zip', data: data });
+        files.push({ name: G.assetName(naming, 'Static', w, h, r.ctx.info.name) + '.' + still.ext, data: still.bytes });
       }
       // One package: an HTML5 zip and a static backup per size.
-      download(await Zip.makeZip(files, { store: true }), G.packageName(naming) + '.zip');
+      download(await Zip.makeZip(files, { store: true }), G.packageName(naming, 'banners-' + channel) + '.zip');
       call('notify', { text: 'Packaged ' + plural(list.length, 'banner') + ' with static backups for ' + G.CHANNELS[channel].label });
       toast('Downloaded ' + plural(list.length, 'banner') + ' with static backups.');
     } catch (e) {
@@ -1316,7 +1316,6 @@
     'focus-exit': () => focusIn('exitsSection', 'input.invalid, input[type=url]'),
     'focus-sizes': () => focusIn('sizesSection', 'input'),
     'focus-pharma': () => focusIn('pharmaSection', 'button.link'),
-    'focus-naming': () => focusIn('namingSection', 'input.required, input'),
     'close-toast': () => { $('toast').hidden = true; },
 
     // layers
@@ -1533,7 +1532,6 @@
     }
     if (t.dataset.nf) {
       S.pkg.naming[t.dataset.nf] = t.value;
-      t.classList.toggle('required', !G.namePart(t.value));
       persistPkg();
       refreshExport();
       return;
