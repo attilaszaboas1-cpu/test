@@ -68,7 +68,6 @@ The Export step checks every included size against these rules and lists them wi
 | Rule | What the plugin does |
 |---|---|
 | Size limit: 150 KB per banner, 200 KB for 300×600 | Shows the zipped HTML5 weight of each size against its limit (1 KB = 1000 bytes) and warns when it's over. The static backup isn't counted, because it's a separate file. |
-| Animation stops within 15 s, before the ISI | Adds up frames × plays. It warns when that's longer than 15 s, or when the banner loops forever. Frames shows the total in amber in the Animate step too. |
 | Static backup for every animated banner | Draws the last frame automatically (background, every layer shown in the last frame at rest, masks, motion end points, border) as a 1x JPG, and puts it in the package next to the HTML5 zip. |
 | clickTag only, no target attributes | Checks every built `index.html`: no `target` attributes (an error), no landing URLs written in directly instead of through clickTag (an error), and warns for channels whose exits don't use clickTag (GWD uses `Enabler.exit`). The HTML5, WPPP and BAN builds pass. |
 | Zip naming: `Brand-Audience-AssetName-HTML5\|Static-VVPMcode-WIDTHxHEIGHT` | Names files from the four fields, for example `AccuChek-HCP-SmartGuideLaunch-HTML5-MC-12345-300x250.zip` and `…-Static-MC-12345-300x250.jpg`. Download stays disabled until all four fields are filled in. |

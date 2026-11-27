@@ -65,7 +65,7 @@
     exporting: false,      // exporting layer images for the preview
     pkg: defaultPackage(),
     zipSizes: {},
-    checks: {},            // per banner: { length, audit, staticBytes, staticError } (pharma rules)
+    checks: {},            // per banner: { audit, staticBytes, staticError } (pharma rules)
     step: 'layers',
     scene: 0,
     open: null,            // element whose editor is expanded
@@ -183,7 +183,6 @@
       zipSizes: S.zipSizes,
       sizeLimit: G.sizeLimit,
       checks: S.checks,
-      animationLimit: G.ANIMATION_LIMIT,
       namingMissing: G.namingMissing
     });
   }
@@ -447,15 +446,10 @@
     renderScenes();
   }
 
-  // Total animation time, amber when it runs past the 15 s pharma limit.
+  // Length of one play, and how often it plays.
   function lengthBadge(s) {
     const len = G.timeline(s).playLen;
-    const total = G.animationLength(s);
-    const over = total > G.ANIMATION_LIMIT + 1e-6;
-    const text = round1(len) + ' s' + (s.plays > 1 ? ' × ' + s.plays : s.plays === 0 ? ', loops' : '');
-    return over
-      ? '<span class="text-warning num length-warn" data-tip="' + (total === Infinity ? 'Loops forever' : 'Animates for ' + round1(total) + ' s') + '. Pharma banners must stop within ' + G.ANIMATION_LIMIT + ' s, before the ISI.">' + icon('warning') + text + '</span>'
-      : '<span class="muted num" data-tip="Animation stops within ' + G.ANIMATION_LIMIT + ' s">' + text + '</span>';
+    return '<span class="muted num">' + round1(len) + ' s' + (s.plays > 1 ? ' × ' + s.plays : s.plays === 0 ? ', loops' : '') + '</span>';
   }
 
   // Scene markers on the scrubber and the frame label in the transport bar.
@@ -1075,9 +1069,9 @@
     }
   }
 
-  // Rule checks on a built banner (see steps.js): animation length and click-through audit.
+  // Rule checks on a built banner (see steps.js): the click-through audit.
   function pharmaCheck(r) {
-    return { length: G.animationLength(r.ctx.session), audit: G.auditHtml(r.out.html) };
+    return { audit: G.auditHtml(r.out.html) };
   }
 
   // The static backup: the last frame, flattened to a JPG at 1x.
@@ -1301,7 +1295,6 @@
     'focus-sizes': () => focusIn('sizesSection', 'input'),
     'focus-pharma': () => focusIn('pharmaSection', 'button.link'),
     'focus-naming': () => focusIn('namingSection', 'input.required, input'),
-    'fix-length': () => { goStep('animate'); const f = document.querySelector('[data-scene-dur]'); if (f) f.focus(); },
     'close-toast': () => { $('toast').hidden = true; },
 
     // layers

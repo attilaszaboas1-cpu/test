@@ -247,14 +247,6 @@ test('a packaged banner zip passes unzip -t', async (t) => {
 // ---------------------------------------------------------------------------
 // Pharma rules
 // ---------------------------------------------------------------------------
-test('animation length counts every play; looping is infinite', () => {
-  const s = { scenes: [{ dur: 4 }, { dur: 6 }], plays: 1, elements: [] };
-  assert.strictEqual(G.animationLength(s), 10);
-  assert.strictEqual(G.animationLength(Object.assign({}, s, { plays: 2 })), 20);
-  assert.strictEqual(G.animationLength(Object.assign({}, s, { plays: 0 })), Infinity);
-  assert.strictEqual(G.ANIMATION_LIMIT, 15);
-});
-
 test('static backup layers are the last frame at rest, back to front', () => {
   const img = (x) => ({ x, y: 0, width: 10, height: 10, ext: 'png', bytes: new Uint8Array(1) });
   const session = {

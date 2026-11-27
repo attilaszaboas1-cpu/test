@@ -408,8 +408,6 @@ input.invalid { border-color: var(--text-danger) !important; }
 .rules .spinner { width: 14px; height: 14px; margin: 1px; border-width: 1.5px; }
 .name-preview { display: flex; flex-direction: column; gap: 2px; margin-top: var(--s2); }
 .name-preview code { font: 10px/16px ui-monospace, SFMono-Regular, Menlo, monospace; color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.length-warn { display: inline-flex; align-items: center; gap: 4px; }
-.length-warn .ic { width: 14px; height: 14px; }
 
 </style>
 </head>
@@ -618,7 +616,7 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     exporting: false,      // exporting layer images for the preview
     pkg: defaultPackage(),
     zipSizes: {},
-    checks: {},            // per banner: { length, audit, staticBytes, staticError } (pharma rules)
+    checks: {},            // per banner: { audit, staticBytes, staticError } (pharma rules)
     step: 'layers',
     scene: 0,
     open: null,            // element whose editor is expanded
@@ -736,7 +734,6 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
       zipSizes: S.zipSizes,
       sizeLimit: G.sizeLimit,
       checks: S.checks,
-      animationLimit: G.ANIMATION_LIMIT,
       namingMissing: G.namingMissing
     });
   }
@@ -1000,15 +997,10 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     renderScenes();
   }
 
-  // Total animation time, amber when it runs past the 15 s pharma limit.
+  // Length of one play, and how often it plays.
   function lengthBadge(s) {
     const len = G.timeline(s).playLen;
-    const total = G.animationLength(s);
-    const over = total > G.ANIMATION_LIMIT + 1e-6;
-    const text = round1(len) + ' s' + (s.plays > 1 ? ' × ' + s.plays : s.plays === 0 ? ', loops' : '');
-    return over
-      ? '<span class="text-warning num length-warn" data-tip="' + (total === Infinity ? 'Loops forever' : 'Animates for ' + round1(total) + ' s') + '. Pharma banners must stop within ' + G.ANIMATION_LIMIT + ' s, before the ISI.">' + icon('warning') + text + '</span>'
-      : '<span class="muted num" data-tip="Animation stops within ' + G.ANIMATION_LIMIT + ' s">' + text + '</span>';
+    return '<span class="muted num">' + round1(len) + ' s' + (s.plays > 1 ? ' × ' + s.plays : s.plays === 0 ? ', loops' : '') + '</span>';
   }
 
   // Scene markers on the scrubber and the frame label in the transport bar.
@@ -1628,9 +1620,9 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     }
   }
 
-  // Rule checks on a built banner (see steps.js): animation length and click-through audit.
+  // Rule checks on a built banner (see steps.js): the click-through audit.
   function pharmaCheck(r) {
-    return { length: G.animationLength(r.ctx.session), audit: G.auditHtml(r.out.html) };
+    return { audit: G.auditHtml(r.out.html) };
   }
 
   // The static backup: the last frame, flattened to a JPG at 1x.
@@ -1854,7 +1846,6 @@ __defs["packages/banner/src/app.js"] = function (module, exports, require) {
     'focus-sizes': () => focusIn('sizesSection', 'input'),
     'focus-pharma': () => focusIn('pharmaSection', 'button.link'),
     'focus-naming': () => focusIn('namingSection', 'input.required, input'),
-    'fix-length': () => { goStep('animate'); const f = document.querySelector('[data-scene-dur]'); if (f) f.focus(); },
     'close-toast': () => { $('toast').hidden = true; },
 
     // layers
@@ -2785,14 +2776,6 @@ function buildBanner(opts) {
 // ---------------------------------------------------------------------------
 // Pharma rules
 // ---------------------------------------------------------------------------
-const ANIMATION_LIMIT = 15; // seconds of animation allowed before the ISI
-
-// How long the banner animates in seconds (all plays); Infinity when it loops forever.
-function animationLength(session) {
-  const plays = Math.max(0, Math.floor(num(session.plays, 1)));
-  return plays > 0 ? timeline(session).total : Infinity;
-}
-
 /*
  * The layers of the static backup image: what is on screen at the end of the last frame,
  * back → front, at rest (entrances finished, loops back at rest, motion at its end point).
@@ -2879,8 +2862,6 @@ module.exports = {
   sceneStarts: sceneStarts,
   compileElement: compileElement,
   buildBanner: buildBanner,
-  ANIMATION_LIMIT: ANIMATION_LIMIT,
-  animationLength: animationLength,
   staticLayers: staticLayers,
   auditHtml: auditHtml,
   NAMING_FIELDS: NAMING_FIELDS,
@@ -2920,11 +2901,10 @@ __defs["packages/banner/src/steps.js"] = function (module, exports, require) {
  *   included: banners that will be exported [{ id, width, height, name }]
  *   zipSizes: { [bannerId]: { bytes } | { error } }            measured zips
  *   sizeLimit(w, h) → bytes
- *   checks:   { [bannerId]: { length, audit:{clickTag,targets,hardcoded}, staticBytes?, staticError? } }
- *   animationLimit: seconds (15)
+ *   checks:   { [bannerId]: { audit:{clickTag,targets,hardcoded}, staticBytes?, staticError? } }
  *   namingMissing(naming) → [missing field labels]
  * }
- * Export issues carry the pharma rule they belong to (rule: 'size' | 'length' | 'static' |
+ * Export issues carry the pharma rule they belong to (rule: 'size' | 'static' |
  * 'clicktag' | 'naming'), so the Export step can show each rule with its result.
  * Each issue: { text, fix, level }. fix names the UI action that resolves it; level 'error'
  * blocks the download, 'warning' is shown but doesn't block.
@@ -2939,10 +2919,6 @@ const URL_RE = /^https?:\/\/[^\s/?#]+\.[^\s/?#]+(\S*)$/i;
 
 function validUrl(url) {
   return URL_RE.test(String(url || '').trim());
-}
-
-function round1(n) {
-  return Math.round(n * 10) / 10;
 }
 
 function kb(bytes) {
@@ -2986,9 +2962,6 @@ function exportIssues(input) {
     }
     const c = input.checks && input.checks[b.id];
     if (!c) return;
-    const limit = input.animationLimit || 15;
-    if (c.length === Infinity) issues.push({ text: label + ' loops forever; it must stop within ' + limit + ' s, before the ISI', fix: 'fix-length', level: 'warning', rule: 'length' });
-    else if (c.length > limit + 1e-6) issues.push({ text: label + ' animates for ' + round1(c.length) + ' s, over the ' + limit + ' s limit before the ISI', fix: 'fix-length', level: 'warning', rule: 'length' });
     if (c.staticError) issues.push({ text: label + ': the static backup could not be made: ' + c.staticError, fix: 'focus-sizes', level: 'error', rule: 'static' });
     if (c.audit) {
       if (c.audit.targets) issues.push({ text: label + ' has ' + c.audit.targets + ' target attribute' + (c.audit.targets > 1 ? 's' : ''), fix: 'focus-channel', level: 'error', rule: 'clicktag' });
@@ -3034,7 +3007,6 @@ function blockers(status) {
  */
 const PHARMA_RULES = [
   { id: 'size', label: 'Zip weight: 150 KB, 200 KB for 300×600' },
-  { id: 'length', label: 'Animation stops within 15 s, before the ISI' },
   { id: 'static', label: 'Static backup image from the last frame' },
   { id: 'clicktag', label: 'clickTag only, no target attributes' },
   { id: 'naming', label: 'File names: Brand-Audience-AssetName-HTML5|Static-VVPM-WxH' }

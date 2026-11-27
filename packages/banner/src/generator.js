@@ -589,14 +589,6 @@ function buildBanner(opts) {
 // ---------------------------------------------------------------------------
 // Pharma rules
 // ---------------------------------------------------------------------------
-const ANIMATION_LIMIT = 15; // seconds of animation allowed before the ISI
-
-// How long the banner animates in seconds (all plays); Infinity when it loops forever.
-function animationLength(session) {
-  const plays = Math.max(0, Math.floor(num(session.plays, 1)));
-  return plays > 0 ? timeline(session).total : Infinity;
-}
-
 /*
  * The layers of the static backup image: what is on screen at the end of the last frame,
  * back → front, at rest (entrances finished, loops back at rest, motion at its end point).
@@ -683,8 +675,6 @@ module.exports = {
   sceneStarts: sceneStarts,
   compileElement: compileElement,
   buildBanner: buildBanner,
-  ANIMATION_LIMIT: ANIMATION_LIMIT,
-  animationLength: animationLength,
   staticLayers: staticLayers,
   auditHtml: auditHtml,
   NAMING_FIELDS: NAMING_FIELDS,

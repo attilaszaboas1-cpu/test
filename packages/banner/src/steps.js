@@ -9,11 +9,10 @@
  *   included: banners that will be exported [{ id, width, height, name }]
  *   zipSizes: { [bannerId]: { bytes } | { error } }            measured zips
  *   sizeLimit(w, h) → bytes
- *   checks:   { [bannerId]: { length, audit:{clickTag,targets,hardcoded}, staticBytes?, staticError? } }
- *   animationLimit: seconds (15)
+ *   checks:   { [bannerId]: { audit:{clickTag,targets,hardcoded}, staticBytes?, staticError? } }
  *   namingMissing(naming) → [missing field labels]
  * }
- * Export issues carry the pharma rule they belong to (rule: 'size' | 'length' | 'static' |
+ * Export issues carry the pharma rule they belong to (rule: 'size' | 'static' |
  * 'clicktag' | 'naming'), so the Export step can show each rule with its result.
  * Each issue: { text, fix, level }. fix names the UI action that resolves it; level 'error'
  * blocks the download, 'warning' is shown but doesn't block.
@@ -28,10 +27,6 @@ const URL_RE = /^https?:\/\/[^\s/?#]+\.[^\s/?#]+(\S*)$/i;
 
 function validUrl(url) {
   return URL_RE.test(String(url || '').trim());
-}
-
-function round1(n) {
-  return Math.round(n * 10) / 10;
 }
 
 function kb(bytes) {
@@ -75,9 +70,6 @@ function exportIssues(input) {
     }
     const c = input.checks && input.checks[b.id];
     if (!c) return;
-    const limit = input.animationLimit || 15;
-    if (c.length === Infinity) issues.push({ text: label + ' loops forever; it must stop within ' + limit + ' s, before the ISI', fix: 'fix-length', level: 'warning', rule: 'length' });
-    else if (c.length > limit + 1e-6) issues.push({ text: label + ' animates for ' + round1(c.length) + ' s, over the ' + limit + ' s limit before the ISI', fix: 'fix-length', level: 'warning', rule: 'length' });
     if (c.staticError) issues.push({ text: label + ': the static backup could not be made: ' + c.staticError, fix: 'focus-sizes', level: 'error', rule: 'static' });
     if (c.audit) {
       if (c.audit.targets) issues.push({ text: label + ' has ' + c.audit.targets + ' target attribute' + (c.audit.targets > 1 ? 's' : ''), fix: 'focus-channel', level: 'error', rule: 'clicktag' });
@@ -123,7 +115,6 @@ function blockers(status) {
  */
 const PHARMA_RULES = [
   { id: 'size', label: 'Zip weight: 150 KB, 200 KB for 300×600' },
-  { id: 'length', label: 'Animation stops within 15 s, before the ISI' },
   { id: 'static', label: 'Static backup image from the last frame' },
   { id: 'clicktag', label: 'clickTag only, no target attributes' },
   { id: 'naming', label: 'File names: Brand-Audience-AssetName-HTML5|Static-VVPM-WxH' }
