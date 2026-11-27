@@ -1,0 +1,6 @@
+{
+  "name": "@banner-automation/banner",
+  "version": "2.1.0",
+  "private": true,
+  "description": "Banner Automation: Figma plugin that turns banner frames into animated HTML5 ads"
+}

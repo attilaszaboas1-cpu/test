@@ -1,85 +1,24 @@
-/* Banner Automation — plugin UI. */
+/* Banner Automation — plugin UI. Shared pieces (RPC, icons, layer tree, images, zip) come from core. */
 (function () {
   'use strict';
 
-  const G = window.BannerGen;
-  const esc = G.escapeHtml;
-  const $ = (id) => document.getElementById(id);
-  const clone = (v) => JSON.parse(JSON.stringify(v));
+  const G = require('./generator');
+  const Zip = require('../../core/zip');
+  const { escapeHtml: esc } = require('../../core/text');
+  const { createRpc } = require('../../core/ui/rpc');
+  const { clone, merge } = require('../../core/ui/state');
+  const { icon, hydrateIcons } = require('../../core/ui/icons');
+  const Layers = require('../../core/ui/layers');
+  const Images = require('../../core/ui/images');
+  const { $, download } = require('../../core/ui/dom');
+  const { typeIcon, options } = Layers;
 
-  // -------------------------------------------------------------------------
-  // Icons (24px stroke icons)
-  // -------------------------------------------------------------------------
-  const ICONS = {
-    'arrow-up': '<path d="M12 19V5M5 12l7-7 7 7"/>',
-    'arrow-right': '<path d="M5 12h14M12 5l7 7-7 7"/>',
-    'select': '<path d="M4 9V5a1 1 0 0 1 1-1h4M15 4h4a1 1 0 0 1 1 1v4M4 15v4a1 1 0 0 0 1 1h4"/><path d="M13 13l8 3-3.5 1.5L16 21z"/>',
-    'history': '<path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/>',
-    'save': '<path d="M5 3h11l5 5v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z"/><path d="M7 3v5h8M7 21v-7h10v7"/>',
-    'search': '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
-    'filter': '<path d="M4 6h16M7 12h10M10 18h4"/>',
-    'info': '<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
-    'package': '<path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8M12 13v8"/>',
-    'layout': '<rect x="3" y="3" width="18" height="18" rx="2"/><path d="M9 3v18M9 12h12"/>',
-    'refresh': '<path d="M21 12a9 9 0 1 1-2.6-6.4"/><path d="M21 3v6h-6"/>',
-    'play': '<path d="M7 4l13 8-13 8z"/>',
-    'pause': '<path d="M8 5v14M16 5v14"/>',
-    'restart': '<path d="M3 12a9 9 0 1 0 2.6-6.4"/><path d="M3 3v6h6"/>',
-    'chevron-left': '<path d="M15 6l-6 6 6 6"/>',
-    'chevron-right': '<path d="M9 6l6 6-6 6"/>',
-    'chevron-down': '<path d="M6 9l6 6 6-6"/>',
-    'chevron-up': '<path d="M6 15l6-6 6 6"/>',
-    'eye': '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12z"/><circle cx="12" cy="12" r="3"/>',
-    'close': '<path d="M6 6l12 12M18 6L6 18"/>',
-    'external': '<path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"/>',
-    'download': '<path d="M12 4v12M6 10l6 6 6-6M4 20h16"/>',
-    'files': '<path d="M9 3h7l4 4v11a1 1 0 0 1-1 1H9a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M16 3v4h4M5 7v13a1 1 0 0 0 1 1h9"/>',
-    'locate': '<circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/>',
-    'link': '<path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1"/><path d="M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1"/>',
-    'mask': '<path d="M9 4H5v16h4M15 4h4v16h-4M12 2v20"/>',
-    'trash': '<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
-    'text': '<path d="M4 7V5h11v2M9.5 5v14M7.5 19h4M14 12v-1h7v1M17.5 11v8M16 19h3"/>',
-    'frame': '<path d="M8 3v18M16 3v18M3 8h18M3 16h18"/>',
-    'group': '<path d="M3 7a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/>',
-    'image': '<rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="9" cy="10" r="1.5"/><path d="M21 16l-5-5-9 8"/>',
-    'shape': '<rect x="4" y="4" width="16" height="16" rx="2"/>',
-    'settings': '<path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/>',
-    'loop': '<path d="M17 2l4 4-4 4"/><path d="M3 11v-1a4 4 0 0 1 4-4h14M7 22l-4-4 4-4"/><path d="M21 13v1a4 4 0 0 1-4 4H3"/>',
-    'motion': '<path d="M3 17c3-7 6-7 9 0s6 7 9 0"/><path d="M18 6l3 0 0 3"/>',
-    'star': '<path d="M12 3l2.8 6 6.2.6-4.8 4.2 1.4 6.2-5.6-3.2-5.6 3.2 1.4-6.2L3 9.6 9.2 9z"/>',
-    'in': '<path d="M10 17l5-5-5-5M15 12H3M14 4h5a1 1 0 0 1 1 1v14a1 1 0 0 1-1 1h-5"/>',
-    'out': '<path d="M15 17l5-5-5-5M20 12H8M10 4H5a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h5"/>'
-  };
-
-  function icon(name) {
-    return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + (ICONS[name] || '') + '</svg>';
-  }
-
-  function hydrateIcons(root) {
-    (root || document).querySelectorAll('i[data-icon]').forEach((i) => { i.outerHTML = icon(i.dataset.icon); });
-  }
-
-  // -------------------------------------------------------------------------
-  // RPC with the Figma main thread
-  // -------------------------------------------------------------------------
-  let rpcSeq = 0;
-  const waiting = {};
-
-  function call(method, params) {
-    return new Promise((resolve, reject) => {
-      const id = ++rpcSeq;
-      waiting[id] = { resolve, reject };
-      parent.postMessage({ pluginMessage: { type: 'call', id, method, params: params || {} } }, '*');
-    });
-  }
+  const rpc = createRpc(parent);
+  const call = rpc.call;
 
   // -------------------------------------------------------------------------
   // Defaults & state
   // -------------------------------------------------------------------------
-  const DEFAULT_EXPORT = { mode: 'framed', scale: 2, format: 'png' };
-  const VECTOR_TYPES = ['VECTOR', 'BOOLEAN_OPERATION', 'STAR', 'LINE', 'ELLIPSE', 'POLYGON', 'RECTANGLE'];
-  const CONTAINER_TYPES = ['GROUP', 'FRAME', 'COMPONENT', 'INSTANCE', 'COMPONENT_SET'];
-
   function defaultScene(on) {
     return {
       on: !!on,
@@ -96,15 +35,6 @@
 
   function defaultPackage() {
     return { border: true, borderColor: '#000000', compress: true, channel: '', exits: [{ name: 'Main exit', url: '' }], exclude: {} };
-  }
-
-  function merge(def, val) {
-    if (val === undefined || val === null) return clone(def);
-    if (typeof def !== 'object' || def === null || Array.isArray(def)) return val;
-    const out = {};
-    Object.keys(def).forEach((k) => { out[k] = merge(def[k], val[k]); });
-    Object.keys(val).forEach((k) => { if (!(k in out)) out[k] = val[k]; });
-    return out;
   }
 
   function normalizeSession(raw) {
@@ -146,24 +76,16 @@
   const ctxs = {};
 
   function makeCtx(data, oldCache) {
+    const idx = Layers.indexTree(data.tree);
     const ctx = {
       id: data.info.id,
       info: data.info,
       tree: data.tree,
       session: normalizeSession(data.session),
-      index: {},
-      order: [],
+      index: idx.index,
+      order: idx.order,
       cache: oldCache || { items: {}, masks: {}, bg: null, processed: {}, warnings: [], pending: null }
     };
-    const walk = (nodes, parentNode, depth) => nodes.forEach((n) => {
-      n.parent = parentNode;
-      n.depth = depth;
-      n.order = ctx.order.length;
-      ctx.order.push(n);
-      ctx.index[n.id] = n;
-      walk(n.children, n, depth + 1);
-    });
-    walk(ctx.tree, null, 0);
     ctx.session.elements.forEach((el) => {
       const n = ctx.index[el.id];
       if (!n) return;
@@ -187,16 +109,10 @@
   const sess = () => S.ctx && S.ctx.session;
   const elById = (id) => sess() && sess().elements.find((e) => e.id === id);
   const isAdded = (id) => !!sess() && sess().elements.some((e) => e.id === id);
-  const expOf = (ctx, id) => Object.assign({}, DEFAULT_EXPORT, ctx.session.exportOpts[id]);
+  const expOf = (ctx, id) => Images.exportOptions(ctx.session.exportOpts[id]);
 
   function addedDescendants(ctx, id) {
-    const node = ctx.index[id];
-    if (!node) return [];
-    const ids = new Set(ctx.session.elements.map((e) => e.id));
-    const out = [];
-    const walk = (n) => n.children.forEach((c) => { if (ids.has(c.id)) out.push(c.id); walk(c); });
-    walk(node);
-    return out;
+    return Layers.descendantsIn(ctx.index, id, new Set(ctx.session.elements.map((e) => e.id)));
   }
 
   // -------------------------------------------------------------------------
@@ -229,49 +145,8 @@
   }
 
   // -------------------------------------------------------------------------
-  // Labels
-  // -------------------------------------------------------------------------
-  const TYPE_LABELS = {
-    TEXT: 'Text', GROUP: 'Group', FRAME: 'Frame', COMPONENT: 'Component', INSTANCE: 'Instance',
-    RECTANGLE: 'Rectangle', ELLIPSE: 'Ellipse', VECTOR: 'Vector', BOOLEAN_OPERATION: 'Boolean',
-    STAR: 'Star', LINE: 'Line', POLYGON: 'Polygon', COMPONENT_SET: 'Variants'
-  };
-
-  function typeLabel(n) {
-    return TYPE_LABELS[n.type] || (n.type.charAt(0) + n.type.slice(1).toLowerCase().replace(/_/g, ' '));
-  }
-
-  function typeIcon(n) {
-    if (!n) return 'shape';
-    if (n.type === 'TEXT') return 'text';
-    if (n.img) return 'image';
-    if (n.type === 'GROUP') return 'group';
-    if (CONTAINER_TYPES.indexOf(n.type) !== -1) return 'frame';
-    return 'shape';
-  }
-
-  function options(map, value) {
-    return Object.keys(map).map((k) => {
-      const label = typeof map[k] === 'string' ? map[k] : map[k].label;
-      return '<option value="' + esc(k) + '"' + (String(k) === String(value) ? ' selected' : '') + '>' + esc(label) + '</option>';
-    }).join('');
-  }
-
-  // -------------------------------------------------------------------------
   // Left panel — layer tree
   // -------------------------------------------------------------------------
-  function matchesFilter(n) {
-    if (!S.filter.hidden && !n.visible) return false;
-    if (S.filter.inHtml && !isAdded(n.id)) return false;
-    const k = S.filter.kind;
-    if (k === 'text' && n.type !== 'TEXT') return false;
-    if (k === 'image' && !n.img) return false;
-    if (k === 'vector' && (n.img || VECTOR_TYPES.indexOf(n.type) === -1)) return false;
-    if (k === 'container' && CONTAINER_TYPES.indexOf(n.type) === -1) return false;
-    if (S.search && n.name.toLowerCase().indexOf(S.search.toLowerCase()) === -1) return false;
-    return true;
-  }
-
   function renderTree() {
     const ctx = S.ctx;
     const box = $('tree');
@@ -279,49 +154,24 @@
       box.innerHTML = '<div class="empty">Select a banner frame in Figma (e.g. 300×250).<br>Its layers appear here — add the ones you want to animate.</div>';
       return;
     }
-    const rows = [];
-    const flat = !!S.search || S.filter.kind !== 'all' || S.filter.inHtml;
-    if (flat) {
-      ctx.order.forEach((n) => { if (matchesFilter(n)) rows.push({ n: n, depth: 0, flat: true }); });
-    } else {
-      const walk = (nodes) => nodes.forEach((n) => {
-        if (!S.filter.hidden && !n.visible) return;
-        rows.push({ n: n, depth: n.depth });
-        if (S.expanded[n.id]) walk(n.children);
-      });
-      walk(ctx.tree);
-    }
+    const rows = Layers.visibleRows(ctx.tree, ctx.order, S, isAdded);
     box.innerHTML = rows.length ? rows.map(nodeCard).join('') : '<div class="empty">No layers match.</div>';
     renderBulkNodes();
   }
 
   function nodeCard(row) {
     const n = row.n;
-    const ctx = S.ctx;
     const added = isAdded(n.id);
     const el = added ? elById(n.id) : null;
-    const x = expOf(ctx, n.id);
-    const hasKids = n.children.length && !row.flat;
-    const meta = (added ? '<span class="ok">✓ In HTML</span> · ' : '') + n.w + ' × ' + n.h + ' · ' + typeLabel(n) +
-      (n.isMask ? ' · mask' : '') + (!n.visible ? ' · <span class="hid">hidden</span>' : '') +
-      (row.flat && n.parent ? ' · in ' + esc(n.parent.name) : '');
-    return '<div class="node' + (added ? ' in-html' : '') + (S.canvasSel.indexOf(n.id) !== -1 ? ' canvas-sel' : '') + '" data-node="' + n.id + '" style="margin-left:' + Math.min(row.depth, 6) * 18 + 'px">' +
-      '<div class="row">' +
-        (hasKids ? '<button class="caret' + (S.expanded[n.id] ? '' : ' closed') + '" data-act="toggle-node" title="Expand">' + icon('chevron-down') + '</button>' : '<span class="caret-space"></span>') +
-        '<input type="checkbox" class="cb" data-act="check-node"' + (S.checkedNodes.has(n.id) ? ' checked' : '') + '>' +
-        '<span class="type-ic">' + icon(typeIcon(n)) + '</span>' +
-        '<div class="info"><div class="name">' + esc(n.name) + '</div><div class="meta">' + meta + '</div></div>' +
-        '<button class="icon-btn ghost sm" data-act="locate" title="Select in Figma">' + icon('locate') + '</button>' +
-        '<button class="btn add-btn' + (added ? ' remove' : '') + '" data-act="' + (added ? 'remove-node' : 'add-node') + '">' + (added ? 'Remove' : '+ Add') + '</button>' +
-      '</div>' +
-      '<div class="row2">' +
-        '<select data-xf="mode" title="Framed: crop to the banner · Full: keep the whole layer">' + options({ framed: 'Framed', full: 'Full' }, x.mode) + '</select>' +
-        '<select data-xf="scale" title="Export scale">' + options({ 1: '1x', 2: '2x', 3: '3x' }, x.scale) + '</select>' +
-        '<select data-xf="format" title="Image format">' + options({ png: 'PNG', jpg: 'JPG', svg: 'SVG' }, x.format) + '</select>' +
-        '<span class="grow"></span>' +
-        (el && n.maskId ? '<button class="icon-btn sm clip-btn' + (el.clip ? ' on' : '') + '" data-act="toggle-clip" title="Clip to mask “' + esc(n.maskName || '') + '”">' + icon('mask') + '</button>' : '') +
-      '</div>' +
-    '</div>';
+    return Layers.layerRow(row, {
+      added: added,
+      addedLabel: 'In HTML',
+      checked: S.checkedNodes.has(n.id),
+      expanded: !!S.expanded[n.id],
+      canvasSel: S.canvasSel.indexOf(n.id) !== -1,
+      exp: S.ctx.session.exportOpts[n.id],
+      clip: el && n.maskId ? { on: el.clip, maskName: n.maskName } : null
+    });
   }
 
   function renderBulkNodes() {
@@ -339,11 +189,7 @@
     f.hidden = !S.showFilters;
     $('filtersBtn').classList.toggle('on', S.filter.kind !== 'all' || S.filter.inHtml || !S.filter.hidden);
     if (!S.showFilters) return;
-    const kinds = { all: 'All', text: 'Text', image: 'Images', vector: 'Shapes', container: 'Groups & frames' };
-    f.innerHTML = Object.keys(kinds).map((k) => '<button class="chip' + (S.filter.kind === k ? ' on' : '') + '" data-act="filter-kind" data-kind="' + k + '">' + kinds[k] + '</button>').join('') +
-      '<span class="grow"></span>' +
-      '<label class="inline-check"><input type="checkbox" data-filter="inHtml"' + (S.filter.inHtml ? ' checked' : '') + '>In HTML only</label>' +
-      '<label class="inline-check"><input type="checkbox" data-filter="hidden"' + (S.filter.hidden ? ' checked' : '') + '>Show hidden</label>';
+    f.innerHTML = Layers.filterControls(S.filter);
   }
 
   function addElements(ids) {
@@ -648,7 +494,7 @@
       if (!raw) continue;
       const x = expOf(ctx, el.id);
       const pk = key + '|' + x.mode + '|' + (compress ? 1 : 0);
-      if (!c.processed[pk]) c.processed[pk] = processImage(raw, x.mode === 'framed' ? frame : null, compress);
+      if (!c.processed[pk]) c.processed[pk] = Images.processImage(raw, x.mode === 'framed' ? frame : null, compress);
       const img = await c.processed[pk];
       if (img) items[el.id] = img;
       if (el.clip && el.maskId && c.masks[el.maskId + '|2']) masks[el.maskId] = c.masks[el.maskId + '|2'];
@@ -660,61 +506,6 @@
       masks: masks,
       warnings: c.warnings || []
     };
-  }
-
-  function canvasBytes(canvas, type, quality) {
-    return new Promise((resolve, reject) => {
-      canvas.toBlob((blob) => {
-        if (!blob) return reject(new Error('Image encoding failed'));
-        blob.arrayBuffer().then((buf) => resolve(new Uint8Array(buf)), reject);
-      }, type, quality);
-    });
-  }
-
-  async function decode(img) {
-    return createImageBitmap(new Blob([img.bytes], { type: G.MIME[img.ext] }));
-  }
-
-  // Crops to the banner ("Framed") and optionally re-encodes opaque images as JPG.
-  async function processImage(raw, frame, compress) {
-    if (raw.ext === 'svg') return raw;
-    let img = raw;
-    try {
-      if (frame) {
-        const x0 = Math.max(0, raw.x), y0 = Math.max(0, raw.y);
-        const x1 = Math.min(frame.W, raw.x + raw.width), y1 = Math.min(frame.H, raw.y + raw.height);
-        if (x1 <= x0 || y1 <= y0) return null;
-        const cropped = x0 > raw.x + 0.5 || y0 > raw.y + 0.5 || x1 < raw.x + raw.width - 0.5 || y1 < raw.y + raw.height - 0.5;
-        if (cropped) {
-          const bmp = await decode(raw);
-          const sx = bmp.width / raw.width, sy = bmp.height / raw.height;
-          const canvas = document.createElement('canvas');
-          canvas.width = Math.max(1, Math.round((x1 - x0) * sx));
-          canvas.height = Math.max(1, Math.round((y1 - y0) * sy));
-          canvas.getContext('2d').drawImage(bmp, Math.round((x0 - raw.x) * sx), Math.round((y0 - raw.y) * sy), canvas.width, canvas.height, 0, 0, canvas.width, canvas.height);
-          img = Object.assign({}, raw, { x: x0, y: y0, width: x1 - x0, height: y1 - y0, bytes: await canvasBytes(canvas, G.MIME[raw.ext], 0.9) });
-        }
-      }
-      if (compress) img = await compressImage(img);
-    } catch (e) {
-      console.warn('Image processing failed', e);
-    }
-    return img;
-  }
-
-  async function compressImage(img) {
-    const bmp = await decode(img);
-    const canvas = document.createElement('canvas');
-    canvas.width = bmp.width;
-    canvas.height = bmp.height;
-    const g = canvas.getContext('2d');
-    g.drawImage(bmp, 0, 0);
-    if (img.ext === 'png') {
-      const data = g.getImageData(0, 0, canvas.width, canvas.height).data;
-      for (let i = 3; i < data.length; i += 4) if (data[i] < 255) return img; // keep transparency
-    }
-    const jpg = await canvasBytes(canvas, 'image/jpeg', 0.82);
-    return jpg.length < img.bytes.length ? Object.assign({}, img, { ext: 'jpg', bytes: jpg }) : img;
   }
 
   // -------------------------------------------------------------------------
@@ -938,7 +729,7 @@
     for (const b of packageBanners()) {
       try {
         const r = await buildPackageBanner(b.id, false);
-        const zip = await G.makeZip(r.out.files);
+        const zip = await Zip.makeZip(r.out.files);
         if (token !== measureToken) return;
         S.zipSizes[b.id] = { bytes: zip.length };
       } catch (e) {
@@ -960,17 +751,6 @@
     const btn = $('downloadAllBtn');
     btn.disabled = !p.channel || !n;
     btn.title = !p.channel ? 'Choose a channel first' : !n ? 'No sizes to export' : '';
-  }
-
-  function download(data, name, type) {
-    const url = URL.createObjectURL(new Blob([data], { type: type || 'application/zip' }));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(() => URL.revokeObjectURL(url), 4000);
   }
 
   async function buildPackageBanner(id, preview) {
@@ -997,14 +777,14 @@
       for (const b of list) {
         $('filesCount').textContent = 'Packaging ' + b.width + '×' + b.height + '…';
         const r = await buildPackageBanner(b.id, false);
-        const data = await G.makeZip(r.out.files);
+        const data = await Zip.makeZip(r.out.files);
         S.zipSizes[b.id] = { bytes: data.length };
         if (data.length > G.sizeLimit(b.width, b.height)) over.push(b.width + '×' + b.height + ' (' + kb(data.length) + ')');
         zips.push({ name: G.slug(r.ctx.info.name) + '_' + r.ctx.info.width + 'x' + r.ctx.info.height + '_' + channel + '.zip', data: data });
       }
       updateZipSizes();
       if (zips.length === 1) download(zips[0].data, zips[0].name);
-      else download(await G.makeZip(zips, { store: true }), 'banners_' + channel + '.zip');
+      else download(await Zip.makeZip(zips, { store: true }), 'banners_' + channel + '.zip');
       call('notify', { text: 'Packaged ' + zips.length + ' banner' + (zips.length > 1 ? 's' : '') + ' for ' + G.CHANNELS[channel].label });
       if (over.length) setStatus('Over the size limit: ' + over.join(', ') + '.', true);
       else if (S.pkg.exits[0].url) setStatus('Downloaded ' + zips.length + ' banner' + (zips.length > 1 ? 's' : '') + '.');
@@ -1394,13 +1174,8 @@
     }
     const m = d.pluginMessage;
     if (!m) return;
-    if (m.type === 'response') {
-      const w = waiting[m.id];
-      if (!w) return;
-      delete waiting[m.id];
-      if (m.error) w.reject(new Error(m.error));
-      else w.resolve(m.result);
-    } else if (m.type === 'selection') {
+    if (rpc.handle(m)) return;
+    if (m.type === 'selection') {
       onCanvasSelection(m);
     } else if (m.type === 'banners') {
       S.banners = m.banners;
@@ -1421,7 +1196,7 @@
   window.addEventListener('resize', () => layoutStage());
 
   async function init() {
-    hydrateIcons();
+    hydrateIcons(document);
     renderAll();
     try {
       const r = await call('init');

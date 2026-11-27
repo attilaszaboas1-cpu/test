@@ -1,6 +1,7 @@
 const test = require('node:test');
 const assert = require('node:assert');
 const G = require('../src/generator.js');
+const Zip = require('../../core/zip.js');
 
 function scene(on, over) {
   return Object.assign({
@@ -224,60 +225,6 @@ test('size limits: 150 KB, 200 KB for 300x600', () => {
   assert.strictEqual(G.sizeLimit(300, 600), 200000);
 });
 
-// Reads a ZIP with zlib (independent of the writer) and returns { name: { method, data } }.
-function readZip(zip) {
-  const zlib = require('node:zlib');
-  const buf = Buffer.from(zip);
-  const out = {};
-  const end = buf.length - 22;
-  assert.strictEqual(buf.readUInt32LE(end), 0x06054b50);
-  const count = buf.readUInt16LE(end + 10);
-  let p = buf.readUInt32LE(end + 16);
-  for (let i = 0; i < count; i++) {
-    assert.strictEqual(buf.readUInt32LE(p), 0x02014b50);
-    const method = buf.readUInt16LE(p + 10);
-    const crc = buf.readUInt32LE(p + 16);
-    const csize = buf.readUInt32LE(p + 20);
-    const usize = buf.readUInt32LE(p + 24);
-    const nlen = buf.readUInt16LE(p + 28);
-    const xlen = buf.readUInt16LE(p + 30);
-    const clen = buf.readUInt16LE(p + 32);
-    const off = buf.readUInt32LE(p + 42);
-    const name = buf.toString('utf8', p + 46, p + 46 + nlen);
-    assert.strictEqual(buf.readUInt32LE(off), 0x04034b50);
-    assert.strictEqual(buf.readUInt16LE(off + 8), method, name + ': local/central method match');
-    const start = off + 30 + buf.readUInt16LE(off + 26) + buf.readUInt16LE(off + 28);
-    const body = buf.subarray(start, start + csize);
-    const data = method === 8 ? zlib.inflateRawSync(body) : body;
-    assert.strictEqual(data.length, usize, name + ' size');
-    assert.strictEqual(zlib.crc32 ? zlib.crc32(data) : crc, crc, name + ' crc');
-    out[name] = { method, data, csize };
-    p += 46 + nlen + xlen + clen;
-  }
-  return out;
-}
-
-test('makeZip deflates text and round-trips every file', async () => {
-  const html = '<div class="l">hello banner</div>\n'.repeat(400);
-  const random = new Uint8Array(4096).map((_, i) => (i * 2654435761) >>> 24); // incompressible-ish
-  const zip = await G.makeZip([{ name: 'index.html', data: html }, { name: 'images/a.png', data: random }]);
-  const files = readZip(zip);
-  assert.deepStrictEqual(Object.keys(files), ['index.html', 'images/a.png']);
-  assert.strictEqual(files['index.html'].method, 8, 'html is deflated');
-  assert.ok(files['index.html'].csize < html.length / 10, 'repetitive html shrinks a lot');
-  assert.strictEqual(files['index.html'].data.toString('utf8'), html);
-  assert.deepStrictEqual(new Uint8Array(files['images/a.png'].data), random);
-  assert.ok(zip.length < html.length, 'zip is smaller than the html alone');
-});
-
-test('makeZip stores files that deflate cannot shrink, and store mode stores everything', async () => {
-  const tiny = new Uint8Array([1, 2, 3]);
-  const files = readZip(await G.makeZip([{ name: 'x.bin', data: tiny }]));
-  assert.strictEqual(files['x.bin'].method, 0);
-  const stored = readZip(await G.makeZip([{ name: 'a.txt', data: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' }], { store: true }));
-  assert.strictEqual(stored['a.txt'].method, 0);
-});
-
 test('a packaged banner zip passes unzip -t', async (t) => {
   const { execFileSync } = require('node:child_process');
   const fs = require('node:fs');
@@ -288,7 +235,7 @@ test('a packaged banner zip passes unzip -t', async (t) => {
   try {
     for (const ch of Object.keys(G.CHANNELS)) {
       const file = path.join(dir, ch + '.zip');
-      fs.writeFileSync(file, await G.makeZip(sampleBanner(ch).files));
+      fs.writeFileSync(file, await Zip.makeZip(sampleBanner(ch).files));
       const log = execFileSync('unzip', ['-t', file]).toString();
       assert.match(log, /No errors detected/, ch);
     }

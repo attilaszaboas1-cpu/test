@@ -5,10 +5,12 @@ Turn Figma banner frames into animated HTML5 ads, then package them for an ad ch
 ## Install (development)
 
 1. Open the **Figma desktop app**.
-2. Go to **Plugins → Development → Import plugin from manifest…** and choose `manifest.json`.
+2. Go to **Plugins → Development → Import plugin from manifest…** and choose `packages/banner/manifest.json`.
 3. Run it from **Plugins → Development → Banner Automation**.
 
-The committed `ui.html` is already built, so you don't need to build anything to use the plugin.
+The committed `code.js` and `ui.html` are already built, so you don't need to build anything to use the plugin.
+
+> Imported the plugin before this repo became a monorepo? Remove the old entry in Figma and import `packages/banner/manifest.json` instead.
 
 ## How it works
 
@@ -73,20 +75,40 @@ The committed `ui.html` is already built, so you don't need to build anything to
 
 The animation is pure CSS `@keyframes` with no runtime library. The output includes `<meta name="ad.size">` and respects `prefers-reduced-motion`.
 
+## Repository layout
+
+```
+packages/
+  core/                shared by every plugin
+    figma/             main thread: layer tree (tree.js), selection sync (selection.js),
+                       image export (export.js), saved sessions (storage.js), RPC (rpc.js)
+    ui/                UI: RPC client, icons, layer tree component (layers.js),
+                       crop/compress (images.js), base.css (tokens and shared components)
+    zip.js             ZIP writer (deflate)
+    text.js            HTML escaping, slugs
+  banner/              Banner Automation plugin
+    manifest.json      import this in Figma
+    code.js, ui.html   built files (committed)
+    plugin.config.js   build inputs
+    src/main.js        Figma main thread
+    src/app.js         UI logic
+    src/generator.js   HTML5 banner generator
+    src/ui.css, src/ui.template.html
+  email/               reserved for the email plugin
+tools/
+  build.js             builds every packages/*/plugin.config.js into code.js + ui.html
+  bundle.js            tiny CommonJS bundler (Figma needs single files)
+```
+
+Each plugin has its own `manifest.json`, so you can import it into Figma on its own. Plugin code uses `require('../../core/...')`, and the build turns that into single files. There are no npm dependencies.
+
 ## Development
 
 ```
-src/generator.js     HTML/CSS/ZIP generator (shared with the tests)
-src/app.js           plugin UI logic
-src/ui.css           UI styles
-src/ui.template.html UI markup
-code.js              Figma main thread (layer tree, plugin data, image export)
-build.js             inlines src/ into ui.html
+npm run build   # regenerate every plugin's code.js and ui.html after editing sources
+npm test        # all tests (core, plugins, bundler)
 ```
 
-```
-npm run build   # regenerate ui.html after editing src/
-npm test        # generator unit tests
-```
+The tests run `code.js` against a fake Figma API (`packages/core/test/fake-figma.js`). They also fail when the committed `code.js` or `ui.html` is out of date with its sources.
 
 Sessions are stored as plugin data on each banner frame, and package settings are stored on the document.

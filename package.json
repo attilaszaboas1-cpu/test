@@ -1,10 +1,10 @@
 {
   "name": "figma-banner-automation",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "private": true,
-  "description": "Figma plugin that turns banner frames into animated HTML5 ads",
+  "description": "Figma plugins for exporting production ad assets (banners now, emails later)",
   "scripts": {
-    "build": "node build.js",
-    "test": "node --test test/*.test.js"
+    "build": "node tools/build.js",
+    "test": "node --test \"packages/*/test/*.test.js\" \"tools/test/*.test.js\""
   }
 }
